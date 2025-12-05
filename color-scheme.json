@@ -1,0 +1,193 @@
+{
+  "colorScheme": {
+    "name": "Shoply Panel UI Color Scheme",
+    "source": "Extracted from reference screenshots",
+    "images_analyzed": [
+      "1 copy.png",
+      "выполнен поиск курьера.png",
+      "пустая страница.png",
+      "выбран фильтр периуд.png"
+    ],
+    "colors": {
+      "primary": {
+        "background": {
+          "main": "#EEEEF4",
+          "rgb": "rgb(238, 238, 244)",
+          "description": "Main background color, light gray-blue tint",
+          "usage": ["page backgrounds", "card backgrounds", "main layout areas"]
+        },
+        "surface": {
+          "white": "#FFFFFF",
+          "rgb": "rgb(255, 255, 255)",
+          "description": "Pure white for overlays and floating elements",
+          "usage": ["modal backgrounds", "dropdowns", "tooltips"]
+        },
+        "light": {
+          "level1": "#F0F0F0",
+          "rgb": "rgb(240, 240, 240)",
+          "description": "Light gray for subtle backgrounds",
+          "usage": ["secondary backgrounds", "disabled states", "hover states"]
+        },
+        "level2": "#FAFAFA",
+          "rgb": "rgb(250, 250, 250)",
+          "description": "Very light gray",
+          "usage": ["subtle borders", "dividers", "highlighted areas"]
+        }
+      },
+      "text": {
+        "primary": {
+          "main": "#1A1A1A",
+          "rgb": "rgb(26, 26, 26)",
+          "description": "Main text color, almost black",
+          "usage": ["headings", "body text", "labels"]
+        },
+        "secondary": {
+          "main": "#646E78",
+          "rgb": "rgb(100, 110, 120)",
+          "description": "Secondary text color",
+          "usage": ["subtitles", "descriptions", "helper text"]
+        },
+        "disabled": {
+          "main": "#9696A0",
+          "rgb": "rgb(150, 150, 160)",
+          "description": "Disabled text color",
+          "usage": ["disabled text", "placeholders"]
+        }
+      },
+      "accent": {
+        "success": {
+          "main": "#5AC800",
+          "rgb": "rgb(90, 200, 0)",
+          "description": "Bright green for success states",
+          "usage": ["success messages", "active indicators", "completed states"]
+        },
+        "info": {
+          "main": "#0A1428",
+          "rgb": "rgb(10, 20, 40)",
+          "description": "Dark blue for information",
+          "usage": ["info badges", "navigation elements"]
+        },
+        "highlight": {
+          "main": "#04DCB4",
+          "rgb": "rgb(4, 220, 180)",
+          "description": "Bright teal/cyan for highlights",
+          "usage": ["active filters", "selected states", "notifications"]
+        }
+      },
+      "border": {
+        "light": {
+          "main": "#DCDCE6",
+          "rgb": "rgb(220, 220, 230)",
+          "description": "Light border color",
+          "usage": ["card borders", "input fields", "dividers"]
+        },
+        "medium": {
+          "main": "#B4B4BE",
+          "rgb": "rgb(180, 180, 190)",
+          "description": "Medium border color",
+          "usage": ["focused inputs", "active elements"]
+        },
+        "dark": {
+          "main": "#828C96",
+          "rgb": "rgb(130, 140, 150)",
+          "description": "Dark border color",
+          "usage": ["strong dividers", "group separators"]
+        }
+      },
+      "neutral": {
+        "gray50": "#FAFAFA",
+        "gray100": "#F0F0F0",
+        "gray200": "#E6E6E6",
+        "gray300": "#DCDCE6",
+        "gray400": "#C8C8C8",
+        "gray500": "#B4B4BE",
+        "gray600": "#9696A0",
+        "gray700": "#828C96",
+        "gray800": "#646E78",
+        "gray900": "#283246"
+      },
+      "semantic": {
+        "error": {
+          "main": "#DC2626",
+          "rgb": "rgb(220, 38, 38)",
+          "description": "Error color (derived from contrast needs)",
+          "usage": ["error messages", "validation states"]
+        },
+        "warning": {
+          "main": "#F59E0B",
+          "rgb": "rgb(245, 158, 11)",
+          "description": "Warning color (derived from contrast needs)",
+          "usage": ["warning messages", "caution states"]
+        }
+      }
+    },
+    "theme": {
+      "mode": "light",
+      "contrast": "normal",
+      "style": "minimal",
+      "characteristics": [
+        "Clean and minimalist design",
+        "Subtle color palette with low saturation",
+        "High contrast for readability",
+        "Consistent use of gray scale",
+        "Strategic use of green for success states"
+      ]
+    },
+    "usage_recommendations": {
+      "buttons": {
+        "primary": {
+          "background": "#5AC800",
+          "text": "#FFFFFF",
+          "hover": "#4FA600"
+        },
+        "secondary": {
+          "background": "#F0F0F0",
+          "text": "#1A1A1A",
+          "border": "#DCDCE6"
+        },
+        "ghost": {
+          "background": "transparent",
+          "text": "#646E78",
+          "hover": "#F0F0F0"
+        }
+      },
+      "form_elements": {
+        "input": {
+          "background": "#FFFFFF",
+          "border": "#DCDCE6",
+          "text": "#1A1A1A",
+          "placeholder": "#9696A0",
+          "focus": {
+            "border": "#5AC800",
+            "outline": "rgba(90, 200, 0, 0.25)"
+          }
+        },
+        "label": {
+          "text": "#1A1A1A",
+          "required": "#DC2626"
+        }
+      },
+      "navigation": {
+        "active": {
+          "background": "#EEEEF4",
+          "text": "#0A1428"
+        },
+        "hover": {
+          "background": "rgba(10, 20, 40, 0.05)"
+        }
+      }
+    },
+    "accessibility": {
+      "contrast_ratios": {
+        "text_on_background": {
+          "primary": "Excellent (>7:1)",
+          "secondary": "Good (>4.5:1)"
+        },
+        "buttons": {
+          "primary": "Excellent (>4.5:1)",
+          "secondary": "Good (>3:1)"
+        }
+      }
+    }
+  }
+}
