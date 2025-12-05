@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DashboardLayout } from "@/components/layout";
 
 export default function ReportsLayout({
   children,
@@ -31,11 +32,10 @@ export default function ReportsLayout({
     },
   ];
 
-  
-  return (
-    <div className="container mx-auto">
+  const header = (
+    <div className="flex flex-col">
       {/* Header Section */}
-      <div className="mb-6 ml-6 mt-6 text-left">
+      <div className="mb-6 mt-18 text-left">
         <h1
           style={{
             fontFamily: 'Inter Tight',
@@ -50,7 +50,7 @@ export default function ReportsLayout({
         </h1>
       </div>
       {/* Tabs Section */}
-      <div className="mb-[18px] text-left ml-6">
+      <div className="text-left">
         <div className="inline-flex h-12 items-left justify-start rounded-lg bg-surface-light p-1 gap-2">
           {tabs.map((tab) => (
             <Link key={tab.href} href={tab.href}>
@@ -76,8 +76,13 @@ export default function ReportsLayout({
           ))}
         </div>
       </div>
-      {/* Page Content */}
-      <div className="text-left ml-6">{children}</div>
     </div>
+  );
+
+  return (
+    <DashboardLayout header={header}>
+      {/* Page Content */}
+      <div className="text-left mt-6">{children}</div>
+    </DashboardLayout>
   );
 }
