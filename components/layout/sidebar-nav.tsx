@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -60,7 +62,7 @@ NavItem.displayName = "NavItem";
 const navigationItems = [
   {
     title: "Отчеты",
-    href: "/",
+    href: "/reports",
     icon: <Home className="h-5 w-5" />,
   },
 ];

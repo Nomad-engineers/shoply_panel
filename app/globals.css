@@ -60,6 +60,7 @@
   /* Fonts */
   --font-primary: Inter, system-ui, -apple-system, sans-serif;
   --font-mono: JetBrains Mono, Consolas, monospace;
+  overscroll-behavior: none;
 }
 
 @theme inline {
