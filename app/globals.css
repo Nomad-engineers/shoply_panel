@@ -1,26 +1,143 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Background colors */
+  --color-background-main: #EEEEF4;
+  --color-background-surface: #FFFFFF;
+  --color-background-light-1: #F0F0F0;
+  --color-background-light-2: #FAFAFA;
+
+  /* Text colors */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #646E78;
+  --color-text-disabled: #9696A0;
+
+  /* Accent colors */
+  --color-accent-success: #5AC800;
+  --color-accent-info: #0A1428;
+  --color-accent-highlight: #04DCB4;
+  --color-accent-warning: #F59E0B;
+  --color-accent-error: #DC2626;
+
+  /* Border colors */
+  --color-border-light: #DCDCE6;
+  --color-border-medium: #B4B4BE;
+  --color-border-dark: #828C96;
+
+  /* Neutral colors */
+  --color-neutral-50: #FAFAFA;
+  --color-neutral-100: #F0F0F0;
+  --color-neutral-200: #E6E6E6;
+  --color-neutral-300: #DCDCE6;
+  --color-neutral-400: #C8C8C8;
+  --color-neutral-500: #B4B4BE;
+  --color-neutral-600: #9696A0;
+  --color-neutral-700: #828C96;
+  --color-neutral-800: #646E78;
+  --color-neutral-900: #283246;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* Border radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0px 1px 3px rgba(10, 20, 40, 0.08);
+  --shadow-md: 0px 4px 12px rgba(10, 20, 40, 0.12);
+  --shadow-lg: 0px 8px 24px rgba(10, 20, 40, 0.16);
+
+  /* Fonts */
+  --font-primary: Inter, system-ui, -apple-system, sans-serif;
+  --font-mono: JetBrains Mono, Consolas, monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Background */
+  --color-background: var(--color-background-main);
+  --color-surface: var(--color-background-surface);
+  --color-surface-light: var(--color-background-light-1);
+  --color-surface-lighter: var(--color-background-light-2);
+
+  /* Text */
+  --color-foreground: var(--color-text-primary);
+  --color-muted: var(--color-text-secondary);
+  --color-muted-foreground: var(--color-text-disabled);
+
+  /* Accent */
+  --color-primary: var(--color-accent-success);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-accent-info);
+  --color-secondary-foreground: #ffffff;
+  --color-accent: var(--color-accent-highlight);
+  --color-accent-foreground: #ffffff;
+  --color-destructive: var(--color-accent-error);
+  --color-destructive-foreground: #ffffff;
+
+  /* Border */
+  --color-border: var(--color-border-light);
+  --color-border-input: var(--color-border-light);
+  --color-border-ring: var(--color-accent-success);
+
+  /* Ring */
+  --color-ring: var(--color-accent-success);
+  --color-ring-offset: var(--color-background-surface);
+  --color-ring-offset-background: var(--color-background-main);
+
+  /* Fonts */
+  --font-sans: var(--font-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  font-family: var(--font-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background-main);
+  color: var(--color-foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Smooth transitions */
+* {
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-light-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-medium);
+  border-radius: var(--border-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-dark);
 }
