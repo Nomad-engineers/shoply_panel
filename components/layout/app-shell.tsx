@@ -13,7 +13,7 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex min-h-screen bg-background-main",
+          "flex min-h-screen bg-background-main p-4",
           className
         )}
       >
@@ -35,7 +35,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div
         ref={ref}
         className={cn(
-          "fixed left-0 top-0 h-screen w-[280px] bg-background-surface border-r border-border p-6 pt-8 z-10",
+          "relative w-[280px] bg-background-surface border-r border-border min-h-screen pt-8 z-10 bg-white rounded-3xl",
           className
         )}
       >
@@ -57,7 +57,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "flex-1 ml-[280px] min-h-screen bg-background-main",
+          "flex-1 min-h-screen bg-background-main",
           className
         )}
       >
@@ -79,7 +79,7 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
       <div
         ref={ref}
         className={cn(
-          "sticky top-0 z-20 flex h-[72px] items-center justify-between bg-background-surface border-b border-border px-8",
+          " z-20 flex h-[72px] items-center justify-between bg-background-surface  border-border px-8",
           className
         )}
       >
@@ -101,7 +101,7 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(
       <div
         ref={ref}
         className={cn(
-          "p-8",
+          "px-8 pt-8",
           className
         )}
       >
