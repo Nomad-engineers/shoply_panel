@@ -13,7 +13,7 @@
   interface DashboardLayoutProps {
     children: React.ReactNode;
     header?: React.ReactNode;
-    hideSidebar?: boolean; // <-- добавили новый проп
+    hideSidebar?: boolean; 
   }
 
   const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
@@ -35,5 +35,4 @@
     }
   );
 
-  DashboardLayout.displayName = "DashboardLayout";
   export {DashboardLayout}

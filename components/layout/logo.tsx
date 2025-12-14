@@ -1,14 +1,14 @@
-import * as React from "react";
 import Link from "next/link";
-
+import { forwardRef } from "react";
 import { cn } from "@/lib/theme";
+import { Badge } from "../ui";
 
 interface LogoProps {
   className?: string;
-  showBadge?: boolean; // ← включает/выключает фиолетовый Badge "Panel"
+  showBadge?: boolean; 
 }
 
-const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
+const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
   ({ className, showBadge = true }, ref) => {
     return (
       <Link
@@ -19,21 +19,17 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
           className
         )}
       >
-
-        {/* SHOPLY text */}
-        <span className="tracking-wide font-extrabold text-2xl ">SHOPLY</span>
-
-        {/* Purple badge "Panel" */}
+        <span className="tracking-wide font-extrabold text-2xl">SHOPLY</span>
         {showBadge && (
-          <span className="px-3 py-1 text-sm rounded-md bg-purple-500 text-white">
+          <Badge
+             variant="custom-purple"
+            className="px-3 py-1 text-sm rounded-md" 
+          >
             Panel
-          </span>
+          </Badge>
         )}
       </Link>
     );
   }
 );
-
-Logo.displayName = "Logo";
-
 export { Logo };

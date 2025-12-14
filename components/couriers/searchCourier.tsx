@@ -1,5 +1,7 @@
 'use client'
-import { Search } from 'lucide-react';
+import {  SearchIcon } from "lucide-react";
+import { Input } from "../ui";
+import { Button } from "../ui";
 
 type Props = {
   courierId: string;
@@ -10,22 +12,27 @@ type Props = {
 
 const SearchCourier: React.FC<Props> = ({ courierId, setCourierId, onSearch, isLoading }) => (
   <div className="flex items-center gap-6 mb-6">
-    <input
+    <Input
       type="text"
       value={courierId}
       onChange={(e) => /^\d*$/.test(e.target.value) && setCourierId(e.target.value)}
       placeholder="Введите ID курьера"
-      className="px-4 py-3 border border-gray-300 rounded-[12px]"
-      style={{ width: '354px', height: '48px', backgroundColor: 'rgba(238, 238, 244, 0.5)' }}
+      className="w-[354px] h-[48px] bg-[#EEEEF4]/50 rounded-[12px] px-4 py-3"
+      iconPosition="left"
     />
-    <button
-      onClick={onSearch}
-      disabled={!courierId || isLoading}
-      className="flex items-center gap-3 px-6 py-3 text-gray-950 rounded-[12px]"
-    >
-      <Search size={24} />
-      {isLoading ? 'Поиск...' : 'поиск'}
-    </button>
+    
+     <div onClick={onSearch} className="flex items-center">
+       <SearchIcon  />
+       <Button
+        variant="custom-transparent"
+        disabled={!courierId || isLoading}
+        size="sm"
+        className="flex items-center gap-3"
+      >
+        {isLoading ? "Поиск..." : "поиск"}
+      </Button>
+     </div>
+    
   </div>
 );
 

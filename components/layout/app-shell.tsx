@@ -110,6 +110,4 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(
     );
   }
 );
-Content.displayName = "Content";
-
 export { AppShell, Sidebar, Main, Header, Content };

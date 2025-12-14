@@ -9,8 +9,8 @@ import PayoutsTable from '@/components/couriers/payoutsTable';
 import InfoPanel from '@/components/couriers/infoPanel';
 import { CourierData } from '@/types/courier-info';
 import { CalculateDays } from '@/components/helpers/date-range';
-import { fetchWithSession } from '@/components/utils/fetch.util';
-
+import { fetchCourier, fetchPayouts } from '@/components/utils/courier-api';
+import ExportTable from '@/components/layout/export-table';
 const DeliveryPayoutsPage = () => {
   const [courierId, setCourierId] = useState('');
   const [activePeriod, setActivePeriod] = useState('day');
@@ -26,53 +26,36 @@ const DeliveryPayoutsPage = () => {
     { id: 'month', label: 'Текущий месяц' },
     { id: 'period', label: 'Период' },
   ];
-
-  const getToday = () => new Date().toISOString().split('T')[0];
-
- 
-
-  // ================= ПОИСК КУРЬЕРА =================
   const handleSearchCourier = async () => {
-  if (!courierId) return;
-  setIsLoading(true);
-  try {
-    const response = await fetchWithSession(`http://localhost:3001/admin/deliveryMan/${courierId}`);
-    if (response.ok) {
-      const info = await response.json();
-      setCourierFound(true);
-      setCourierData(info.data);
-      setPayoutsData(null); 
-    } else {
+    if (!courierId) return;
+    setIsLoading(true);
+    try {
+      const data = await fetchCourier(courierId);
+      if (data) {
+        setCourierFound(true);
+        setCourierData(data);
+        setPayoutsData(null);
+      } else {
+        setCourierFound(false);
+        setCourierData(null);
+        setPayoutsData(null);
+      }
+    } catch {
       setCourierFound(false);
       setCourierData(null);
-      setPayoutsData(null); 
+      setPayoutsData(null);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    setCourierFound(false);
-    setCourierData(null);
-    setPayoutsData(null); 
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   // ================= РАСЧЕТ ВЫПЛАТ =================
   const handleCalculate = async () => {
     if (!courierId || !activePeriod || !courierFound) return;
     setIsLoading(true);
     try {
-      let url = `http://localhost:3001/admin/delivery/${courierId}/payouts?periodType=${activePeriod}`;
-      if (activePeriod === 'day') url += `&dateFrom=${getToday()}`;
-      else if (activePeriod === 'month') url += `&dateFrom=${getToday()}`;
-      else if (activePeriod === 'period' && startDate && endDate) {
-        url += `&dateFrom=${startDate}&dateTo=${endDate}`;
-      }
-
-      const response = await fetchWithSession(url);
-      if (!response.ok) throw new Error('Ошибка при получении выплат');
-      const data = await response.json();
-      setPayoutsData(data.data);
+      const data = await fetchPayouts(courierId, activePeriod, startDate, endDate);
+      setPayoutsData(data);
     } catch {
       setPayoutsData(null);
     } finally {
@@ -86,11 +69,10 @@ const DeliveryPayoutsPage = () => {
     if (activePeriod === 'period') return !startDate || !endDate;
     return false;
   };
-
-  const dateRange = payoutsData?.date?.dateFrom && payoutsData?.date?.dateTo
+ 
+  const dateRange = payoutsData?.date.dateFrom && payoutsData?.date?.dateTo
     ? CalculateDays(payoutsData.date.dateFrom, payoutsData.date.dateTo)
     : 0;
-
   return (
     <div className="bg-white rounded-[24px] p-6 min-h-screen">
       <SearchCourier courierId={courierId} setCourierId={setCourierId} onSearch={handleSearchCourier} isLoading={isLoading} />
@@ -106,6 +88,7 @@ const DeliveryPayoutsPage = () => {
       {courierFound && courierData && payoutsData && (
         <InfoPanel courierData={courierData} payoutsData={payoutsData} activePeriod={activePeriod} dateRange={dateRange} />
       )}
+      {payoutsData && <ExportTable data={payoutsData.orders}/>}
     </div>
   );
 };

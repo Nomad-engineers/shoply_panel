@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/theme";
+import { forwardRef } from "react";
 
 interface PageHeaderProps {
   title: string;
@@ -9,7 +10,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
+const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(
   ({ title, subtitle, actions, className }, ref) => {
     return (
       <div
@@ -40,7 +41,6 @@ const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
     );
   }
 );
-PageHeader.displayName = "PageHeader";
 
 interface BreadcrumbItem {
   label: string;
@@ -83,6 +83,5 @@ const Breadcrumb = React.forwardRef<HTMLDivElement, BreadcrumbProps>(
     );
   }
 );
-Breadcrumb.displayName = "Breadcrumb";
 
 export { PageHeader, Breadcrumb };

@@ -20,12 +20,12 @@ const PayoutsTable: React.FC<Props> = ({ payoutsData }) => (
         </tr>
       </thead>
       <tbody>
-        {payoutsData.completedOrders.records.map((order: any, index: number) => (
+        {payoutsData.orders.map((order: any, index: number) => (
           <tr key={order.id} className="border">
             <td className="p-3 border">{index + 1}</td>
             <td className="p-3 border">{order.id}</td>
             <td className="p-3 border">{new Date(order.createdAt).toLocaleString('ru-RU')}</td>
-            <td className="p-3 border">{order.shop?.name || '-'}</td>
+            <td className="p-3 border">{order.shop || '-'}</td>
             <td className="p-3 border">{order.paymentMethod}</td>
             <td className="p-3 border">{order.subtotalPrice}</td>
             <td className="p-3 border">{order.deliveryCost}</td>

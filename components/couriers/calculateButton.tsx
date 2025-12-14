@@ -1,16 +1,18 @@
 'use client'
 
+import { Button } from "../ui";
+
 type Props = { onClick: () => void; disabled: boolean; isLoading: boolean };
 
 const CalculateButton: React.FC<Props> = ({ onClick, disabled, isLoading }) => (
-  <button
+  <Button
     onClick={onClick}
-    disabled={disabled}
-    className="px-6 py-2 text-white rounded-[12px]"
-    style={{ backgroundColor: !disabled ? '#55CB00' : 'rgba(9,9,29,0.25)' }}
+    disabled={disabled || isLoading}
+    size="default"
+    variant={"success"}
   >
-    {isLoading ? 'Загрузка...' : 'Расчет'}
-  </button>
+    {isLoading ? "Загрузка..." : "Расчет"}
+  </Button>
 );
 
 export default CalculateButton;

@@ -1,6 +1,6 @@
 'use client'
 import { CourierData } from '@/types/courier-info';
-import { formatDate } from '@/components/helpers/date-form';
+import { formatDate } from '../helpers/date-form';
 
 type Props = {
   courierData: CourierData;
@@ -48,18 +48,18 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
       </div>
       <div>
         <p className="text-gray-500 text-xs mb-1">Заказов</p>
-        <p className="font-bold text-lg">{payoutsData.completedOrders?.records?.length || 0}</p>
+        <p className="font-bold text-lg">{payoutsData.orders.length || 0}</p>
       </div>
       <div>
         <p className="text-gray-500 text-xs mb-1">Ставка</p>
         <p className="font-bold text-lg">
-          {payoutsData.completedOrders.records.reduce((sum:number,order:any)=>sum+order.deliveryCommission,0)} ₽
+          {payoutsData.orders.reduce((sum:number,order:any)=>sum+order.deliveryCommission,0)} ₽
         </p>
       </div>
       <div>
         <p className="text-gray-500 text-xs mb-1">Комиссия сервиса</p>
         <p className="font-bold text-lg">
-          {payoutsData.completedOrders.records.reduce((sum:number,order:any)=>sum+order.commissionService,0)} ₽
+          {payoutsData.orders.reduce((sum:number,order:any)=>sum+order.commissionService,0)} ₽
         </p>
       </div>
     </div>
