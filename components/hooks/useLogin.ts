@@ -14,6 +14,7 @@ interface UseAuthReturn {
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
+  refreshSession: () => Promise<string>;
 }
 
 export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
@@ -49,14 +50,9 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
         setError(result?.errors?.[0]?.message || "Неверный логин или пароль");
         return;
       }
-
-      // сохраняем токены
       localStorage.setItem("access_token", result.data.access_token);
       localStorage.setItem("refresh_token", result.data.refresh_token);
-
-      // подгружаем профиль
       await refreshProfile();
-
       router.push(redirectTo);
     } catch {
       setError("Ошибка при входе. Попробуйте позже.");
@@ -81,17 +77,44 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
     if (!directusUrl) return;
 
     try {
-      const res = await fetchWithSession(`${directusUrl}/users/me`);
+      const res = await fetchWithSession(
+        `${directusUrl}/users/me`,
+        () => localStorage.getItem("access_token"),
+        refreshSession
+      );
 
-      if (!res.ok) {
-        throw new Error("Не авторизован");
-      }
+      if (!res.ok) throw new Error();
 
       const result = await res.json();
       setAdminData(result.data ?? result);
     } catch {
       setAdminData(null);
     }
+  };
+
+  const refreshSession = async (): Promise<string> => {
+    if (!directusUrl) throw new Error("DIRECTUS_URL не определён");
+
+    const refresh = localStorage.getItem("refresh_token");
+    if (!refresh) throw new Error("Нет refresh токена");
+
+    const res = await fetch(`${directusUrl}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+
+    if (!res.ok) {
+      logout();
+      throw new Error("Не авторизован");
+    }
+
+    const data = await res.json();
+
+    localStorage.setItem("access_token", data.data.access_token);
+    localStorage.setItem("refresh_token", data.data.refresh_token);
+
+    return data.data.access_token;
   };
 
   // ================= AUTO LOAD PROFILE =================
@@ -106,5 +129,6 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
     login,
     logout,
     refreshProfile,
+    refreshSession,
   };
 };

@@ -1,25 +1,21 @@
-export const fetchWithSession = async (url: string) => {
-  let accessToken = localStorage.getItem("access_token");
+export async function fetchWithSession(
+  url: string,
+  getAccessToken: () => string | null,
+  refreshSession: () => Promise<string>
+) {
+  let token = getAccessToken();
 
-  const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL;
   let res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+
   if (res.status === 401) {
-    const refresh = localStorage.getItem("refresh_token");
-    const refreshRes = await fetch(`${directusUrl}/auth/refresh`, {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: refresh }),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!refreshRes.ok) throw new Error("Не авторизован");
-    const data = await refreshRes.json();
-    accessToken = data.data.access_token;
-    localStorage.setItem("access_token", accessToken as string);
-    localStorage.setItem("refresh_token", data.data.refresh_token);
+    token = await refreshSession();
+
     res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
+
   return res;
-};
+}

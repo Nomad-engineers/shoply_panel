@@ -19,7 +19,12 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
     }
     return `${formatDate(payoutsData.date.dateFrom)} — ${formatDate(payoutsData.date.dateTo)}`;
   };
-
+  const courierName =
+  courierData?.user?.firstName && courierData?.user?.lastName
+    ? `${courierData.user.firstName} ${courierData.user.lastName}`
+    : `Курьер ${courierData?.id}`;
+  const deliveryCommission=payoutsData.orders.reduce((sum:number,order:any)=>sum+order.deliveryCommission,0)
+  const commissionSerice= payoutsData.orders.reduce((sum:number,order:any)=>sum+order.commissionService,0)
   return (
     <div className="mt-10 w-full border-gray-200 flex items-center justify-between text-sm text-gray-900">
       <div>
@@ -33,9 +38,7 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
       <div>
         <p className="text-gray-500 text-xs mb-1">Курьер</p>
         <p className="font-bold text-lg">
-          {courierData?.user?.firstName && courierData?.user?.lastName
-            ? `${courierData.user.firstName} ${courierData.user.lastName}`
-            : `Курьер ${courierData.id}`}
+          {courierName}
         </p>
       </div>
       <div>
@@ -53,13 +56,13 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
       <div>
         <p className="text-gray-500 text-xs mb-1">Ставка</p>
         <p className="font-bold text-lg">
-          {payoutsData.orders.reduce((sum:number,order:any)=>sum+order.deliveryCommission,0)} ₽
+          {deliveryCommission} ₽
         </p>
       </div>
       <div>
         <p className="text-gray-500 text-xs mb-1">Комиссия сервиса</p>
         <p className="font-bold text-lg">
-          {payoutsData.orders.reduce((sum:number,order:any)=>sum+order.commissionService,0)} ₽
+         {commissionSerice} ₽
         </p>
       </div>
     </div>
