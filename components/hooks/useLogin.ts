@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchWithSession } from "../utils/fetch.util";
 
 interface LoginFormValues {
   email: string;
   password: string;
 }
-
+interface fetchSessionFn {
+  (
+    url: string,
+    getAccessToken: () => string | null,
+    refreshSession: () => Promise<string>
+  ): Promise<Response>;
+}
 interface UseAuthReturn {
   loading: boolean;
   error: string;
@@ -15,6 +20,7 @@ interface UseAuthReturn {
   logout: () => void;
   refreshProfile: () => Promise<void>;
   refreshSession: () => Promise<string>;
+  fetchWithSession: fetchSessionFn;
 }
 
 export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
@@ -91,6 +97,27 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
       setAdminData(null);
     }
   };
+  const fetchWithSession = async (
+    url: string,
+    getAccessToken: () => string | null,
+    refreshSession: () => Promise<string>
+  ) => {
+    let token = getAccessToken();
+
+    let res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (res.status === 401) {
+      token = await refreshSession();
+
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+
+    return res;
+  };
 
   const refreshSession = async (): Promise<string> => {
     if (!directusUrl) throw new Error("DIRECTUS_URL не определён");
@@ -130,5 +157,6 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
     logout,
     refreshProfile,
     refreshSession,
+    fetchWithSession,
   };
 };

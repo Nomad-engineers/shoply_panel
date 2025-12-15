@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { fetchWithSession } from "../utils/fetch.util";
 import { useAuth } from "./useLogin";
 
 export const useCourier = () => {
-  const { refreshSession } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+  const { refreshSession, fetchWithSession } = useAuth(
+    process.env.NEXT_PUBLIC_DIRECTUS_URL
+  );
   const [courier, setCourier] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

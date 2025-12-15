@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fetchWithSession } from "../utils/fetch.util";
+
 import { buildPeriodUrl } from "../helpers/date-picker";
 import { useAuth } from "./useLogin";
 
@@ -16,7 +16,9 @@ interface PayoutsData {
 }
 
 export const usePayouts = () => {
-  const { refreshSession } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+  const { refreshSession, fetchWithSession } = useAuth(
+    process.env.NEXT_PUBLIC_DIRECTUS_URL
+  );
   const [payouts, setPayouts] = useState<PayoutsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
