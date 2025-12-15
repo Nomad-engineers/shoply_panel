@@ -23,7 +23,7 @@ export function DateTimePicker({
         <label className="text-sm text-gray-600 mb-1">От:</label>
         <DatePicker
           selected={startDate}
-          onChange={onStartDateChange}
+          onChange={(date) => date && onStartDateChange(date)}
           selectsStart
           startDate={startDate}
           endDate={endDate}
@@ -41,7 +41,7 @@ export function DateTimePicker({
         <label className="text-sm text-gray-600 mb-1">До:</label>
         <DatePicker
           selected={endDate}
-          onChange={onEndDateChange}
+          onChange={(date) => date && onEndDateChange(date)}
           selectsEnd
           startDate={startDate}
           endDate={endDate}

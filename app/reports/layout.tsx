@@ -38,7 +38,7 @@ export default function ReportsLayout({
       <div className="mb-6 mt-18 text-left">
         <h1
           style={{
-            fontFamily: 'Inter Tight',
+            fontFamily: 'Inter',
             fontWeight: 700,
             fontStyle: 'Bold',
             fontSize: '24px',
@@ -51,14 +51,14 @@ export default function ReportsLayout({
       </div>
       {/* Tabs Section */}
       <div className="text-left">
-        <div className="inline-flex h-12 items-left justify-start rounded-lg bg-surface-light p-1 gap-2">
+        <div className="inline-flex h-12 items-left justify-start  p-1 gap-2 ">
           {tabs.map((tab) => (
             <Link key={tab.href} href={tab.href}>
               <button
-                className={`inline-flex items-left justify-start whitespace-nowrap rounded-md px-4 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-left ${
+                className={`inline-flex items-left justify-start whitespace-nowrap rounded-xl px-4 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-left ${
                   tab.active
                     ? "text-white bg-primary shadow-sm hover:bg-primary/90"
-                    : "text-muted hover:text-foreground hover:bg-surface"
+                    : " hover:text-foreground hover:bg-surface"
                 }`}
                 style={{
                   fontFamily: 'Inter',
