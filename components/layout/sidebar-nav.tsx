@@ -47,12 +47,12 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL;
     const { adminData, logout } = useAuth(directusUrl);
     const navigationItems = [
-      { title: "Отчеты", href: "/reports", icon: <Home className="h-5 w-5" /> },
+      { title: "Отчеты", href: "/reports/couriers", icon: <Home className="h-5 w-5" /> },
     ];
     const isLoggedIn = !!adminData;
 
   return (
-  <div ref={ref} className={cn("flex flex-col justify-between min-h-screen", className)}>
+  <div ref={ref} className={cn("flex flex-col justify-between ", className)}>
     <nav className="flex-1 overflow-auto">
       {navigationItems.map((item) => (
         <NavItem key={item.href} href={item.href} icon={item.icon}>

@@ -35,7 +35,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative w-[280px] bg-background-surface border-r border-border min-h-screen pt-8 z-10 bg-white rounded-3xl",
+          "relative w-[280px] bg-background-surface border-r border-border  pt-8 z-10 bg-white rounded-3xl",
           className
         )}
       >
@@ -57,7 +57,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "flex-1 min-h-screen bg-background-main",
+          "flex-1 bg-background-main",
           className
         )}
       >

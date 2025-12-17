@@ -23,8 +23,8 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
   courierData?.user?.firstName && courierData?.user?.lastName
     ? `${courierData.user.firstName} ${courierData.user.lastName}`
     : `Курьер ${courierData?.id}`;
-  const deliveryCommission=payoutsData.orders.reduce((sum:number,order:any)=>sum+order.deliveryCommission,0)
-  const commissionSerice= payoutsData.orders.reduce((sum:number,order:any)=>sum+order.commissionService,0)
+  const deliveryRate=payoutsData.orders.reduce((sum:number,order:any)=>sum+order.deliveryRate,0)
+  const commission=payoutsData.orders.reduce((sum:number,order:any)=>sum+order.subtotalPrice * order.deliveryCommission / 100,0)
   return (
     <div className="mt-10 w-full border-gray-200 flex items-center justify-between text-sm text-gray-900">
       <div>
@@ -56,13 +56,13 @@ const InfoPanel: React.FC<Props> = ({ courierData, payoutsData, activePeriod, da
       <div>
         <p className="text-gray-500 text-xs mb-1">Ставка</p>
         <p className="font-bold text-lg">
-          {deliveryCommission} ₽
+          {deliveryRate} ₽
         </p>
       </div>
       <div>
-        <p className="text-gray-500 text-xs mb-1">Комиссия сервиса</p>
+        <p className="text-gray-500 text-xs mb-1">Комиссия</p>
         <p className="font-bold text-lg">
-         {commissionSerice} ₽
+         {commission} ₽
         </p>
       </div>
     </div>

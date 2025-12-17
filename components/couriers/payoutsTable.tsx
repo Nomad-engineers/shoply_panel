@@ -17,10 +17,13 @@ const PayoutsTable: React.FC<Props> = ({ payoutsData }) => (
           <th className="p-3 border">Доставка</th>
           <th className="p-3 border">Ставка</th>
           <th className="p-3 border">Комиссия</th>
+          <th className="p-3 border">%</th>
         </tr>
       </thead>
       <tbody>
-        {payoutsData.orders.map((order: any, index: number) => (
+        {payoutsData.orders.map((order: any, index: number) => {
+          const commission = order.subtotalPrice * order.deliveryCommission / 100;
+          return(
           <tr key={order.id} className="border">
             <td className="p-3 border">{index + 1}</td>
             <td className="p-3 border">{order.id}</td>
@@ -29,10 +32,12 @@ const PayoutsTable: React.FC<Props> = ({ payoutsData }) => (
             <td className="p-3 border">{order.paymentMethod}</td>
             <td className="p-3 border">{order.subtotalPrice}</td>
             <td className="p-3 border">{order.deliveryCost}</td>
-            <td className="p-3 border">{order.deliveryCommission}</td>
-            <td className="p-3 border">{order.commissionService}</td>
+             <td className="p-3 border">{order.deliveryRate}</td>
+            <td className="p-3 border">{commission}</td>
+            <td className="p-3 border">{order.deliveryCommission} %</td>
           </tr>
-        ))}
+          )
+        })}
       </tbody>
     </table>
   </div>

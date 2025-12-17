@@ -53,7 +53,7 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result?.errors?.[0]?.message || "Неверный логин или пароль");
+        setError("Неверный логин или пароль");
         return;
       }
       localStorage.setItem("access_token", result.data.access_token);
@@ -75,7 +75,7 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
     } catch {}
 
     setAdminData(null);
-    router.push("/");
+    router.push("/login");
   };
 
   // ================= PROFILE =================
@@ -88,12 +88,12 @@ export const useAuth = (directusUrl: string | undefined): UseAuthReturn => {
         () => localStorage.getItem("access_token"),
         refreshSession
       );
-
       if (!res.ok) throw new Error();
 
       const result = await res.json();
       setAdminData(result.data ?? result);
-    } catch {
+    } catch (error) {
+      router.push("/login");
       setAdminData(null);
     }
   };
