@@ -53,7 +53,7 @@ const DeliveryPayoutsPage = () => {
       ? CalculateDays(payouts.date.dateFrom, payouts.date.dateTo)
       : 0;
   return (
-    <div className="bg-white rounded-3xl p-6 min-h-screen">
+    <div className="bg-white rounded-3xl p-6">
       <SearchCourier
         courierId={courierId}
         setCourierId={setCourierId}

@@ -1,9 +1,8 @@
 "use client"; 
 
-import React from "react";
+import React, { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { LoginForm } from "@/components/layout/login-form";
-
 const LoginPage: React.FC = () => {
   return (
     <DashboardLayout hideSidebar header={<h1 className="text-2xl font-bold text-green-700">Вход</h1>}>
