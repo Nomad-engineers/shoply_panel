@@ -16,19 +16,19 @@ export default function ReportsLayout({
       name: "Выплаты курьерам",
       href: "/reports/couriers",
       value: "couriers",
-      active: pathname === "/reports/couriers",
+      active: pathname.startsWith("/reports/couriers"),
     },
     {
       name: "Расчет с магазинами",
       href: "/reports/shops",
       value: "shops",
-      active: pathname === "/reports/shops",
+      active: pathname.startsWith("/reports/shops"),
     },
     {
       name: "Статистика",
       href: "/reports/statistics",
       value: "statistics",
-      active: pathname === "/reports/statistics",
+      active: pathname.startsWith("/reports/statistics"),
     },
   ];
 
