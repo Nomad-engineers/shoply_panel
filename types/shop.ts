@@ -59,3 +59,29 @@ export interface ShopStats {
     serviceIncome: number;
     photoUrl: string | null;
 }
+
+export interface PromocodeDto {
+    promocodeName: string;
+    valueForType: number;
+}
+
+export interface OrdersStatsDto {
+    notCompletedOrdersCount: number;
+    completedOrdersCount: number;
+    canceledOrdersCount: number;
+}
+
+export interface FinansShopDto {
+    cashTotal: string;
+    sbpTotal: string;
+    total: string;
+}
+
+export interface ShopOrdersResponse {
+    orders: ShopOrder[];
+    promocodes: PromocodeDto[];
+    ordersCount: OrdersStatsDto;
+    finansShop: FinansShopDto;
+    totalDeliveryPrice?: string;
+    shopName?: string;
+}
