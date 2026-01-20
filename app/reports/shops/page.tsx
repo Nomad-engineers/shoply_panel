@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { useShops } from "@/components/hooks/useShops";
+import { useAuth } from "@/components/hooks/useLogin";
 import { ShopStats } from "@/types/shop";
 
 type SortField = "id" | "name" | "orderCount" | "revenue" | "serviceIncome";
@@ -17,6 +18,24 @@ export default function ShopsPage() {
     isPublic: "true",
     dateFrom: new Date().toISOString().split("T")[0],
   });
+
+  const { adminData, loading: authLoading } = useAuth(
+    process.env.NEXT_PUBLIC_DIRECTUS_URL,
+  );
+
+  useEffect(() => {
+    if (authLoading || !adminData) return;
+
+    // Check if user has a shop ID (shop_owner or shop_member)
+    // AND is NOT an admin (just in case an admin also has a shop attached somehow)
+    const userShopId =
+      adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
+
+    if (userShopId && !adminData.isAdmin) {
+      router.replace(`/reports/shops/${userShopId}`);
+    }
+  }, [adminData, authLoading, router]);
+
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
@@ -40,7 +59,10 @@ export default function ShopsPage() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -60,7 +82,7 @@ export default function ShopsPage() {
 
   const sortedShops = useMemo(() => {
     if (!shopsStats.length) return [];
-    
+
     const sorted = [...shopsStats].sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
@@ -85,7 +107,7 @@ export default function ShopsPage() {
         revenue: acc.revenue + shop.revenue,
         serviceIncome: acc.serviceIncome + shop.serviceIncome,
       }),
-      { orderCount: 0, revenue: 0, serviceIncome: 0 }
+      { orderCount: 0, revenue: 0, serviceIncome: 0 },
     );
   }, [shopsStats]);
 
@@ -119,7 +141,7 @@ export default function ShopsPage() {
     ];
     const colorIndex = name.charCodeAt(0) % colors.length;
     const initial = name.charAt(0).toUpperCase();
-    
+
     return (
       <div
         className={`w-8 h-8 rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-semibold text-sm`}
@@ -154,7 +176,7 @@ export default function ShopsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Магазины</h1>
-        
+
         {/* Period Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -165,12 +187,15 @@ export default function ShopsPage() {
               fontFamily: "Inter",
             }}
           >
-            {periods.find(p => p.value === activePeriod)?.label || "Месяц"}
-            <ChevronDown size={16} className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+            {periods.find((p) => p.value === activePeriod)?.label || "Месяц"}
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+            />
           </button>
-          
+
           {isDropdownOpen && (
-            <div 
+            <div
               className="absolute right-0 mt-2 w-48 bg-white rounded-[12px] shadow-lg border border-gray-200 overflow-hidden z-10"
               style={{ fontFamily: "Inter" }}
             >
@@ -179,7 +204,9 @@ export default function ShopsPage() {
                   key={period.value}
                   onClick={() => handlePeriodChange(period.value)}
                   className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
-                    activePeriod === period.value ? "bg-green-50 text-[#55CB00] font-medium" : "text-gray-700"
+                    activePeriod === period.value
+                      ? "bg-green-50 text-[#55CB00] font-medium"
+                      : "text-gray-700"
                   }`}
                 >
                   {period.label}
@@ -194,7 +221,10 @@ export default function ShopsPage() {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b" style={{ borderColor: "rgba(220, 220, 230, 1)" }}>
+            <tr
+              className="border-b"
+              style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+            >
               <th
                 className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
                 onClick={() => handleSort("id")}
@@ -232,7 +262,11 @@ export default function ShopsPage() {
             {sortedShops.map((shop) => (
               <tr
                 key={shop.id}
-                onClick={() => router.push(`/reports/shops/${shop.id}?periodType=${activePeriod}`)}
+                onClick={() =>
+                  router.push(
+                    `/reports/shops/${shop.id}?periodType=${activePeriod}`,
+                  )
+                }
                 className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
@@ -259,7 +293,7 @@ export default function ShopsPage() {
                 </td>
               </tr>
             ))}
-            
+
             {/* Totals Row */}
             <tr className="">
               <td className="py-4 px-4 text-sm"></td>

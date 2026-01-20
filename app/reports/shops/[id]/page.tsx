@@ -24,15 +24,29 @@ export default function ShopDetailsPage() {
   const router = useRouter();
   const shopId = Number(params.id);
 
-  const { refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const {
+    refreshSession,
+    fetchWithSession,
+    adminData,
+    loading: authLoading,
+  } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+
+  useEffect(() => {
+    if (authLoading || !adminData) return;
+
+    const userShopId =
+      adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
+
+    if (userShopId && Number(userShopId) !== shopId && !adminData.isAdmin) {
+      router.replace(`/reports/shops/${userShopId}`);
+    }
+  }, [adminData, authLoading, shopId, router]);
 
   const searchParams = useSearchParams();
   const urlPeriod = searchParams.get("periodType") as PeriodType | null;
 
   const [activePeriod, setActivePeriod] = useState<PeriodType>(
-    urlPeriod || "month"
+    urlPeriod || "month",
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(() => {
@@ -72,7 +86,7 @@ export default function ShopDetailsPage() {
         const res = await fetchWithSession(
           `${process.env.NEXT_PUBLIC_API_URL}/shops/${shopId}`,
           () => localStorage.getItem("access_token"),
-          refreshSession
+          refreshSession,
         );
 
         if (res.ok) {
@@ -219,8 +233,8 @@ export default function ShopDetailsPage() {
         order.status === "completed"
           ? "Выполнен"
           : order.status === "cancelled"
-          ? "Отменен"
-          : "В работе",
+            ? "Отменен"
+            : "В работе",
     }));
 
     // Create worksheet
@@ -513,7 +527,7 @@ export default function ShopDetailsPage() {
                 (ordersCount.completedOrdersCount +
                   ordersCount.canceledOrdersCount +
                   ordersCount.notCompletedOrdersCount) /
-                  pageSize
+                  pageSize,
               ),
             }).map((_, i) => (
               <button

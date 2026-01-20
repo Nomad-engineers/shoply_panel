@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
+import { cn } from "@/lib/theme";
+import { useAuth } from "@/components/hooks/useLogin";
+import { useEffect } from "react";
 
 export default function ReportsLayout({
   children,
@@ -10,74 +13,69 @@ export default function ReportsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { adminData, loading } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+
+  useEffect(() => {
+    if (!loading && adminData && !adminData.isAdmin) {
+      router.replace("/promotions");
+    }
+  }, [adminData, loading, router]);
 
   const tabs = [
     {
       name: "Выплаты курьерам",
       href: "/reports/couriers",
-      value: "couriers",
       active: pathname.startsWith("/reports/couriers"),
     },
     {
       name: "Расчет с магазинами",
       href: "/reports/shops",
-      value: "shops",
       active: pathname.startsWith("/reports/shops"),
     },
     {
-      name: "Статистика",
-      href: "/reports/statistics",
-      value: "statistics",
-      active: pathname.startsWith("/reports/statistics"),
+      name: "Промо компаний",
+      href: "/reports/promotions",
+      active: pathname.startsWith("/reports/promotions"),
     },
   ];
 
   const header = (
-    <div className="flex flex-col">
-      {/* Header Section */}
-      <div className="mb-6 mt-18 text-left">
-        <h1
-          style={{
-            fontFamily: 'Inter',
-            fontWeight: 700,
-            fontStyle: 'Bold',
-            fontSize: '24px',
-            lineHeight: '24px',
-            letterSpacing: '0%'
-          }}
-        >
-          Отчеты
-        </h1>
-      </div>
-      {/* Tabs Section */}
-      <div className="text-left">
-        <div className="inline-flex h-12 items-left justify-start  p-1 gap-2 ">
-          {tabs.map((tab) => (
-            <Link key={tab.href} href={tab.href}>
-              <button
-                className={`inline-flex items-left justify-start whitespace-nowrap rounded-xl px-4 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-left ${
-                  tab.active
-                    ? "text-white bg-primary shadow-sm hover:bg-primary/90"
-                    : " hover:text-foreground hover:bg-surface"
-                }`}
-                style={{
-                  fontFamily: 'Inter',
-                  fontWeight: 600,
-                  fontStyle: 'Semi Bold',
-                  fontSize: '16px',
-                  lineHeight: '18px',
-                  letterSpacing: '-0.4px',
-                  textAlign: 'left'
-                }}
-              >
-                {tab.name}
-              </button>
-            </Link>
-          ))}
-        </div>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-[24px] font-bold text-[#111111]">Отчеты</h1>
+      <div className="flex gap-2">
+        {tabs.map((tab) => (
+          <Link key={tab.href} href={tab.href}>
+            <button
+              className={cn(
+                "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                tab.active
+                  ? "bg-[#55CB00] text-white shadow-sm"
+                  : "text-[#111111] hover:bg-gray-100",
+              )}
+            >
+              {tab.name}
+            </button>
+          </Link>
+        ))}
       </div>
     </div>
   );
+
+  if (loading && !adminData) {
+    return (
+      <DashboardLayout header={null}>
+        <div className="flex items-center justify-center p-20 text-gray-500">
+          Загрузка...
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Double check admin access if loaded and not loading anymore
+  if (!loading && adminData && !adminData.isAdmin) {
+    return null; // Let useEffect handle redirect
+  }
 
   return (
     <DashboardLayout header={header}>
