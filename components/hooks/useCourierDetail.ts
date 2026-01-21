@@ -72,7 +72,7 @@ export const useCourierDetail = ({
                 throw new Error(`Profile fetch failed (${profileRes.status}): ${text}`);
             }
 
-            let payoutsData = { orders: [], stats: undefined, date: undefined, meta: undefined };
+            let payoutsData: any = { orders: [], stats: undefined, date: undefined, meta: undefined };
             if (payoutsRes) {
                 if (!payoutsRes.ok) {
                     const text = await payoutsRes.text();

@@ -5,6 +5,9 @@ export interface User {
     phone: string;
     email: string | null;
     role: string;
+    photo?: {
+        url: string;
+    };
 }
 
 export interface CourierStats {
