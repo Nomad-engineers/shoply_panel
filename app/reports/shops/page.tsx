@@ -1,123 +1,323 @@
 "use client";
 
-import { useState } from "react";
-import { Search } from "lucide-react";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { useShops } from "@/components/hooks/useShops";
+import { useAuth } from "@/components/hooks/useLogin";
+import { ShopStats } from "@/types/shop";
 
-export default function ShopsPaymentsPage() {
-  const [activePeriod, setActivePeriod] = useState("month");
-  const [shopId, setShopId] = useState("");
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+type SortField = "id" | "name" | "orderCount" | "revenue" | "serviceIncome";
+type SortDirection = "asc" | "desc";
+type PeriodType = "week" | "month" | "halfYear" | "year";
 
-  const periods = [
-    { id: "today", label: "Сегодняшний день" },
-    { id: "month", label: "Текущий месяц" },
-    { id: "custom", label: "Период" },
+export default function ShopsPage() {
+  const router = useRouter();
+  const { shopsStats, loading, error, refetch } = useShops({
+    periodType: "month",
+    isPublic: "true",
+    dateFrom: new Date().toISOString().split("T")[0],
+  });
+
+  const { adminData, loading: authLoading } = useAuth(
+    process.env.NEXT_PUBLIC_DIRECTUS_URL,
+  );
+
+  useEffect(() => {
+    if (authLoading || !adminData) return;
+
+    // Check if user has a shop ID (shop_owner or shop_member)
+    // AND is NOT an admin (just in case an admin also has a shop attached somehow)
+    const userShopId =
+      adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
+
+    if (userShopId && !adminData.isAdmin) {
+      router.replace(`/reports/shops/${userShopId}`);
+    }
+  }, [adminData, authLoading, router]);
+
+  const [sortField, setSortField] = useState<SortField>("id");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const periods: { value: PeriodType; label: string }[] = [
+    { value: "week", label: "Неделя" },
+    { value: "month", label: "Месяц" },
+    { value: "halfYear", label: "Пол года" },
+    { value: "year", label: "Год" },
   ];
+
+  const handlePeriodChange = (period: PeriodType) => {
+    setActivePeriod(period);
+    setIsDropdownOpen(false);
+    const today = new Date().toISOString().split("T")[0];
+    refetch({ periodType: period, dateFrom: today, isPublic: "true" });
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedShops = useMemo(() => {
+    if (!shopsStats.length) return [];
+
+    const sorted = [...shopsStats].sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+
+      if (typeof aValue === "string") {
+        aValue = aValue.toLowerCase();
+        bValue = (bValue as string).toLowerCase();
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [shopsStats, sortField, sortDirection]);
+
+  const totals = useMemo(() => {
+    return shopsStats.reduce(
+      (acc, shop) => ({
+        orderCount: acc.orderCount + shop.orderCount,
+        revenue: acc.revenue + shop.revenue,
+        serviceIncome: acc.serviceIncome + shop.serviceIncome,
+      }),
+      { orderCount: 0, revenue: 0, serviceIncome: 0 },
+    );
+  }, [shopsStats]);
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp size={16} className="inline ml-1" />
+    ) : (
+      <ChevronDown size={16} className="inline ml-1" />
+    );
+  };
+
+  const getShopAvatar = (name: string, photoUrl: string | null) => {
+    if (photoUrl) {
+      return (
+        <img
+          src={photoUrl}
+          alt={name}
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      );
+    }
+
+    const colors = [
+      "bg-green-500",
+      "bg-blue-500",
+      "bg-yellow-500",
+      "bg-red-500",
+      "bg-purple-500",
+      "bg-pink-500",
+    ];
+    const colorIndex = name.charCodeAt(0) % colors.length;
+    const initial = name.charAt(0).toUpperCase();
+
+    return (
+      <div
+        className={`w-8 h-8 rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-semibold text-sm`}
+      >
+        {initial}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-[24px] p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-[24px] p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-red-500">Ошибка: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-[24px] p-6">
-      {/* Shop ID Input */}
-      <div className="flex items-center gap-6 mb-6">
-        <input
-          type="text"
-          placeholder="Введите ID магазина"
-          value={shopId}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Allow only numbers (including empty string for clearing)
-            if (/^\d*$/.test(value)) {
-              setShopId(value);
-            }
-          }}
-          className="px-4 py-3 border border-gray-300 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[#55CB00] focus:border-transparent"
-          style={{
-            width: '354px',
-            height: '48px',
-            backgroundColor: 'rgba(238, 238, 244, 0.5)',
-            fontFamily: 'Inter',
-            fontWeight: 500,
-            fontStyle: 'medium',
-            fontSize: '16px',
-            lineHeight: '18px',
-            letterSpacing: '0%',
-          }}
-        />
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Магазины</h1>
 
-        <button
-          className="flex items-center gap-3 px-6 py-3 text-white rounded-[12px] hover:bg-[#4DA900] transition-colors duration-200"
-          style={{
-            backgroundColor: '#55CB00',
-            fontFamily: 'Inter',
-            fontWeight: 500,
-            fontStyle: 'medium',
-            fontSize: '16px',
-            lineHeight: '18px',
-            letterSpacing: '0%',
-          }}
-        >
-          <Search size={24} />
-          поиск
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="h-px mb-6" style={{ backgroundColor: 'rgba(220, 220, 230, 1)' }}></div>
-
-      {/* Period Radio Buttons */}
-      <div className="flex space-x-6 mb-6">
-        {periods.map((period) => (
-          <label key={period.id} className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              name="period"
-              value={period.id}
-              checked={activePeriod === period.id}
-              onChange={(e) => setActivePeriod(e.target.value)}
-              className="w-4 h-4 text-blue-500 bg-gray-100 border-gray-300 focus:ring-blue-500
-        -   focus:ring-2"
+        {/* Period Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="px-4 py-2 rounded-[12px] text-sm font-medium transition-colors flex items-center gap-2"
+            style={{
+              backgroundColor: "rgba(238, 238, 244, 0.5)",
+              fontFamily: "Inter",
+            }}
+          >
+            {periods.find((p) => p.value === activePeriod)?.label || "Месяц"}
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
             />
-            <span className="ml-2 text-gray-700">{period.label}</span>
-          </label>
-        ))}
+          </button>
+
+          {isDropdownOpen && (
+            <div
+              className="absolute right-0 mt-2 w-48 bg-white rounded-[12px] shadow-lg border border-gray-200 overflow-hidden z-10"
+              style={{ fontFamily: "Inter" }}
+            >
+              {periods.map((period) => (
+                <button
+                  key={period.value}
+                  onClick={() => handlePeriodChange(period.value)}
+                  className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
+                    activePeriod === period.value
+                      ? "bg-green-50 text-[#55CB00] font-medium"
+                      : "text-gray-700"
+                  }`}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Custom Date Range Picker */}
-      {activePeriod === "custom" && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-[12px]">
-          <DateTimePicker
-            startDate={startDate}
-            endDate={endDate}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
-          />
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr
+              className="border-b"
+              style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+            >
+              <th
+                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort("id")}
+              >
+                ID <SortIcon field="id" />
+              </th>
+              <th
+                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort("name")}
+              >
+                Название <SortIcon field="name" />
+              </th>
+              <th
+                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort("orderCount")}
+              >
+                Кол-во заказов <SortIcon field="orderCount" />
+              </th>
+              <th
+                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort("revenue")}
+              >
+                Оборот магазина <SortIcon field="revenue" />
+              </th>
+              <th
+                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort("serviceIncome")}
+              >
+                Доход сервиса <SortIcon field="serviceIncome" />
+              </th>
+              <th className="w-12"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedShops.map((shop) => (
+              <tr
+                key={shop.id}
+                onClick={() =>
+                  router.push(
+                    `/reports/shops/${shop.id}?periodType=${activePeriod}`,
+                  )
+                }
+                className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+              >
+                <td className="py-4 px-4 text-sm text-[#8E8E93]">{shop.id}</td>
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-3">
+                    {getShopAvatar(shop.name, shop.photoUrl)}
+                    <span className="text-sm text-[#111111] font-medium">
+                      {shop.name}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-4 px-4 text-sm text-[#111111]">
+                  {shop.orderCount} заказов
+                </td>
+                <td className="py-4 px-4 text-sm text-[#111111]">
+                  {shop.revenue.toLocaleString("ru-RU")} ₽
+                </td>
+                <td className="py-4 px-4 text-sm text-[#111111]">
+                  {shop.serviceIncome.toLocaleString("ru-RU")} ₽
+                </td>
+                <td className="py-4 px-4">
+                  <ChevronRight size={20} className="text-[#C7C7CC]" />
+                </td>
+              </tr>
+            ))}
+
+            {/* Totals Row */}
+            <tr className="">
+              <td className="py-4 px-4 text-sm"></td>
+              <td className="py-4 px-4 text-sm"></td>
+              <td className="py-4 px-4 text-sm text-[#8E8E93]">
+                {totals.orderCount} заказов
+              </td>
+              <td className="py-4 px-4 text-sm text-[#8E8E93]">
+                {totals.revenue.toLocaleString("ru-RU")} ₽
+              </td>
+              <td className="py-4 px-4 text-sm text-[#8E8E93]">
+                {totals.serviceIncome.toLocaleString("ru-RU")} ₽
+              </td>
+              <td className="py-4 px-4"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {sortedShops.length === 0 && !loading && (
+        <div className="text-center py-12 text-gray-500">
+          Нет данных о магазинах
         </div>
       )}
-
-      {/* Divider */}
-      <div className="h-px mb-6" style={{ backgroundColor: 'rgba(220, 220, 230, 1)' }}></div>
-
-      {/* Calculation Button */}
-      <div className="flex justify-start mt-6">
-        <button
-          className="px-6 py-2 text-white rounded-[12px] transition-colors duration-200"
-          disabled={!shopId || !activePeriod || (activePeriod === 'custom' && (!startDate || !endDate))}
-          style={{
-            backgroundColor: shopId && activePeriod && (activePeriod !== 'custom' || (startDate && endDate)) ? '#55CB00' : 'rgba(9, 9, 29, 0.25)',
-            fontFamily: 'Inter',
-            fontWeight: 400,
-            fontStyle: 'normal',
-            fontSize: '16px',
-            lineHeight: '18px',
-            letterSpacing: '0%',
-            textAlign: 'center',
-            cursor: shopId && activePeriod && (activePeriod !== 'custom' || (startDate && endDate)) ? 'pointer' : 'not-allowed',
-            opacity: shopId && activePeriod && (activePeriod !== 'custom' || (startDate && endDate)) ? 1 : 0.6
-          }}
-        >
-          Расчет
-        </button>
-      </div>
     </div>
   );
 }
