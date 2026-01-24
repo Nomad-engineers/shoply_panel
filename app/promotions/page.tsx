@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { FilterButton } from "@/components/ui/filter-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Spinner, Input } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { usePromocodes } from "@/components/hooks/usePromocodes";
+import { useShops } from "@/components/hooks/useShops";
 import type { Promocode } from "@/types/promocode";
 import { useAuth } from "@/components/hooks/useLogin";
+import { getImageUrl } from "@/lib/utils";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) + " ₽";
@@ -55,13 +59,28 @@ export default function PromotionsPage() {
   const [filterActive, setFilterActive] = useState(false);
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 30;
+
+  // Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilterShopId, setSelectedFilterShopId] = useState<
+    number | null
+  >(null);
+
+  const { shops, loading: shopsLoading } = useShops();
 
   const { data, loading, error, refetch } = usePromocodes({
     page,
     pageSize,
     relations: "promocodeShop.shop,promocodeShop.shop.photo,orders",
     shopId: shopIdForFilter,
+    filter: useMemo(() => {
+      const f: any = {};
+      if (selectedFilterShopId) {
+        f.promocodeShop = { shop: { id: selectedFilterShopId } };
+      }
+      return f;
+    }, [selectedFilterShopId]),
     skip: authLoading || (!shopIdForFilter && !(adminData as any)?.isAdmin),
   });
 
@@ -82,7 +101,7 @@ export default function PromotionsPage() {
       try {
         const queryParams = new URLSearchParams();
         queryParams.set("page", "1");
-        queryParams.set("pageSize", "10000");
+        queryParams.set("pageSize", "30");
         queryParams.set("relations", "orders");
 
         if (shopIdForFilter) {
@@ -129,14 +148,29 @@ export default function PromotionsPage() {
   const total = data?.meta?.total ?? 0;
   const pageCount = data?.meta?.pageCount ?? 1;
   const promocodes = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!shopIdForFilter) return list;
+    let list = data?.data ?? [];
 
-    return list.filter((p) => {
-      const shops = p.promocodeShop ?? [];
-      return shops.some((ps) => (ps as any)?.shop?.id === shopIdForFilter);
-    });
-  }, [data?.data, shopIdForFilter]);
+    // 1. Client-side Search
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lowerSearch) ||
+          p.technicalName?.toLowerCase().includes(lowerSearch) ||
+          String(p.id).includes(lowerSearch),
+      );
+    }
+
+    // 2. Shop filter (if needed, although backend handles it, keep for safety)
+    if (shopIdForFilter) {
+      list = list.filter((p) => {
+        const shops = p.promocodeShop ?? [];
+        return shops.some((ps) => (ps as any)?.shop?.id === shopIdForFilter);
+      });
+    }
+
+    return list;
+  }, [data?.data, shopIdForFilter, searchTerm]);
 
   const totalTurnover = useMemo(() => {
     return promocodes.reduce((sum, p) => {
@@ -162,32 +196,43 @@ export default function PromotionsPage() {
     <div className="bg-white rounded-3xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-6">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="bg-transparent p-0 h-auto rounded-none gap-6">
-              <TabsTrigger
-                value="promocodes"
-                className={cn(
-                  "bg-transparent p-0 h-auto rounded-none text-[16px] font-medium border-b-2 border-transparent pb-1 transition-all",
-                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#111111] data-[state=active]:border-[#22C55E]",
-                  "text-[#8E8E93] hover:text-[#111111]",
-                )}
-              >
-                Промокоды
-              </TabsTrigger>
-              <TabsTrigger
-                value="contests"
-                className={cn(
-                  "bg-transparent p-0 h-auto rounded-none text-[16px] font-medium border-b-2 border-transparent pb-1 transition-all",
-                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#111111] data-[state=active]:border-[#22C55E]",
-                  "text-[#8E8E93] hover:text-[#111111]",
-                )}
-              >
-                Конкурсы
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab("promocodes")}
+              className={cn(
+                "text-[16px] font-medium border-b-2 pb-1 transition-all",
+                activeTab === "promocodes"
+                  ? "text-[#111111] border-[#55CB00]"
+                  : "text-[#8E8E93] border-transparent hover:text-[#111111] hover:border-[#55CB00]",
+              )}
+            >
+              Промокоды
+            </button>
+            <button
+              onClick={() => setActiveTab("contests")}
+              className={cn(
+                "text-[16px] font-medium border-b-2 pb-1 transition-all",
+                activeTab === "contests"
+                  ? "text-[#111111] border-[#55CB00]"
+                  : "text-[#8E8E93] border-transparent hover:text-[#111111] hover:border-[#55CB00]",
+              )}
+            >
+              Конкурсы
+            </button>
+          </div>
 
           <div className="h-6 w-px bg-gray-200" />
+
+          {/* Search - Line style */}
+          <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Поиск"
+              className="w-full bg-transparent border-none text-[14px] placeholder:text-[#8E8E93] py-1"
+            />
+            <Search className="text-[#111111] ml-2" size={18} />
+          </div>
 
           <FilterButton
             active={filterActive}
@@ -214,6 +259,43 @@ export default function PromotionsPage() {
         </Button>
       </div>
 
+      {filterActive && (
+        <div className="mb-6 p-4 bg-[#F2F2F7] rounded-2xl flex flex-wrap items-end gap-4 transition-all animate-in fade-in slide-in-from-top-2">
+          {(adminData as any)?.isAdmin && (
+            <div className="w-[300px]">
+              <div className="text-[12px] text-[#8E8E93] mb-1.5 ml-1">
+                Магазин
+              </div>
+              <select
+                className="w-full h-11 px-3 rounded-xl bg-white border-none shadow-sm text-sm focus:ring-2 focus:ring-[#55CB00] appearance-none cursor-pointer"
+                value={selectedFilterShopId || ""}
+                onChange={(e) =>
+                  setSelectedFilterShopId(
+                    e.target.value ? Number(e.target.value) : null,
+                  )
+                }
+              >
+                <option value="">Все магазины</option>
+                {shops.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            className="h-11 px-6 text-sm font-medium text-[#8E8E93] hover:text-[#111111] transition-colors"
+            onClick={() => {
+              setSelectedFilterShopId(null);
+            }}
+          >
+            Сбросить
+          </button>
+        </div>
+      )}
+
       {activeTab === "contests" ? (
         <div className="text-gray-500 py-10">
           Раздел «Конкурсы» в разработке
@@ -222,7 +304,7 @@ export default function PromotionsPage() {
         <>
           {loading && (
             <div className="flex items-center justify-center h-40">
-              <div className="text-gray-500">Загрузка...</div>
+              <Spinner size={32} />
             </div>
           )}
 
@@ -297,14 +379,20 @@ export default function PromotionsPage() {
                             {(() => {
                               const shop = p.promocodeShop?.[0]?.shop;
                               const name = shop?.name || "SHOPLY";
-                              const photoUrl = shop?.photo?.url;
+                              const photoUrl = getImageUrl(shop?.photo, {
+                                width: 48,
+                                height: 48,
+                                fit: "cover",
+                              });
 
                               return (
                                 <div className="flex items-center gap-2">
                                   {photoUrl ? (
-                                    <img
+                                    <Image
                                       src={photoUrl}
                                       alt={name}
+                                      width={24}
+                                      height={24}
                                       className="w-6 h-6 rounded-full object-cover"
                                     />
                                   ) : (

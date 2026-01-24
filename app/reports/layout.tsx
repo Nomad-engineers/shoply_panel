@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
+import { Spinner } from "@/components/ui";
 import { useEffect } from "react";
 
 export default function ReportsLayout({
@@ -41,7 +42,7 @@ export default function ReportsLayout({
   ];
 
   const header = (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 mt-22">
       <h1 className="text-[24px] font-bold text-[#111111]">Отчеты</h1>
       <div className="flex gap-2">
         {tabs.map((tab) => (
@@ -65,8 +66,8 @@ export default function ReportsLayout({
   if (loading && !adminData) {
     return (
       <DashboardLayout header={null}>
-        <div className="flex items-center justify-center p-20 text-gray-500">
-          Загрузка...
+        <div className="flex items-center justify-center p-20">
+          <Spinner size={40} />
         </div>
       </DashboardLayout>
     );
@@ -80,7 +81,7 @@ export default function ReportsLayout({
   return (
     <DashboardLayout header={header}>
       {/* Page Content */}
-      <div className="text-left mt-6">{children}</div>
+      <div className="text-left mt-10">{children}</div>
     </DashboardLayout>
   );
 }

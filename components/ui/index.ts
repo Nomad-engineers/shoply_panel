@@ -6,3 +6,4 @@ export { Search } from "./search";
 export { FilterButton } from "./filter-button";
 export { Status, statusDotVariants, statusVariants } from "./status";
 export { Switch } from "./switch";
+export { Spinner } from "./spinner";

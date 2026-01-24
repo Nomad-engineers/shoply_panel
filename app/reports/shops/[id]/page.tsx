@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -12,10 +13,12 @@ import {
 } from "lucide-react";
 import { useShopOrders } from "@/components/hooks/useShopOrders";
 import { useAuth } from "@/components/hooks/useLogin";
+import { Spinner } from "@/components/ui";
 import { ShopOrder } from "@/types/shop";
 import * as XLSX from "xlsx";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { getImageUrl } from "@/lib/utils";
 
 type PeriodType = "day" | "week" | "month" | "halfYear" | "year" | "period";
 
@@ -76,15 +79,16 @@ export default function ShopDetailsPage() {
   });
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 30;
   const [shopName, setShopName] = useState<string>("");
+  const [shopPhotoUrl, setShopPhotoUrl] = useState<string | null>(null);
   const [shopCommission, setShopCommission] = useState<number>(0);
 
   useEffect(() => {
     const fetchShopDetail = async () => {
       try {
         const res = await fetchWithSession(
-          `${process.env.NEXT_PUBLIC_API_URL}/shops/${shopId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/shops/${shopId}?relations=photo`,
           () => localStorage.getItem("access_token"),
           refreshSession,
         );
@@ -93,6 +97,9 @@ export default function ShopDetailsPage() {
           const response = await res.json();
           const data = response.data || response;
           setShopName(data.name || "");
+          setShopPhotoUrl(
+            getImageUrl(data.photo, { width: 200, height: 200, fit: "cover" }),
+          );
 
           // Use commissionService as the base commission
           const commission = Number(data.commissionService || 0);
@@ -116,6 +123,23 @@ export default function ShopDetailsPage() {
   const ordersCount = data?.ordersCount;
   const finansShop = data?.finansShop;
   const backendPromocodes = data?.promocodes || [];
+
+  const promoStats = useMemo(() => {
+    let shopTotal = 0;
+    let shoplyTotal = 0;
+
+    orders.forEach((order) => {
+      if (order.discountAmount > 0) {
+        if (order.promocode?.payFromShop) {
+          shopTotal += order.discountAmount;
+        } else {
+          shoplyTotal += order.discountAmount;
+        }
+      }
+    });
+
+    return { shopTotal, shoplyTotal };
+  }, [orders]);
 
   const totalCommission =
     ((Number(finansShop?.total) || 0) * shopCommission) / 100;
@@ -248,7 +272,12 @@ export default function ShopDetailsPage() {
     XLSX.writeFile(wb, `orders_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
-  if (loading) return <div className="p-6">Загрузка...</div>;
+  if (loading)
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <Spinner size={40} />
+      </div>
+    );
   if (!data) return <div className="p-6">Данные не найдены</div>;
 
   return (
@@ -262,7 +291,20 @@ export default function ShopDetailsPage() {
           >
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            {shopPhotoUrl ? (
+              <Image
+                src={shopPhotoUrl}
+                alt={shopName}
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#55CB00] flex items-center justify-center text-white text-xs font-bold">
+                {shopName.charAt(0).toUpperCase()}
+              </div>
+            )}
             {shopName || data?.shopName || "Заказы магазина"}
           </h1>
         </div>
@@ -367,19 +409,28 @@ export default function ShopDetailsPage() {
                 className="py-3 px-4 font-normal text-[#8E8E93] border-r"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
-                Дата, время
+                <div className="flex items-center justify-between pointer-events-none">
+                  Дата, время
+                  <ChevronDown size={14} className="text-[#8E8E93]" />
+                </div>
               </th>
               <th
                 className="py-3 px-4 font-normal text-[#8E8E93] border-r"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
-                Оплата
+                <div className="flex items-center justify-between pointer-events-none">
+                  Оплата
+                  <ChevronDown size={14} className="text-[#8E8E93]" />
+                </div>
               </th>
               <th
                 className="py-3 px-4 font-normal text-[#8E8E93] border-r"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
-                Корзина
+                <div className="flex items-center justify-between pointer-events-none">
+                  Корзина
+                  <ChevronDown size={14} className="text-[#8E8E93]" />
+                </div>
               </th>
               <th
                 className="py-3 px-4 font-normal text-[#8E8E93] border-r"
@@ -397,10 +448,13 @@ export default function ShopDetailsPage() {
                 className="py-3 px-4 font-normal text-[#8E8E93] border-r"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
-                Итого
+                <div className="flex items-center justify-between pointer-events-none">
+                  Итого
+                  <ChevronDown size={14} className="text-[#8E8E93]" />
+                </div>
               </th>
               <th
-                className="py-3 px-4 font-normal text-[#8E8E93] border-r"
+                className="py-3 px-4 font-normal text-[#8E8E93] border-r min-w-[140px]"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
                 Промокоды
@@ -472,17 +526,24 @@ export default function ShopDetailsPage() {
                   {order.totalPrice}
                 </td>
                 <td
-                  className="py-4 px-4 border-r"
+                  className="py-0 px-0 border-r"
                   style={{ borderColor: "rgba(220, 220, 230, 1)" }}
                 >
                   {order.discountAmount > 0 || order.promocode ? (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
+                    <div
+                      className="flex h-full items-stretch"
+                      style={{ minHeight: "52px" }}
+                    >
+                      <div className="flex-1 px-3 font-medium flex items-center justify-start text-[#111111] text-sm">
                         {order.discountAmount}
-                      </span>
-                      <span className="text-[#8E8E93] text-xs">
-                        {order.promocode ? order.promocode.name : "SHOPLY"}
-                      </span>
+                      </div>
+                      <div
+                        className="w-px bg-[#DCDCE6]"
+                        style={{ backgroundColor: "rgba(220, 220, 230, 1)" }}
+                      />
+                      <div className="flex-1 px-3 text-[#8E8E93] text-[11px] flex items-center">
+                        {order.promocode?.payFromShop ? "Магазин" : "SHOPLY"}
+                      </div>
                     </div>
                   ) : null}
                 </td>
@@ -637,20 +698,28 @@ export default function ShopDetailsPage() {
                 Промокоды
               </div>
               <div className="font-bold text-sm text-[#111111] mb-2 whitespace-nowrap">
-                {backendPromocodes
-                  .reduce((sum, p) => sum + p.valueForType, 0)
-                  .toLocaleString("ru-RU")}{" "}
+                {(promoStats.shopTotal + promoStats.shoplyTotal).toLocaleString(
+                  "ru-RU",
+                )}{" "}
                 руб
               </div>
               <div className="space-y-1 text-xs text-[#111111] whitespace-nowrap">
-                {backendPromocodes.map((promo, idx) => (
-                  <div key={idx}>
-                    {promo.promocodeName} -{" "}
+                {promoStats.shopTotal > 0 && (
+                  <div>
+                    Магазин -{" "}
                     <span className="font-medium">
-                      {promo.valueForType.toLocaleString("ru-RU")}
+                      {promoStats.shopTotal.toLocaleString("ru-RU")}
                     </span>
                   </div>
-                ))}
+                )}
+                {promoStats.shoplyTotal > 0 && (
+                  <div>
+                    SHOPLY -{" "}
+                    <span className="font-medium">
+                      {promoStats.shoplyTotal.toLocaleString("ru-RU")}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

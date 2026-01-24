@@ -8,8 +8,9 @@ import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Shop } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
-import { Button, Input, Switch } from "@/components/ui";
+import { Button, Input, Switch, Spinner } from "@/components/ui";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
 
@@ -300,7 +301,11 @@ export default function PromotionsCreateIndexPage() {
                     <div className="flex items-center gap-3 overflow-hidden">
                       {s.photo?.url ? (
                         <Image
-                          src={s.photo.url}
+                          src={getImageUrl(s.photo, {
+                            width: 64,
+                            height: 64,
+                            fit: "cover",
+                          })}
                           alt={s.name}
                           width={32}
                           height={32}
@@ -374,7 +379,7 @@ export default function PromotionsCreateIndexPage() {
       <div className="px-6 py-6">
         {(loading || error) && (
           <div className="mb-6">
-            {loading && <div className="text-gray-500">Загрузка...</div>}
+            {loading && <Spinner size={24} />}
             {!loading && error && (
               <div className="text-red-500">Ошибка: {error}</div>
             )}

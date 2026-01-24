@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { useShops } from "@/components/hooks/useShops";
 import { useAuth } from "@/components/hooks/useLogin";
+import { Spinner } from "@/components/ui";
 import { ShopStats } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
 type SortField = "id" | "name" | "orderCount" | "revenue" | "serviceIncome";
 type SortDirection = "asc" | "desc";
@@ -38,7 +40,7 @@ export default function ShopsPage() {
 
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
+  const [activePeriod, setActivePeriod] = useState<PeriodType>("week"); // Default to week let's say
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -124,7 +126,7 @@ export default function ShopsPage() {
     if (photoUrl) {
       return (
         <img
-          src={photoUrl}
+          src={getImageUrl(photoUrl, { width: 64, height: 64, fit: "cover" })}
           alt={name}
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -155,7 +157,7 @@ export default function ShopsPage() {
     return (
       <div className="bg-white rounded-[24px] p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Загрузка...</div>
+          <Spinner size={40} />
         </div>
       </div>
     );
@@ -174,11 +176,12 @@ export default function ShopsPage() {
   return (
     <div className="bg-white rounded-[24px] p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Магазины</h1>
+      <div className="flex items-center gap-6 mb-10">
+        <h1 className="text-[20px] font-bold text-[#111111] whitespace-nowrap">
+          Магазины
+        </h1>
 
-        {/* Period Dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="ml-auto relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="px-4 py-2 rounded-[12px] text-sm font-medium transition-colors flex items-center gap-2"

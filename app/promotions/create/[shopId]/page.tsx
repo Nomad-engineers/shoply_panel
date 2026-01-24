@@ -9,6 +9,7 @@ import { Button, Input, Switch } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Shop } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
 
@@ -201,7 +202,11 @@ export default function CreatePromocodePage() {
           <div className="flex items-center gap-2 ml-4">
             {shop?.photo?.url ? (
               <Image
-                src={shop.photo.url}
+                src={getImageUrl(shop.photo, {
+                  width: 40,
+                  height: 40,
+                  fit: "cover",
+                })}
                 alt={shop.name}
                 width={20}
                 height={20}

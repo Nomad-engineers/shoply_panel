@@ -7,6 +7,7 @@ interface FetchShopsParams {
     dateFrom?: string;
     dateTo?: string;
     isPublic?: string;
+    skip?: boolean;
 }
 
 export const useShops = (initialParams?: FetchShopsParams) => {
@@ -21,13 +22,14 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     const calculateShopStats = (shopsData: Shop[]): ShopStats[] => {
         return shopsData.map((shop) => {
             // Filter only completed and non-cancelled orders
-            const validOrders = shop.orders.filter(
+            const orders = shop.orders || [];
+            const validOrders = orders.filter(
                 (order) => order.status === "completed" && !order.isCancelled
             );
 
             const orderCount = validOrders.length;
             const revenue = validOrders.reduce(
-                (sum, order) => sum + order.subtotalPrice,
+                (sum, order) => sum + (Number(order.subtotalPrice) || 0),
                 0
             );
             const serviceIncome = validOrders.reduce(
@@ -47,6 +49,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     };
 
     const fetchShopsData = async (params?: FetchShopsParams) => {
+        if (params?.skip || (params === undefined && initialParams?.skip)) return;
         setLoading(true);
         setError(null);
 
@@ -93,8 +96,9 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     };
 
     useEffect(() => {
+        if (initialParams?.skip) return;
         fetchShopsData(initialParams);
-    }, []);
+    }, [initialParams?.skip]);
 
     return { shops, shopsStats, loading, error, refetch: fetchShopsData };
 };
