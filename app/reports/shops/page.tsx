@@ -11,7 +11,7 @@ import { getImageUrl } from "@/lib/utils";
 
 type SortField = "id" | "name" | "orderCount" | "revenue" | "serviceIncome";
 type SortDirection = "asc" | "desc";
-type PeriodType = "week" | "month" | "halfYear" | "year";
+type PeriodType = "day" | "week" | "month" | "halfYear" | "year";
 
 export default function ShopsPage() {
   const router = useRouter();
