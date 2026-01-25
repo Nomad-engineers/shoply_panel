@@ -46,6 +46,7 @@ export default function ShopDetailsPage() {
   }, [adminData, authLoading, shopId, router]);
 
   const searchParams = useSearchParams();
+  const urlName = searchParams.get("name");
   const urlPeriod = searchParams.get("periodType") as PeriodType | null;
 
   const [activePeriod, setActivePeriod] = useState<PeriodType>(
@@ -80,7 +81,7 @@ export default function ShopDetailsPage() {
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 30;
-  const [shopName, setShopName] = useState<string>("");
+  const [shopName, setShopName] = useState<string>(urlName || "");
   const [shopPhotoUrl, setShopPhotoUrl] = useState<string | null>(null);
   const [shopCommission, setShopCommission] = useState<number>(0);
 
@@ -292,19 +293,6 @@ export default function ShopDetailsPage() {
             <ChevronLeft size={24} />
           </button>
           <h1 className="text-2xl font-bold flex items-center gap-3">
-            {shopPhotoUrl ? (
-              <Image
-                src={shopPhotoUrl}
-                alt={shopName}
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[#55CB00] flex items-center justify-center text-white text-xs font-bold">
-                {shopName.charAt(0).toUpperCase()}
-              </div>
-            )}
             {shopName || data?.shopName || "Заказы магазина"}
           </h1>
         </div>

@@ -18,6 +18,7 @@ export default function ShopsPage() {
   const { shopsStats, loading, error, refetch } = useShops({
     periodType: "month",
     isPublic: "true",
+    isAdmin: true,
     dateFrom: new Date().toISOString().split("T")[0],
   });
 
@@ -40,11 +41,12 @@ export default function ShopsPage() {
 
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [activePeriod, setActivePeriod] = useState<PeriodType>("week"); // Default to week let's say
+  const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const periods: { value: PeriodType; label: string }[] = [
+    { value: "day", label: "Сегодня" },
     { value: "week", label: "Неделя" },
     { value: "month", label: "Месяц" },
     { value: "halfYear", label: "Пол года" },
@@ -55,7 +57,12 @@ export default function ShopsPage() {
     setActivePeriod(period);
     setIsDropdownOpen(false);
     const today = new Date().toISOString().split("T")[0];
-    refetch({ periodType: period, dateFrom: today, isPublic: "true" });
+    refetch({
+      periodType: period,
+      dateFrom: today,
+      isPublic: "true",
+      isAdmin: true,
+    });
   };
 
   // Close dropdown when clicking outside
@@ -267,7 +274,7 @@ export default function ShopsPage() {
                 key={shop.id}
                 onClick={() =>
                   router.push(
-                    `/reports/shops/${shop.id}?periodType=${activePeriod}`,
+                    `/reports/shops/${shop.id}?periodType=${activePeriod}&name=${encodeURIComponent(shop.name)}`,
                   )
                 }
                 className="border-b hover:bg-gray-50 cursor-pointer transition-colors"

@@ -531,11 +531,9 @@ export default function CreatePromocodePage() {
 
         <div className="flex flex-col gap-6">
           {isAdmin && (
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-sm font-medium text-[#111111]">
-                  За счет магазина
-                </div>
+            <div className="flex flex-row-reverse items-center justify-end gap-2">
+              <div className="text-sm font-medium text-[#111111]">
+                За счет магазина
               </div>
               <Switch
                 checked={payFromShop}
