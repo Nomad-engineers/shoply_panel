@@ -299,17 +299,15 @@ export default function PromotionsCreateIndexPage() {
                     }}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      {s.photo?.url ? (
-                        <Image
+                      {getImageUrl(s.photo) ? (
+                        <img
                           src={getImageUrl(s.photo, {
-                            width: 64,
-                            height: 64,
+                            width: 32,
+                            height: 32,
                             fit: "cover",
                           })}
                           alt={s.name}
-                          width={32}
-                          height={32}
-                          className="rounded-full w-8 h-8 object-cover flex-shrink-0"
+                          className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -348,12 +346,14 @@ export default function PromotionsCreateIndexPage() {
           {selectedShop || selectedShopId === -1 ? (
             <div className="flex items-center gap-2">
               {selectedShopId === -1 ? null : selectedShop?.photo?.url ? (
-                <Image
-                  src={selectedShop.photo.url}
+                <img
+                  src={getImageUrl(selectedShop.photo, {
+                    width: 40,
+                    height: 40,
+                    fit: "cover",
+                  })}
                   alt={selectedShop.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full"
+                  className="w-5 h-5 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-5 h-5 rounded-full bg-[gray-200]" />

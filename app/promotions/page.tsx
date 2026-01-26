@@ -486,11 +486,9 @@ export default function PromotionsPage() {
                               return (
                                 <div className="flex items-center gap-2">
                                   {photoUrl ? (
-                                    <Image
+                                    <img
                                       src={photoUrl}
                                       alt={name}
-                                      width={24}
-                                      height={24}
                                       className="w-6 h-6 rounded-full object-cover"
                                     />
                                   ) : (

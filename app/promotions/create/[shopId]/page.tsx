@@ -201,16 +201,14 @@ export default function CreatePromocodePage() {
 
           <div className="flex items-center gap-2 ml-4">
             {shop?.photo?.url ? (
-              <Image
+              <img
                 src={getImageUrl(shop.photo, {
                   width: 40,
                   height: 40,
                   fit: "cover",
                 })}
                 alt={shop.name}
-                width={20}
-                height={20}
-                className="rounded-full"
+                className="w-5 h-5 rounded-full object-cover"
               />
             ) : (
               <div className="w-5 h-5 rounded-full bg-[#5AC800]" />

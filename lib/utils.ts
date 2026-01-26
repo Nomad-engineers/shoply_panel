@@ -16,17 +16,7 @@ export function getImageUrl(
 
   // 1. Handle object input (DirectusFileEntity or similar)
   if (typeof input === "object" && input !== null) {
-    // Priority 1: If it has a full URL already, use it (don't force change port)
-    if (input.url && input.url.startsWith("http")) {
-      return input.url;
-    }
-
-    // Secondary Priority: If it has a relative URL, prepend base
-    if (input.url && input.url.startsWith("/")) {
-      return `${cleanBase}${input.url}`;
-    }
-
-    // Priority 2: Use ID to construct Directus assets URL if it's a relative path or just ID
+    // Priority 1: Use ID to construct our own URL (more reliable across environments than the 'url' from API)
     if (input.id) {
       let path = `/files/${input.id}`;
       const params = new URLSearchParams();
@@ -38,6 +28,16 @@ export function getImageUrl(
       if (qs) path += `?${qs}`;
 
       return `${cleanBase}${path}`;
+    }
+
+    // Fallback: If no ID, use the URL property if it's a full URL
+    if (input.url && input.url.startsWith("http")) {
+      return input.url;
+    }
+
+    // Fallback 2: If it has a relative URL, prepend base
+    if (input.url && input.url.startsWith("/")) {
+      return `${cleanBase}${input.url}`;
     }
   }
 

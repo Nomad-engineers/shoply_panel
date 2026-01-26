@@ -38,6 +38,7 @@ export default function ReportsLayout({
       name: "Промо компаний",
       href: "/reports/promotions",
       active: pathname.startsWith("/reports/promotions"),
+      disabled: true,
     },
   ];
 
@@ -45,20 +46,31 @@ export default function ReportsLayout({
     <div className="flex flex-col gap-6 mt-22">
       <h1 className="text-[24px] font-bold text-[#111111]">Отчеты</h1>
       <div className="flex gap-2">
-        {tabs.map((tab) => (
-          <Link key={tab.href} href={tab.href}>
+        {tabs.map((tab) => {
+          const button = (
             <button
               className={cn(
                 "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
                 tab.active
                   ? "bg-[#55CB00] text-white shadow-sm"
                   : "text-[#111111] hover:bg-gray-100",
+                (tab as any).disabled && "cursor-default",
               )}
             >
               {tab.name}
             </button>
-          </Link>
-        ))}
+          );
+
+          if ((tab as any).disabled) {
+            return <div key={tab.href}>{button}</div>;
+          }
+
+          return (
+            <Link key={tab.href} href={tab.href}>
+              {button}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
