@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
 
           const queryParams = new URLSearchParams();
-          queryParams.set("relations", "members");
+          queryParams.set("relations", "members,photo");
           queryParams.set("search", JSON.stringify(searchParams));
           queryParams.set("page", "1");
           queryParams.set("pageSize", "10");

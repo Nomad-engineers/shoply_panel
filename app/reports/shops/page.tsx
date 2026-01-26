@@ -129,11 +129,11 @@ export default function ShopsPage() {
     );
   };
 
-  const getShopAvatar = (name: string, photoUrl: string | null) => {
-    if (photoUrl) {
+  const getShopAvatar = (name: string, photo: any) => {
+    if (photo) {
       return (
         <img
-          src={getImageUrl(photoUrl, { width: 64, height: 64, fit: "cover" })}
+          src={getImageUrl(photo, { width: 64, height: 64, fit: "cover" })}
           alt={name}
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -283,7 +283,7 @@ export default function ShopsPage() {
                 <td className="py-4 px-4 text-sm text-[#8E8E93]">{shop.id}</td>
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-3">
-                    {getShopAvatar(shop.name, shop.photoUrl)}
+                    {getShopAvatar(shop.name, (shop as any).photo)}
                     <span className="text-sm text-[#111111] font-medium">
                       {shop.name}
                     </span>

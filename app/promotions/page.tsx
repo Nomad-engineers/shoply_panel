@@ -462,7 +462,7 @@ export default function PromotionsPage() {
                       return (
                         <tr
                           key={p.id}
-                          className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="border-b transition-colors"
                           style={{ borderColor: "rgba(220, 220, 230, 1)" }}
                         >
                           <td className="py-4 px-4 text-sm text-[#8E8E93]">
@@ -517,12 +517,7 @@ export default function PromotionsPage() {
                           <td className="py-4 px-4 text-sm text-[#111111]">
                             {activation}
                           </td>
-                          <td className="py-4 px-4">
-                            <ChevronRight
-                              size={20}
-                              className="text-[#C7C7CC]"
-                            />
-                          </td>
+                          <td className="py-4 px-4"></td>
                         </tr>
                       );
                     })}

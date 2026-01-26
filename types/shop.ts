@@ -59,6 +59,7 @@ export interface ShopStats {
     revenue: number;
     serviceIncome: number;
     photoUrl: string | null;
+    photo?: any;
 }
 
 export interface PromocodeDto {

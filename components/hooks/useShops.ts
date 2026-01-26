@@ -50,6 +50,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
                 revenue,
                 serviceIncome,
                 photoUrl: shop.photo?.url || null,
+                photo: shop.photo,
             };
         });
     };
@@ -92,6 +93,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             if (params?.isPublic) {
                 queryParams.append("isPublic", params.isPublic);
             }
+            queryParams.append("relations", "photo");
 
             const queryString = queryParams.toString();
             if (queryString) {

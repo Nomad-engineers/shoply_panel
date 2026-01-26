@@ -21,9 +21,14 @@ export function getImageUrl(
       return input.url;
     }
 
+    // Secondary Priority: If it has a relative URL, prepend base
+    if (input.url && input.url.startsWith("/")) {
+      return `${cleanBase}${input.url}`;
+    }
+
     // Priority 2: Use ID to construct Directus assets URL if it's a relative path or just ID
     if (input.id) {
-      let path = `/assets/${input.id}`;
+      let path = `/files/${input.id}`;
       const params = new URLSearchParams();
       if (options.width) params.set("width", String(options.width));
       if (options.height) params.set("height", String(options.height));
