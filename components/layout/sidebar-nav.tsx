@@ -21,28 +21,17 @@ interface NavItemProps {
   children: React.ReactNode;
   className?: string;
   isCollapsed?: boolean;
+  disabled?: boolean;
 }
 
 export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
-  ({ href, icon: Icon, children, className, isCollapsed }, ref) => {
+  ({ href, icon: Icon, children, className, isCollapsed, disabled }, ref) => {
     const pathname = usePathname();
-    const isActive = pathname === href || pathname.startsWith(href + "/");
+    const isActive =
+      !disabled && (pathname === href || pathname.startsWith(href + "/"));
 
-    return (
-      <Link
-        href={href}
-        ref={ref}
-        className={cn(
-          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mb-1 rounded-lg",
-          isActive
-            ? "bg-surface-light text-text-primary font-semibold"
-            : "text-text-secondary hover:bg-surface-light hover:text-text-primary",
-          isCollapsed &&
-            "flex-col justify-center items-center px-2 py-2 gap-1 text-xs",
-          className,
-        )}
-        title={isCollapsed ? children?.toString() : undefined}
-      >
+    const content = (
+      <>
         <Icon
           className={cn(
             "shrink-0",
@@ -58,6 +47,38 @@ export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
         >
           {children}
         </span>
+      </>
+    );
+
+    const commonClassName = cn(
+      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mb-1 rounded-lg",
+      isActive
+        ? "bg-surface-light text-text-primary font-semibold"
+        : "text-text-secondary hover:bg-surface-light hover:text-text-primary",
+      isCollapsed &&
+        "flex-col justify-center items-center px-2 py-2 gap-1 text-xs",
+      className,
+    );
+
+    if (disabled) {
+      return (
+        <div
+          className={commonClassName}
+          title={isCollapsed ? children?.toString() : undefined}
+        >
+          {content}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        href={href}
+        ref={ref}
+        className={commonClassName}
+        title={isCollapsed ? children?.toString() : undefined}
+      >
+        {content}
       </Link>
     );
   },
@@ -80,9 +101,9 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     const isLoggedIn = !!adminData;
 
     const navigationItems = [
-      { title: "Заказы", href: "/orders", icon: OrderIcon },
-      { title: "Пользователи", href: "/users", icon: UserIcon },
-      { title: "Магазины", href: "/shops", icon: ShopIcon },
+      { title: "Заказы", href: "/orders", icon: OrderIcon, disabled: true },
+      { title: "Пользователи", href: "/users", icon: UserIcon, disabled: true },
+      { title: "Магазины", href: "/shops", icon: ShopIcon, disabled: true },
       {
         title: "Акции и промокоды",
         href: "/promotions",
@@ -110,6 +131,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
               href={item.href}
               icon={item.icon}
               isCollapsed={isCollapsed}
+              disabled={(item as any).disabled}
             >
               {item.title}
             </NavItem>

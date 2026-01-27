@@ -17,6 +17,8 @@ import * as XLSX from "xlsx";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { cn } from "@/lib/theme";
+import { Spinner } from "@/components/ui";
+import { getImageUrl } from "@/lib/utils";
 
 type PeriodType = "day" | "week" | "month" | "halfYear" | "year" | "period";
 
@@ -105,7 +107,11 @@ export default function CourierDetailsPage() {
   const totalOrdersCount = stats ? stats.orderCount : orders.length;
 
   if (loading && !courier)
-    return <div className="p-10 text-center">Загрузка...</div>;
+    return (
+      <div className="p-10 flex items-center justify-center">
+        <Spinner size={40} />
+      </div>
+    );
   if (error)
     return <div className="p-10 text-center text-red-500">{error}</div>;
   if (!courier) return null;
@@ -132,7 +138,11 @@ export default function CourierDetailsPage() {
             <div className="w-10 h-10 bg-[#F2F2F7] rounded-full flex items-center justify-center overflow-hidden">
               {courier.user?.photo?.url ? (
                 <img
-                  src={courier.user.photo.url}
+                  src={getImageUrl(courier.user.photo, {
+                    width: 80,
+                    height: 80,
+                    fit: "cover",
+                  })}
                   alt=""
                   className="w-full h-full object-cover"
                 />

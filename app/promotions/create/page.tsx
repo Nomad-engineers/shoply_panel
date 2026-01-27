@@ -8,8 +8,9 @@ import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Shop } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
-import { Button, Input, Switch } from "@/components/ui";
+import { Button, Input, Switch, Spinner } from "@/components/ui";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
 
@@ -298,13 +299,15 @@ export default function PromotionsCreateIndexPage() {
                     }}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      {s.photo?.url ? (
-                        <Image
-                          src={s.photo.url}
+                      {getImageUrl(s.photo) ? (
+                        <img
+                          src={getImageUrl(s.photo, {
+                            width: 32,
+                            height: 32,
+                            fit: "cover",
+                          })}
                           alt={s.name}
-                          width={32}
-                          height={32}
-                          className="rounded-full w-8 h-8 object-cover flex-shrink-0"
+                          className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -343,12 +346,14 @@ export default function PromotionsCreateIndexPage() {
           {selectedShop || selectedShopId === -1 ? (
             <div className="flex items-center gap-2">
               {selectedShopId === -1 ? null : selectedShop?.photo?.url ? (
-                <Image
-                  src={selectedShop.photo.url}
+                <img
+                  src={getImageUrl(selectedShop.photo, {
+                    width: 40,
+                    height: 40,
+                    fit: "cover",
+                  })}
                   alt={selectedShop.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full"
+                  className="w-5 h-5 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-5 h-5 rounded-full bg-[gray-200]" />
@@ -374,7 +379,7 @@ export default function PromotionsCreateIndexPage() {
       <div className="px-6 py-6">
         {(loading || error) && (
           <div className="mb-6">
-            {loading && <div className="text-gray-500">Загрузка...</div>}
+            {loading && <Spinner size={24} />}
             {!loading && error && (
               <div className="text-red-500">Ошибка: {error}</div>
             )}
@@ -686,11 +691,9 @@ export default function PromotionsCreateIndexPage() {
 
         <div className="flex flex-col gap-6">
           {isAdmin && (
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-sm font-medium text-[#111111]">
-                  За счет магазина
-                </div>
+            <div className="flex flex-row-reverse items-center justify-end gap-2">
+              <div className="text-sm font-medium text-[#111111]">
+                За счет магазина
               </div>
               <Switch
                 checked={payFromShop}

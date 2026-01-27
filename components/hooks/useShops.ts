@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useAuth } from "./useLogin";
 import { Shop, ShopStats } from "@/types/shop";
@@ -7,7 +9,12 @@ interface FetchShopsParams {
     dateFrom?: string;
     dateTo?: string;
     isPublic?: string;
+    skip?: boolean;
+    isAdmin?: boolean;
 }
+
+// Simple cache to store shop data across period switches
+const shopsCache: Record<string, { shops: Shop[]; stats: ShopStats[] }> = {};
 
 export const useShops = (initialParams?: FetchShopsParams) => {
     const { refreshSession, fetchWithSession } = useAuth(
@@ -21,13 +28,14 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     const calculateShopStats = (shopsData: Shop[]): ShopStats[] => {
         return shopsData.map((shop) => {
             // Filter only completed and non-cancelled orders
-            const validOrders = shop.orders.filter(
+            const orders = shop.orders || [];
+            const validOrders = orders.filter(
                 (order) => order.status === "completed" && !order.isCancelled
             );
 
             const orderCount = validOrders.length;
             const revenue = validOrders.reduce(
-                (sum, order) => sum + order.subtotalPrice,
+                (sum, order) => sum + (Number(order.subtotalPrice) || 0),
                 0
             );
             const serviceIncome = validOrders.reduce(
@@ -42,16 +50,34 @@ export const useShops = (initialParams?: FetchShopsParams) => {
                 revenue,
                 serviceIncome,
                 photoUrl: shop.photo?.url || null,
+                photo: shop.photo,
             };
         });
     };
 
     const fetchShopsData = async (params?: FetchShopsParams) => {
-        setLoading(true);
+        if (params?.skip || (params === undefined && initialParams?.skip)) return;
+
+        // Generate a cache key based on params
+        const cacheKey = JSON.stringify(params || initialParams || {});
+
+        // Check cache for SWR (Stale-While-Revalidate)
+        const cached = shopsCache[cacheKey];
+        if (cached) {
+            setShops(cached.shops);
+            setShopsStats(cached.stats);
+            // Don't return! We will fetch in background to refresh
+        }
+
+        // Only show loading if we have NO data at all for this key
+        if (!cached) {
+            setLoading(true);
+        }
         setError(null);
 
         try {
-            let url = `${process.env.NEXT_PUBLIC_API_URL}/admin/shops`;
+            const isAdmin = params?.isAdmin ?? initialParams?.isAdmin;
+            let url = `${process.env.NEXT_PUBLIC_API_URL}${isAdmin ? "/admin" : ""}/shops`;
 
             // Add query parameters if provided
             const queryParams = new URLSearchParams();
@@ -67,6 +93,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             if (params?.isPublic) {
                 queryParams.append("isPublic", params.isPublic);
             }
+            queryParams.append("relations", "photo");
 
             const queryString = queryParams.toString();
             if (queryString) {
@@ -81,8 +108,14 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             if (!res.ok) throw new Error("Ошибка при получении магазинов");
             const response = await res.json();
             const shopsData = response.data || [];
+
+            const stats = calculateShopStats(shopsData);
+
+            // Save to cache
+            shopsCache[cacheKey] = { shops: shopsData, stats };
+
             setShops(shopsData);
-            setShopsStats(calculateShopStats(shopsData));
+            setShopsStats(stats);
         } catch (e: any) {
             setError(e.message);
             setShops([]);
@@ -93,8 +126,9 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     };
 
     useEffect(() => {
+        if (initialParams?.skip) return;
         fetchShopsData(initialParams);
-    }, []);
+    }, [initialParams?.skip]);
 
     return { shops, shopsStats, loading, error, refetch: fetchShopsData };
 };

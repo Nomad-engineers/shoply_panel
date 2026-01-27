@@ -2,7 +2,13 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronUp, ChevronDown, Search } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { useCouriers } from "@/components/hooks/useCouriers";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -28,14 +34,44 @@ export default function CouriersPage() {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const { dateFrom, dateTo } = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+
+    if (activePeriod === "day") {
+      return {
+        dateFrom: today.toISOString(),
+        dateTo: new Date(today.getTime() + 86400000).toISOString(),
+      };
+    }
+
+    if (activePeriod === "week") {
+      // Monday based week
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(today.setDate(diff));
+      return {
+        dateFrom: monday.toISOString(),
+        dateTo: undefined, // To end of time (or today?) let's leave undefined for "ongoing"
+      };
+    }
+
+    if (activePeriod === "month") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      return {
+        dateFrom: firstDay.toISOString(),
+        dateTo: undefined,
+      };
+    }
+
+    return { dateFrom: undefined, dateTo: undefined };
+  }, [activePeriod]);
 
   const { couriers, meta, loading, error } = useCouriers({
     page: currentPage,
     pageSize: 20,
-    periodType: activePeriod,
-    dateFrom: today,
-    // dateTo is omitted for preset periods as requested
+    dateFrom,
+    dateTo,
   });
 
   const [sortField, setSortField] = useState<SortField>("id");
@@ -78,11 +114,18 @@ export default function CouriersPage() {
     if (!couriers.length) return [];
 
     let result = couriers.filter((c) => {
+      // 1. Search filter
       const fullName = `${c.username || ""} ${c.lastname || ""}`.toLowerCase();
       const matchesSearch =
         fullName.includes(searchQuery.toLowerCase()) ||
         String(c.id).includes(searchQuery);
-      return matchesSearch;
+
+      if (!matchesSearch) return false;
+
+      // 2. Active (onShift) filter
+      if (showActiveOnly && !c.onShift) return false;
+
+      return true;
     });
 
     result.sort((a, b) => {
@@ -107,7 +150,7 @@ export default function CouriersPage() {
     });
 
     return result;
-  }, [couriers, searchQuery, sortField, sortDirection]);
+  }, [couriers, searchQuery, sortField, sortDirection, showActiveOnly]);
 
   const totals = useMemo(() => {
     return filteredAndSortedCouriers.reduce(
@@ -132,7 +175,7 @@ export default function CouriersPage() {
   if (loading) {
     return (
       <div className="bg-white rounded-[24px] p-6 h-full flex items-center justify-center">
-        <div className="text-gray-500 font-medium">Загрузка курьеров...</div>
+        <Loader2 className="w-10 h-10 animate-spin text-[#55CB00]" />
       </div>
     );
   }
@@ -151,7 +194,7 @@ export default function CouriersPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск"
-            className="w-full bg-transparent border-none text-[14px] placeholder:text-[#8E8E93] focus:outline-none py-1"
+            className="w-full bg-transparent border-none outline-none text-[14px] placeholder:text-[#8E8E93] py-1"
           />
           <Search className="text-[#111111] ml-2" size={18} />
         </div>

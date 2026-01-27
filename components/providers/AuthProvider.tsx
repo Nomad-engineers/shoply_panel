@@ -157,24 +157,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const payload = parseJwt(token);
       userData.isAdmin = payload?.admin_access === true;
 
-      // If NOT Admin and NO Shop, try to find the shop
-      if (!userData.isAdmin && !userData.shop) {
+      // If NOT Admin and NO Shop, try to find the shop via members
+      if (!userData.isAdmin && !userData.shop && userData.email) {
         try {
-          const today = new Date().toISOString().split("T")[0];
+          // Build search query to filter shops by member email
+          const searchParams = {
+            members: {
+              email: userData.email,
+            },
+          };
+
+          const queryParams = new URLSearchParams();
+          queryParams.set("relations", "members,photo");
+          queryParams.set("search", JSON.stringify(searchParams));
+          queryParams.set("page", "1");
+          queryParams.set("pageSize", "10");
+          queryParams.set("isPublic", "true");
+
           const shopsRes = await fetchWithSession(
-            `${process.env.NEXT_PUBLIC_API_URL}/admin/shops?periodType=month&dateFrom=${today}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
             () => token,
             refreshSession,
           );
 
           if (shopsRes.ok) {
-            const shopsData = await shopsRes.json();
-            const shopsList = shopsData.data || shopsData;
+            const result = await shopsRes.json();
+            const shopsList = result.data || result;
+
             if (Array.isArray(shopsList) && shopsList.length > 0) {
               userData.shop = shopsList[0];
+              console.log(
+                "[Auth] Found user shop via search:",
+                shopsList[0].name,
+              );
+            } else {
+              console.warn(
+                "[Auth] No shop found for user email:",
+                userData.email,
+              );
             }
           } else {
-            console.error("[Auth] /admin/shops failed:", shopsRes.status);
+            console.error("[Auth] /shops failed:", shopsRes.status);
           }
         } catch (e) {
           console.error("[Auth] Failed to fetch user shop", e);

@@ -12,6 +12,9 @@ interface FetchShopOrdersParams {
     isPublic?: boolean;
 }
 
+// Simple cache to store shop orders data across period switches
+const shopOrdersCache: Record<string, ShopOrdersResponse> = {};
+
 export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
     const { refreshSession, fetchWithSession } = useAuth(
         process.env.NEXT_PUBLIC_DIRECTUS_URL
@@ -21,7 +24,20 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchOrdersData = async (params: FetchShopOrdersParams) => {
-        setLoading(true);
+        // Generate a cache key based on params
+        const cacheKey = JSON.stringify(params);
+
+        // Check cache for SWR (Stale-While-Revalidate)
+        const cached = shopOrdersCache[cacheKey];
+        if (cached) {
+            setData(cached);
+            // Don't return! We will fetch in background to refresh
+        }
+
+        // Only show loading if we have NO data at all for this key
+        if (!cached) {
+            setLoading(true);
+        }
         setError(null);
 
         try {
@@ -59,7 +75,12 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
             );
             if (!res.ok) throw new Error("Ошибка при получении заказов магазина");
             const response = await res.json();
-            setData(response.data);
+            const responseData = response.data;
+
+            // Save to cache
+            shopOrdersCache[cacheKey] = responseData;
+
+            setData(responseData);
         } catch (e: any) {
             setError(e.message);
             setData(null);

@@ -8,6 +8,7 @@ export interface FetchPromocodesParams {
   pageSize?: number;
   relations?: string;
   shopId?: number;
+  filter?: Record<string, any>;
   skip?: boolean;
 }
 
@@ -42,14 +43,21 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
         queryParams.set("relations", relations);
         queryParams.set("sort", JSON.stringify({ createdAt: "DESC" }));
 
+        const searchParams: any = {};
+
         if (shopId) {
-          const searchParams = {
-            promocodeShop: {
-              shop: {
-                id: shopId,
-              },
+          searchParams.promocodeShop = {
+            shop: {
+              id: shopId,
             },
           };
+        }
+
+        if (params?.filter) {
+          Object.assign(searchParams, params.filter);
+        }
+
+        if (Object.keys(searchParams).length > 0) {
           queryParams.set("search", JSON.stringify(searchParams));
         }
 
@@ -79,6 +87,7 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
       initialParams?.pageSize,
       initialParams?.relations,
       initialParams?.shopId,
+      initialParams?.filter,
     ],
   );
 
@@ -91,8 +100,8 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     initialParams?.pageSize,
     initialParams?.relations,
     initialParams?.skip,
+    initialParams?.filter,
     fetchPromocodes,
-    initialParams,
   ]);
 
   return { data, loading, error, refetch: fetchPromocodes };

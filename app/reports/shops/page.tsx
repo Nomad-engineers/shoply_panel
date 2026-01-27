@@ -5,17 +5,20 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { useShops } from "@/components/hooks/useShops";
 import { useAuth } from "@/components/hooks/useLogin";
+import { Spinner } from "@/components/ui";
 import { ShopStats } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
 type SortField = "id" | "name" | "orderCount" | "revenue" | "serviceIncome";
 type SortDirection = "asc" | "desc";
-type PeriodType = "week" | "month" | "halfYear" | "year";
+type PeriodType = "day" | "week" | "month" | "halfYear" | "year";
 
 export default function ShopsPage() {
   const router = useRouter();
   const { shopsStats, loading, error, refetch } = useShops({
     periodType: "month",
     isPublic: "true",
+    isAdmin: true,
     dateFrom: new Date().toISOString().split("T")[0],
   });
 
@@ -43,6 +46,7 @@ export default function ShopsPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const periods: { value: PeriodType; label: string }[] = [
+    { value: "day", label: "Сегодня" },
     { value: "week", label: "Неделя" },
     { value: "month", label: "Месяц" },
     { value: "halfYear", label: "Пол года" },
@@ -53,7 +57,12 @@ export default function ShopsPage() {
     setActivePeriod(period);
     setIsDropdownOpen(false);
     const today = new Date().toISOString().split("T")[0];
-    refetch({ periodType: period, dateFrom: today, isPublic: "true" });
+    refetch({
+      periodType: period,
+      dateFrom: today,
+      isPublic: "true",
+      isAdmin: true,
+    });
   };
 
   // Close dropdown when clicking outside
@@ -120,11 +129,11 @@ export default function ShopsPage() {
     );
   };
 
-  const getShopAvatar = (name: string, photoUrl: string | null) => {
-    if (photoUrl) {
+  const getShopAvatar = (name: string, photo: any) => {
+    if (photo) {
       return (
         <img
-          src={photoUrl}
+          src={getImageUrl(photo, { width: 64, height: 64, fit: "cover" })}
           alt={name}
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -155,7 +164,7 @@ export default function ShopsPage() {
     return (
       <div className="bg-white rounded-[24px] p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Загрузка...</div>
+          <Spinner size={40} />
         </div>
       </div>
     );
@@ -174,11 +183,12 @@ export default function ShopsPage() {
   return (
     <div className="bg-white rounded-[24px] p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Магазины</h1>
+      <div className="flex items-center gap-6 mb-10">
+        <h1 className="text-[20px] font-bold text-[#111111] whitespace-nowrap">
+          Магазины
+        </h1>
 
-        {/* Period Dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="ml-auto relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="px-4 py-2 rounded-[12px] text-sm font-medium transition-colors flex items-center gap-2"
@@ -264,7 +274,7 @@ export default function ShopsPage() {
                 key={shop.id}
                 onClick={() =>
                   router.push(
-                    `/reports/shops/${shop.id}?periodType=${activePeriod}`,
+                    `/reports/shops/${shop.id}?periodType=${activePeriod}&name=${encodeURIComponent(shop.name)}`,
                   )
                 }
                 className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
@@ -273,7 +283,7 @@ export default function ShopsPage() {
                 <td className="py-4 px-4 text-sm text-[#8E8E93]">{shop.id}</td>
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-3">
-                    {getShopAvatar(shop.name, shop.photoUrl)}
+                    {getShopAvatar(shop.name, (shop as any).photo)}
                     <span className="text-sm text-[#111111] font-medium">
                       {shop.name}
                     </span>

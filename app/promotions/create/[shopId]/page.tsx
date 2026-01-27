@@ -9,6 +9,7 @@ import { Button, Input, Switch } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Shop } from "@/types/shop";
+import { getImageUrl } from "@/lib/utils";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
 
@@ -200,12 +201,14 @@ export default function CreatePromocodePage() {
 
           <div className="flex items-center gap-2 ml-4">
             {shop?.photo?.url ? (
-              <Image
-                src={shop.photo.url}
+              <img
+                src={getImageUrl(shop.photo, {
+                  width: 40,
+                  height: 40,
+                  fit: "cover",
+                })}
                 alt={shop.name}
-                width={20}
-                height={20}
-                className="rounded-full"
+                className="w-5 h-5 rounded-full object-cover"
               />
             ) : (
               <div className="w-5 h-5 rounded-full bg-[#5AC800]" />
@@ -526,11 +529,9 @@ export default function CreatePromocodePage() {
 
         <div className="flex flex-col gap-6">
           {isAdmin && (
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-sm font-medium text-[#111111]">
-                  За счет магазина
-                </div>
+            <div className="flex flex-row-reverse items-center justify-end gap-2">
+              <div className="text-sm font-medium text-[#111111]">
+                За счет магазина
               </div>
               <Switch
                 checked={payFromShop}

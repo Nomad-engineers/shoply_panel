@@ -6,7 +6,7 @@ export interface PromocodeShop {
   shop?: {
     id: number;
     name?: string;
-    photo?: { url?: string | null } | null;
+    photo?: { id?: string; url?: string | null } | null;
   } | null;
 }
 

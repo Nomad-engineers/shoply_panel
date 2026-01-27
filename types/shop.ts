@@ -46,6 +46,7 @@ export interface Shop {
     telegramTopicId: number | null;
     orders: ShopOrder[];
     photo: {
+        id: string;
         url: string;
         filename_download: string;
     } | null;
@@ -58,6 +59,7 @@ export interface ShopStats {
     revenue: number;
     serviceIncome: number;
     photoUrl: string | null;
+    photo?: any;
 }
 
 export interface PromocodeDto {

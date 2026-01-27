@@ -6,6 +6,7 @@ export interface User {
     email: string | null;
     role: string;
     photo?: {
+        id?: string;
         url: string;
     };
 }
@@ -17,6 +18,7 @@ export interface CourierStats {
     totaldeliverymansum: string; // From API it comes as string "279.6000..."
     completedorderscount: string;
     canceledorderscount: string;
+    onShift: boolean;
 }
 
 export interface CourierShop {

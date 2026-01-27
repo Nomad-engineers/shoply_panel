@@ -9,7 +9,7 @@ export default function PromotionsLayout({
 }) {
   const header = (
     <div className="flex flex-col">
-      <div className="mb-6 mt-18 text-left">
+      <div className="mb-4 mt-10 text-left">
         <h1
           style={{
             fontFamily: "Inter",

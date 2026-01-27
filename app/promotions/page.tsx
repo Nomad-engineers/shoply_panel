@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import Image from "next/image";
+import {
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Search,
+  RotateCcw,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { FilterButton } from "@/components/ui/filter-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Spinner, Input } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { usePromocodes } from "@/components/hooks/usePromocodes";
+import { useShops } from "@/components/hooks/useShops";
 import type { Promocode } from "@/types/promocode";
 import { useAuth } from "@/components/hooks/useLogin";
+import { getImageUrl } from "@/lib/utils";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) + " ₽";
@@ -53,15 +63,34 @@ export default function PromotionsPage() {
     "promocodes",
   );
   const [filterActive, setFilterActive] = useState(false);
+  const [selectedFilterShopId, setSelectedFilterShopId] = useState<
+    number | null
+  >(null);
+  const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [isFilterShopDropdownOpen, setIsFilterShopDropdownOpen] =
+    useState(false);
+  const filterShopDropdownRef = useRef<HTMLDivElement>(null);
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 30;
+
+  // Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { shops: allShops, loading: shopsLoading } = useShops();
+  const filteredShops = useMemo(() => {
+    if (!shopSearchQuery) return allShops || [];
+    const lowerQuery = shopSearchQuery.toLowerCase();
+    return (allShops || []).filter((s) =>
+      s.name.toLowerCase().includes(lowerQuery),
+    );
+  }, [allShops, shopSearchQuery]);
 
   const { data, loading, error, refetch } = usePromocodes({
     page,
     pageSize,
     relations: "promocodeShop.shop,promocodeShop.shop.photo,orders",
-    shopId: shopIdForFilter,
+    shopId: selectedFilterShopId || shopIdForFilter,
     skip: authLoading || (!shopIdForFilter && !(adminData as any)?.isAdmin),
   });
 
@@ -82,7 +111,7 @@ export default function PromotionsPage() {
       try {
         const queryParams = new URLSearchParams();
         queryParams.set("page", "1");
-        queryParams.set("pageSize", "10000");
+        queryParams.set("pageSize", "30");
         queryParams.set("relations", "orders");
 
         if (shopIdForFilter) {
@@ -128,15 +157,45 @@ export default function PromotionsPage() {
 
   const total = data?.meta?.total ?? 0;
   const pageCount = data?.meta?.pageCount ?? 1;
-  const promocodes = useMemo(() => {
-    const list = data?.data ?? [];
-    if (!shopIdForFilter) return list;
+  // Close filter shop dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        filterShopDropdownRef.current &&
+        !filterShopDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsFilterShopDropdownOpen(false);
+      }
+    };
 
-    return list.filter((p) => {
-      const shops = p.promocodeShop ?? [];
-      return shops.some((ps) => (ps as any)?.shop?.id === shopIdForFilter);
-    });
-  }, [data?.data, shopIdForFilter]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const promocodes = useMemo(() => {
+    let list = data?.data ?? [];
+
+    // 1. Client-side Search
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lowerSearch) ||
+          p.technicalName?.toLowerCase().includes(lowerSearch) ||
+          String(p.id).includes(lowerSearch),
+      );
+    }
+
+    // 2. Shop filter (if needed, although backend handles it, keep for safety)
+    if (shopIdForFilter) {
+      list = list.filter((p) => {
+        const shops = p.promocodeShop ?? [];
+        return shops.some((ps) => (ps as any)?.shop?.id === shopIdForFilter);
+      });
+    }
+
+    return list;
+  }, [data?.data, shopIdForFilter, searchTerm]);
 
   const totalTurnover = useMemo(() => {
     return promocodes.reduce((sum, p) => {
@@ -162,40 +221,53 @@ export default function PromotionsPage() {
     <div className="bg-white rounded-3xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-6">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="bg-transparent p-0 h-auto rounded-none gap-6">
-              <TabsTrigger
-                value="promocodes"
-                className={cn(
-                  "bg-transparent p-0 h-auto rounded-none text-[16px] font-medium border-b-2 border-transparent pb-1 transition-all",
-                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#111111] data-[state=active]:border-[#22C55E]",
-                  "text-[#8E8E93] hover:text-[#111111]",
-                )}
-              >
-                Промокоды
-              </TabsTrigger>
-              <TabsTrigger
-                value="contests"
-                className={cn(
-                  "bg-transparent p-0 h-auto rounded-none text-[16px] font-medium border-b-2 border-transparent pb-1 transition-all",
-                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#111111] data-[state=active]:border-[#22C55E]",
-                  "text-[#8E8E93] hover:text-[#111111]",
-                )}
-              >
-                Конкурсы
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab("promocodes")}
+              className={cn(
+                "text-[16px] font-medium pb-2 transition-all relative",
+                activeTab === "promocodes"
+                  ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
+                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform",
+              )}
+            >
+              Промокоды
+            </button>
+            <button
+              onClick={() => setActiveTab("contests")}
+              className={cn(
+                "text-[16px] font-medium pb-2 transition-all relative",
+                activeTab === "contests"
+                  ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
+                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform",
+              )}
+            >
+              Конкурсы
+            </button>
+          </div>
 
           <div className="h-6 w-px bg-gray-200" />
 
-          <FilterButton
-            active={filterActive}
-            className="px-0 py-0 border-none bg-transparent hover:bg-transparent text-[#8E8E93] hover:text-[#111111] font-normal text-[16px] gap-2"
-            onClick={() => setFilterActive(!filterActive)}
-          >
-            Фильтр
-          </FilterButton>
+          {/* Search - Line style */}
+          <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Поиск"
+              className="w-full bg-transparent border-none text-[14px] placeholder:text-[#8E8E93] py-1"
+            />
+            <Search className="text-[#111111] ml-2" size={18} />
+          </div>
+
+          {(adminData as any)?.isAdmin && (
+            <FilterButton
+              active={filterActive}
+              className="px-0 py-0 border-none bg-transparent hover:bg-transparent text-[#8E8E93] hover:text-[#111111] font-normal text-[16px] gap-2"
+              onClick={() => setFilterActive(!filterActive)}
+            >
+              Фильтр
+            </FilterButton>
+          )}
         </div>
 
         <Button
@@ -214,6 +286,114 @@ export default function PromotionsPage() {
         </Button>
       </div>
 
+      {(adminData as any)?.isAdmin && filterActive && (
+        <div className="mb-6 p-5 bg-[#F9F9FB] border border-[#E5E5EA] rounded-[24px] flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
+          {(adminData as any)?.isAdmin && (
+            <div className="w-[300px] relative" ref={filterShopDropdownRef}>
+              <div className="text-[12px] font-medium text-[#8E8E93] mb-2 ml-1">
+                Магазин
+              </div>
+
+              <button
+                onClick={() =>
+                  setIsFilterShopDropdownOpen(!isFilterShopDropdownOpen)
+                }
+                className="w-full h-11 px-4 rounded-xl bg-white border border-[#E5E5EA] flex items-center justify-between text-sm transition-all hover:border-[#55CB00]"
+              >
+                <span
+                  className={cn(
+                    selectedFilterShopId ? "text-[#111111]" : "text-[#8E8E93]",
+                  )}
+                >
+                  {selectedFilterShopId
+                    ? allShops.find((s) => s.id === selectedFilterShopId)?.name
+                    : "Все магазины"}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={cn(
+                    "text-[#8E8E93] transition-transform",
+                    isFilterShopDropdownOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {isFilterShopDropdownOpen && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#E5E5EA] py-2 z-20 transition-all animate-in zoom-in-95 duration-200 origin-top">
+                  <div className="px-3 pb-2 mb-1 border-b border-[#F2F2F7]">
+                    <div className="relative flex items-center bg-[#F2F2F7] rounded-lg px-3 py-1.5 transition-all focus-within:ring-1 focus-within:ring-[#55CB00]/20">
+                      <Search size={14} className="text-[#8E8E93] mr-2" />
+                      <input
+                        autoFocus
+                        placeholder="Поиск магазина..."
+                        className="w-full bg-transparent border-none outline-none text-xs text-[#111111] placeholder:text-[#8E8E93]"
+                        value={shopSearchQuery}
+                        onChange={(e) => setShopSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-[200px] overflow-y-auto px-1 custom-scrollbar">
+                    <button
+                      onClick={() => {
+                        setSelectedFilterShopId(null);
+                        setIsFilterShopDropdownOpen(false);
+                        setShopSearchQuery("");
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                        !selectedFilterShopId
+                          ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
+                          : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]",
+                      )}
+                    >
+                      Все магазины
+                    </button>
+                    {filteredShops.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setSelectedFilterShopId(s.id);
+                          setIsFilterShopDropdownOpen(false);
+                          setShopSearchQuery("");
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between",
+                          selectedFilterShopId === s.id
+                            ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
+                            : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]",
+                        )}
+                      >
+                        <span className="truncate">{s.name}</span>
+                        <span className="text-[10px] text-[#8E8E93] ml-2">
+                          ID {s.id}
+                        </span>
+                      </button>
+                    ))}
+                    {filteredShops.length === 0 && (
+                      <div className="px-3 py-4 text-center text-xs text-[#8E8E93]">
+                        Магазины не найдены
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            className="h-11 px-6 text-sm font-semibold text-[#8E8E93] hover:text-[#FF3B30] transition-colors flex items-center gap-2"
+            onClick={() => {
+              setSelectedFilterShopId(null);
+              setShopSearchQuery("");
+            }}
+          >
+            <RotateCcw size={16} />
+            Сбросить
+          </button>
+        </div>
+      )}
+
       {activeTab === "contests" ? (
         <div className="text-gray-500 py-10">
           Раздел «Конкурсы» в разработке
@@ -222,7 +402,7 @@ export default function PromotionsPage() {
         <>
           {loading && (
             <div className="flex items-center justify-center h-40">
-              <div className="text-gray-500">Загрузка...</div>
+              <Spinner size={32} />
             </div>
           )}
 
@@ -282,7 +462,7 @@ export default function PromotionsPage() {
                       return (
                         <tr
                           key={p.id}
-                          className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="border-b transition-colors"
                           style={{ borderColor: "rgba(220, 220, 230, 1)" }}
                         >
                           <td className="py-4 px-4 text-sm text-[#8E8E93]">
@@ -297,7 +477,11 @@ export default function PromotionsPage() {
                             {(() => {
                               const shop = p.promocodeShop?.[0]?.shop;
                               const name = shop?.name || "SHOPLY";
-                              const photoUrl = shop?.photo?.url;
+                              const photoUrl = getImageUrl(shop?.photo, {
+                                width: 48,
+                                height: 48,
+                                fit: "cover",
+                              });
 
                               return (
                                 <div className="flex items-center gap-2">
@@ -331,12 +515,7 @@ export default function PromotionsPage() {
                           <td className="py-4 px-4 text-sm text-[#111111]">
                             {activation}
                           </td>
-                          <td className="py-4 px-4">
-                            <ChevronRight
-                              size={20}
-                              className="text-[#C7C7CC]"
-                            />
-                          </td>
+                          <td className="py-4 px-4"></td>
                         </tr>
                       );
                     })}
