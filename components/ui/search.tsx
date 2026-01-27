@@ -4,16 +4,31 @@ import { Search as SearchIcon } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Input } from "./input";
 
-export interface SearchProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
-    containerClassName?: string;
-    onSearch?: (query: string) => void;
-    debounceMs?: number;
-  }
+export interface SearchProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  containerClassName?: string;
+  onSearch?: (query: string) => void;
+  debounceMs?: number;
+}
 
 const Search = React.forwardRef<HTMLInputElement, SearchProps>(
-  ({ className, containerClassName, placeholder = "Search...", onSearch, debounceMs = 500, ...props }, ref) => {
+  (
+    {
+      className,
+      containerClassName,
+      placeholder = "Search...",
+      onSearch,
+      debounceMs = 500,
+      ...props
+    },
+    ref,
+  ) => {
     const [internalValue, setInternalValue] = React.useState("");
+
+    React.useEffect(() => {
+      if (props.value !== undefined) {
+        setInternalValue(String(props.value));
+      }
+    }, [props.value]);
 
     React.useEffect(() => {
       if (!onSearch) return;
@@ -44,7 +59,7 @@ const Search = React.forwardRef<HTMLInputElement, SearchProps>(
         />
       </div>
     );
-  }
+  },
 );
 Search.displayName = "Search";
 

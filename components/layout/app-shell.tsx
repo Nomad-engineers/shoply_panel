@@ -13,36 +13,38 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex min-h-screen bg-background-main p-4",
-          className
+          "flex h-screen w-full overflow-hidden bg-background-main",
+          className,
         )}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 AppShell.displayName = "AppShell";
 
 interface SidebarProps {
   children: React.ReactNode;
   className?: string;
+  isCollapsed?: boolean;
 }
 
 const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
-  ({ className, children }, ref) => {
+  ({ className, children, isCollapsed }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          "relative w-[280px] bg-background-surface border-r border-border  pt-8 z-10 bg-white rounded-3xl",
-          className
+          "relative bg-background-surface border-r border-border pt-8 z-10 bg-white transition-all duration-300 ease-in-out flex flex-col h-full",
+          isCollapsed ? "w-[90px]" : "w-[280px]",
+          className,
         )}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 Sidebar.displayName = "Sidebar";
 
@@ -57,14 +59,14 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "flex-1 bg-background-main",
-          className
+          "flex-1 h-full overflow-y-auto bg-background-main relative",
+          className,
         )}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 Main.displayName = "Main";
 
@@ -80,13 +82,13 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
         ref={ref}
         className={cn(
           " z-20 flex h-[72px] items-center justify-between bg-background-surface  border-border px-8",
-          className
+          className,
         )}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 Header.displayName = "Header";
 
@@ -98,16 +100,10 @@ interface ContentProps {
 const Content = React.forwardRef<HTMLDivElement, ContentProps>(
   ({ className, children }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn(
-          "px-8 pt-8",
-          className
-        )}
-      >
+      <div ref={ref} className={cn("px-8 pt-8", className)}>
         {children}
       </div>
     );
-  }
+  },
 );
 export { AppShell, Sidebar, Main, Header, Content };
