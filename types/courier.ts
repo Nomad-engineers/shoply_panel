@@ -19,6 +19,7 @@ export interface CourierStats {
     completedorderscount: string;
     canceledorderscount: string;
     onShift: boolean;
+    ordersLength:number
 }
 
 export interface CourierShop {

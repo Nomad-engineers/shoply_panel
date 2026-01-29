@@ -99,7 +99,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             if (queryString) {
                 url += `?${queryString}`;
             }
-
+            
             const res = await fetchWithSession(
                 url,
                 () => localStorage.getItem("access_token"),

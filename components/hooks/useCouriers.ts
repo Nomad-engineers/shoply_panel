@@ -80,7 +80,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                     const allOrders = (user.orders || []) as any[];
                     // Filter orders by date range if provided
                     const orders = allOrders.filter(o => isInRange(o.createdAt));
-
+                    
                     const completedOrders = orders.filter((o: any) => o.status === 'completed');
                     const canceledOrders = orders.filter((o: any) => o.isCancelled || o.status === 'canceled');
 
@@ -96,6 +96,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                         completedorderscount: String(completedOrders.length), // Period-specific count
                         canceledorderscount: String(canceledOrders.length), // Period-specific count
                         onShift: !!user.onShift,
+                        ordersLength:orders.length
                     };
                 });
 
