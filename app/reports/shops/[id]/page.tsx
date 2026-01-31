@@ -536,25 +536,21 @@ export default function ShopDetailsPage() {
                 </td>
                 <td className="py-4 px-4 text-center">
                   <div className="flex justify-center">
-                    {order.status === "completed" && (
+                    {order.isCancelled || order.status === "cancelled" ? (
+                      <X className="text-[#FF3B30]" size={18} strokeWidth={3} />
+                    ) : order.status === "completed" ? (
                       <Check
                         className="text-[#55CB00]"
                         size={18}
                         strokeWidth={3}
                       />
+                    ) : (
+                      <Clock
+                        className="text-[#007AFF]"
+                        size={18}
+                        strokeWidth={3}
+                      />
                     )}
-                    {(order.status === "cancelled" || order.isCancelled) && (
-                      <X className="text-[#FF3B30]" size={18} strokeWidth={3} />
-                    )}
-                    {order.status !== "completed" &&
-                      order.status !== "cancelled" &&
-                      !order.isCancelled && (
-                        <Clock
-                          className="text-[#007AFF]"
-                          size={18}
-                          strokeWidth={3}
-                        />
-                      )}
                   </div>
                 </td>
               </tr>
