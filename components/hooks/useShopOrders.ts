@@ -63,6 +63,9 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
                 queryParams.append("isPublic", params.isPublic.toString());
             }
 
+      
+            queryParams.append("sort", JSON.stringify({ createdAt: "DESC" }));
+
             const queryString = queryParams.toString();
             if (queryString) {
                 url += `?${queryString}`;

@@ -22,7 +22,6 @@ export default function ShopsPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { shopsStats, loading, error, refetch } = useShops({
     periodType: activePeriod,
-    isPublic: "true",
     isAdmin: true,
     dateFrom: new Date().toISOString().split("T")[0],
   });
@@ -43,9 +42,6 @@ export default function ShopsPage() {
       router.replace(`/reports/shops/${userShopId}`);
     }
   }, [adminData, authLoading, router]);
-
-  
-
   const periods: { value: PeriodType; label: string }[] = [
     { value: "day", label: "Сегодня" },
     { value: "week", label: "Неделя" },
@@ -61,7 +57,7 @@ export default function ShopsPage() {
     refetch({
       periodType: period,
       dateFrom: today,
-      isPublic: "true",
+      // Removed isPublic: "true"
       isAdmin: true,
     });
   };
