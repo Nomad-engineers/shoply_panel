@@ -77,6 +77,7 @@ export interface FinansShopDto {
     cashTotal: string;
     sbpTotal: string;
     total: string;
+    totalDiscount: string;
 }
 
 export interface ShopOrdersResponse {
