@@ -119,13 +119,12 @@ export default function CouriersPage() {
       const matchesSearch =
         fullName.includes(searchQuery.toLowerCase()) ||
         String(c.id).includes(searchQuery);
-
-      if (!matchesSearch) return false;
-
-      // 2. Active (onShift) filter
-      if (showActiveOnly && !c.onShift) return false;
-
-      return true;
+      if(!matchesSearch) return false
+      if (showActiveOnly) {
+        return c.ordersLength > 0;
+      } else {
+        return c.ordersLength === 0;
+      }
     });
 
     result.sort((a, b) => {

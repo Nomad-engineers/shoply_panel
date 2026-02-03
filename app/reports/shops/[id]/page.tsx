@@ -49,16 +49,11 @@ export default function ShopDetailsPage() {
   const urlName = searchParams.get("name");
   const urlPeriod = searchParams.get("periodType") as PeriodType | null;
 
-  const [activePeriod, setActivePeriod] = useState<PeriodType>(
-    urlPeriod || "month",
-  );
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(() => {
-    const period = urlPeriod || "month";
+  const getInitialDates = (period: PeriodType) => {
     const end = new Date();
     const start = new Date();
 
-    if (period === "period") return null;
+    if (period === "period") return { start: null, end };
 
     switch (period) {
       case "day":
@@ -76,9 +71,17 @@ export default function ShopDetailsPage() {
         start.setFullYear(end.getFullYear() - 1);
         break;
     }
-    return start;
-  });
-  const [endDate, setEndDate] = useState<Date | null>(new Date());
+    return { start, end };
+  };
+
+  const initialPeriod = (urlPeriod as PeriodType) || "month";
+  const { start: initialStart, end: initialEnd } =
+    getInitialDates(initialPeriod);
+
+  const [activePeriod, setActivePeriod] = useState<PeriodType>(initialPeriod);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(initialStart);
+  const [endDate, setEndDate] = useState<Date | null>(initialEnd);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 30;
   const [shopName, setShopName] = useState<string>(urlName || "");
@@ -113,9 +116,15 @@ export default function ShopDetailsPage() {
 
   const { data, loading, error, refetch } = useShopOrders({
     id: shopId,
-    periodType: urlPeriod || "month",
-    dateFrom: new Date().toISOString().split("T")[0],
-    page: currentPage,
+    periodType: initialPeriod,
+    dateFrom: (activePeriod === "period" ? initialStart : initialEnd)
+      ?.toISOString()
+      .split("T")[0],
+    dateTo:
+      activePeriod === "period"
+        ? initialEnd?.toISOString().split("T")[0]
+        : undefined,
+    page: 1,
     pageSize: pageSize,
     isPublic: true,
   });
@@ -125,22 +134,7 @@ export default function ShopDetailsPage() {
   const finansShop = data?.finansShop;
   const backendPromocodes = data?.promocodes || [];
 
-  const promoStats = useMemo(() => {
-    let shopTotal = 0;
-    let shoplyTotal = 0;
-
-    orders.forEach((order) => {
-      if (order.discountAmount > 0) {
-        if (order.promocode?.payFromShop) {
-          shopTotal += order.discountAmount;
-        } else {
-          shoplyTotal += order.discountAmount;
-        }
-      }
-    });
-
-    return { shopTotal, shoplyTotal };
-  }, [orders]);
+  const totalDiscount = Number(finansShop?.totalDiscount || 0);
 
   const totalCommission =
     ((Number(finansShop?.total) || 0) * shopCommission) / 100;
@@ -207,8 +201,13 @@ export default function ShopDetailsPage() {
     refetch({
       id: shopId,
       periodType: activePeriod,
-      dateFrom: startDate?.toISOString().split("T")[0],
-      dateTo: endDate?.toISOString().split("T")[0],
+      dateFrom: (activePeriod === "period" ? startDate : endDate)
+        ?.toISOString()
+        .split("T")[0],
+      dateTo:
+        activePeriod === "period"
+          ? endDate?.toISOString().split("T")[0]
+          : undefined,
       page: newPage,
       pageSize: pageSize,
       isPublic: true,
@@ -537,25 +536,21 @@ export default function ShopDetailsPage() {
                 </td>
                 <td className="py-4 px-4 text-center">
                   <div className="flex justify-center">
-                    {order.status === "completed" && (
+                    {order.isCancelled || order.status === "cancelled" ? (
+                      <X className="text-[#FF3B30]" size={18} strokeWidth={3} />
+                    ) : order.status === "completed" ? (
                       <Check
                         className="text-[#55CB00]"
                         size={18}
                         strokeWidth={3}
                       />
+                    ) : (
+                      <Clock
+                        className="text-[#007AFF]"
+                        size={18}
+                        strokeWidth={3}
+                      />
                     )}
-                    {(order.status === "cancelled" || order.isCancelled) && (
-                      <X className="text-[#FF3B30]" size={18} strokeWidth={3} />
-                    )}
-                    {order.status !== "completed" &&
-                      order.status !== "cancelled" &&
-                      !order.isCancelled && (
-                        <Clock
-                          className="text-[#007AFF]"
-                          size={18}
-                          strokeWidth={3}
-                        />
-                      )}
                   </div>
                 </td>
               </tr>
@@ -686,25 +681,14 @@ export default function ShopDetailsPage() {
                 Промокоды
               </div>
               <div className="font-bold text-sm text-[#111111] mb-2 whitespace-nowrap">
-                {(promoStats.shopTotal + promoStats.shoplyTotal).toLocaleString(
-                  "ru-RU",
-                )}{" "}
-                руб
+                {totalDiscount.toLocaleString("ru-RU")} руб
               </div>
               <div className="space-y-1 text-xs text-[#111111] whitespace-nowrap">
-                {promoStats.shopTotal > 0 && (
+                {totalDiscount > 0 && (
                   <div>
-                    Магазин -{" "}
+                    Всего скидок -{" "}
                     <span className="font-medium">
-                      {promoStats.shopTotal.toLocaleString("ru-RU")}
-                    </span>
-                  </div>
-                )}
-                {promoStats.shoplyTotal > 0 && (
-                  <div>
-                    SHOPLY -{" "}
-                    <span className="font-medium">
-                      {promoStats.shoplyTotal.toLocaleString("ru-RU")}
+                      {totalDiscount.toLocaleString("ru-RU")}
                     </span>
                   </div>
                 )}

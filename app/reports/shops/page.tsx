@@ -15,9 +15,13 @@ type PeriodType = "day" | "week" | "month" | "halfYear" | "year";
 
 export default function ShopsPage() {
   const router = useRouter();
+  const [sortField, setSortField] = useState<SortField>("id");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { shopsStats, loading, error, refetch } = useShops({
-    periodType: "month",
-    isPublic: "true",
+    periodType: activePeriod,
     isAdmin: true,
     dateFrom: new Date().toISOString().split("T")[0],
   });
@@ -38,13 +42,6 @@ export default function ShopsPage() {
       router.replace(`/reports/shops/${userShopId}`);
     }
   }, [adminData, authLoading, router]);
-
-  const [sortField, setSortField] = useState<SortField>("id");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [activePeriod, setActivePeriod] = useState<PeriodType>("month");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   const periods: { value: PeriodType; label: string }[] = [
     { value: "day", label: "Сегодня" },
     { value: "week", label: "Неделя" },
@@ -60,7 +57,7 @@ export default function ShopsPage() {
     refetch({
       periodType: period,
       dateFrom: today,
-      isPublic: "true",
+      // Removed isPublic: "true"
       isAdmin: true,
     });
   };
