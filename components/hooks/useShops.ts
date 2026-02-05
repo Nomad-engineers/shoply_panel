@@ -13,9 +13,6 @@ interface FetchShopsParams {
     isAdmin?: boolean;
 }
 
-// Simple cache to store shop data across period switches
-const shopsCache: Record<string, { shops: Shop[]; stats: ShopStats[] }> = {};
-
 export const useShops = (initialParams?: FetchShopsParams) => {
     const { refreshSession, fetchWithSession } = useAuth(
         process.env.NEXT_PUBLIC_DIRECTUS_URL
@@ -58,21 +55,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
     const fetchShopsData = async (params?: FetchShopsParams) => {
         if (params?.skip || (params === undefined && initialParams?.skip)) return;
 
-        // Generate a cache key based on params
-        const cacheKey = JSON.stringify(params || initialParams || {});
-
-        // Check cache for SWR (Stale-While-Revalidate)
-        const cached = shopsCache[cacheKey];
-        if (cached) {
-            setShops(cached.shops);
-            setShopsStats(cached.stats);
-            // Don't return! We will fetch in background to refresh
-        }
-
-        // Only show loading if we have NO data at all for this key
-        if (!cached) {
-            setLoading(true);
-        }
+        setLoading(true);
         setError(null);
 
         try {
@@ -99,7 +82,7 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             if (queryString) {
                 url += `?${queryString}`;
             }
-            
+
             const res = await fetchWithSession(
                 url,
                 () => localStorage.getItem("access_token"),
@@ -110,9 +93,6 @@ export const useShops = (initialParams?: FetchShopsParams) => {
             const shopsData = response.data || [];
 
             const stats = calculateShopStats(shopsData);
-
-            // Save to cache
-            shopsCache[cacheKey] = { shops: shopsData, stats };
 
             setShops(shopsData);
             setShopsStats(stats);

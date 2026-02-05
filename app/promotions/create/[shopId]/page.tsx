@@ -170,6 +170,12 @@ export default function CreatePromocodePage() {
       }
 
       if (!postRes.ok) {
+        if (postRes.status === 400) {
+          const errorJson = await postRes.json();
+          if (errorJson.message === "promocode with this name already exist") {
+            throw new Error("Такой промокод уже существует");
+          }
+        }
         throw new Error("Не удалось создать промокод");
       }
 
