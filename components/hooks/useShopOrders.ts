@@ -12,9 +12,6 @@ interface FetchShopOrdersParams {
     isPublic?: boolean;
 }
 
-// Simple cache to store shop orders data across period switches
-const shopOrdersCache: Record<string, ShopOrdersResponse> = {};
-
 export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
     const { refreshSession, fetchWithSession } = useAuth(
         process.env.NEXT_PUBLIC_DIRECTUS_URL
@@ -24,20 +21,7 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchOrdersData = async (params: FetchShopOrdersParams) => {
-        // Generate a cache key based on params
-        const cacheKey = JSON.stringify(params);
-
-        // Check cache for SWR (Stale-While-Revalidate)
-        const cached = shopOrdersCache[cacheKey];
-        if (cached) {
-            setData(cached);
-            // Don't return! We will fetch in background to refresh
-        }
-
-        // Only show loading if we have NO data at all for this key
-        if (!cached) {
-            setLoading(true);
-        }
+        setLoading(true);
         setError(null);
 
         try {
@@ -63,7 +47,6 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
                 queryParams.append("isPublic", params.isPublic.toString());
             }
 
-      
             queryParams.append("sort", JSON.stringify({ createdAt: "DESC" }));
 
             const queryString = queryParams.toString();
@@ -80,9 +63,6 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
             const response = await res.json();
             const responseData = response.data;
 
-            // Save to cache
-            shopOrdersCache[cacheKey] = responseData;
-
             setData(responseData);
         } catch (e: any) {
             setError(e.message);
@@ -94,7 +74,7 @@ export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
 
     useEffect(() => {
         fetchOrdersData(initialParams);
-    }, [initialParams.id]);
+    }, [JSON.stringify(initialParams)]);
 
     return { data, loading, error, refetch: fetchOrdersData };
 };
