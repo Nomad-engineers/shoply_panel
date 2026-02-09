@@ -31,7 +31,8 @@ export default function CouriersPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const pageSize = 20;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { dateFrom, dateTo } = useMemo(() => {
@@ -67,9 +68,14 @@ export default function CouriersPage() {
     return { dateFrom: undefined, dateTo: undefined };
   }, [activePeriod]);
 
-  const { couriers, meta, loading, error } = useCouriers({
-    page: currentPage,
-    pageSize: 20,
+  const {
+    couriers,
+    meta: serverMeta,
+    loading,
+    error,
+  } = useCouriers({
+    page: 1, // Always fetch first page for full list
+    pageSize: 1000, // Fetch all to allow client-side filtering/pagination
     dateFrom,
     dateTo,
   });
@@ -119,12 +125,11 @@ export default function CouriersPage() {
       const matchesSearch =
         fullName.includes(searchQuery.toLowerCase()) ||
         String(c.id).includes(searchQuery);
-      if(!matchesSearch) return false
+      if (!matchesSearch) return false;
       if (showActiveOnly) {
         return c.ordersLength > 0;
-      } else {
-        return c.ordersLength === 0;
       }
+      return true;
     });
 
     result.sort((a, b) => {
@@ -150,6 +155,16 @@ export default function CouriersPage() {
 
     return result;
   }, [couriers, searchQuery, sortField, sortDirection, showActiveOnly]);
+
+  const { paginatedCouriers, totalPages } = useMemo(() => {
+    const total = Math.ceil(filteredAndSortedCouriers.length / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return {
+      paginatedCouriers: filteredAndSortedCouriers.slice(start, end),
+      totalPages: Math.max(1, total),
+    };
+  }, [filteredAndSortedCouriers, currentPage, pageSize]);
 
   const totals = useMemo(() => {
     return filteredAndSortedCouriers.reduce(
@@ -293,7 +308,7 @@ export default function CouriersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedCouriers.map((courier) => (
+            {paginatedCouriers.map((courier) => (
               <tr
                 key={courier.id}
                 onClick={() =>
@@ -352,7 +367,7 @@ export default function CouriersPage() {
       </div>
 
       {/* Pagination Controls */}
-      {!loading && meta.totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 mt-8">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -362,13 +377,13 @@ export default function CouriersPage() {
             Назад
           </button>
           <span className="text-sm font-medium text-[#8E8E93]">
-            {currentPage} из {meta.totalPages}
+            {currentPage} из {totalPages}
           </span>
           <button
             onClick={() =>
-              setCurrentPage((prev) => Math.min(meta.totalPages, prev + 1))
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
             }
-            disabled={currentPage === meta.totalPages}
+            disabled={currentPage === totalPages}
             className="px-4 py-2 border rounded-xl text-sm font-semibold text-[#111111] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-[#F2F2F7] border-[#E5E5EA]"
           >
             Вперед

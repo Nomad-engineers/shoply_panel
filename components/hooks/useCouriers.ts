@@ -80,7 +80,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                     const allOrders = (user.orders || []) as any[];
                     // Filter orders by date range if provided
                     const orders = allOrders.filter(o => isInRange(o.createdAt));
-                    
+
                     const completedOrders = orders.filter((o: any) => o.status === 'completed');
                     const canceledOrders = orders.filter((o: any) => o.isCancelled || o.status === 'canceled');
 
@@ -96,16 +96,18 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                         completedorderscount: String(completedOrders.length), // Period-specific count
                         canceledorderscount: String(canceledOrders.length), // Period-specific count
                         onShift: !!user.onShift,
-                        ordersLength:orders.length
+                        ordersLength: orders.length
                     };
                 });
 
                 setData(couriers);
 
                 if (json.meta) {
+                    const totalCount = json.meta.totalCount || json.meta.total || 0;
+                    const pSize = props.pageSize || 20;
                     setMeta({
-                        totalCount: json.meta.totalCount || json.meta.total || 0,
-                        totalPages: json.meta.totalPages || json.meta.pages || 0,
+                        totalCount,
+                        totalPages: json.meta.totalPages || json.meta.pages || Math.ceil(totalCount / pSize),
                     });
                 }
             } catch (err: any) {
@@ -119,7 +121,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
 
     useEffect(() => {
         fetchCouriers(initialProps);
-    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.page]);
+    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.page, initialProps.pageSize]);
 
     return { couriers: data, meta, loading, error, refetch: fetchCouriers };
 };
