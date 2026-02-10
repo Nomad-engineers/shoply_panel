@@ -22,6 +22,7 @@ interface fetchSessionFn {
     url: string,
     getAccessToken: () => string | null,
     refreshSession: () => Promise<string>,
+    options?:RequestInit,
   ): Promise<Response>;
 }
 
@@ -47,56 +48,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [adminData, setAdminData] = useState<any>(null);
 
   const fetchWithSession: fetchSessionFn = useCallback(
-    async (url, getAccessToken, refreshSessionFn) => {
+    async (url, getAccessToken, refreshSessionFn, options) => {
       let token = getAccessToken();
 
-      let res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const requestConfig = (token: string | null) => ({
+        ...options,
+        headers: {
+          ...options?.headers,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
+      let res = await fetch(url, requestConfig(token));
 
       if (res.status === 401) {
         token = await refreshSessionFn();
         res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          ...options,
+          headers: {
+            ...options?.headers,
+            Authorization: `Bearer ${token}`,
+          },
         });
       }
 
       return res;
     },
-    [],
+    []
   );
 
   const logout = useCallback(() => {
     try {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
     } catch {}
 
     setAdminData(null);
-    router.push("/login");
+    router.push('/login');
   }, [router]);
 
   const refreshPromise = useRef<Promise<string> | null>(null);
 
   const refreshSession = useCallback(async (): Promise<string> => {
-    if (!directusUrl) throw new Error("DIRECTUS_URL не определён");
+    if (!directusUrl) throw new Error('DIRECTUS_URL не определён');
 
     // If a refresh is already in progress, return the existing promise
     if (refreshPromise.current) {
       return refreshPromise.current;
     }
 
-    const refresh = localStorage.getItem("refresh_token");
+    const refresh = localStorage.getItem('refresh_token');
     if (!refresh) {
-      throw new Error("Нет refresh токена");
+      throw new Error('Нет refresh токена');
     }
 
     refreshPromise.current = (async () => {
       try {
         const res = await fetch(`${directusUrl}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh_token: refresh, mode: "json" }),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refresh, mode: 'json' }),
         });
 
         if (!res.ok) {
@@ -110,11 +120,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const tokens = result.data || result;
 
         if (!tokens.access_token || !tokens.refresh_token) {
-          throw new Error("Некорректный ответ от API");
+          throw new Error('Некорректный ответ от API');
         }
 
-        localStorage.setItem("access_token", tokens.access_token);
-        localStorage.setItem("refresh_token", tokens.refresh_token);
+        localStorage.setItem('access_token', tokens.access_token);
+        localStorage.setItem('refresh_token', tokens.refresh_token);
 
         return tokens.access_token;
       } catch (err) {
@@ -134,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem('access_token');
       if (!token) {
         setLoading(false);
         return;
@@ -143,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetchWithSession(
         `${directusUrl}/users/me`,
         () => token,
-        refreshSession,
+        refreshSession
       );
 
       if (!res.ok) {
@@ -168,16 +178,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
 
           const queryParams = new URLSearchParams();
-          queryParams.set("relations", "members,photo");
-          queryParams.set("search", JSON.stringify(searchParams));
-          queryParams.set("page", "1");
-          queryParams.set("pageSize", "10");
-          queryParams.set("isPublic", "true");
+          queryParams.set('relations', 'members,photo');
+          queryParams.set('search', JSON.stringify(searchParams));
+          queryParams.set('page', '1');
+          queryParams.set('pageSize', '10');
+          queryParams.set('isPublic', 'true');
 
           const shopsRes = await fetchWithSession(
             `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
             () => token,
-            refreshSession,
+            refreshSession
           );
 
           if (shopsRes.ok) {
@@ -187,26 +197,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (Array.isArray(shopsList) && shopsList.length > 0) {
               userData.shop = shopsList[0];
               console.log(
-                "[Auth] Found user shop via search:",
-                shopsList[0].name,
+                '[Auth] Found user shop via search:',
+                shopsList[0].name
               );
             } else {
               console.warn(
-                "[Auth] No shop found for user email:",
-                userData.email,
+                '[Auth] No shop found for user email:',
+                userData.email
               );
             }
           } else {
-            console.error("[Auth] /shops failed:", shopsRes.status);
+            console.error('[Auth] /shops failed:', shopsRes.status);
           }
         } catch (e) {
-          console.error("[Auth] Failed to fetch user shop", e);
+          console.error('[Auth] Failed to fetch user shop', e);
         }
       }
 
       setAdminData(userData);
     } catch (err) {
-      console.error("Profile refresh failed", err);
+      console.error('Profile refresh failed', err);
     } finally {
       setLoading(false);
     }
@@ -214,55 +224,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (
     form: LoginFormValues,
-    redirectTo: string = "/reports",
+    redirectTo: string = '/reports'
   ) => {
     if (!directusUrl) {
-      setError("DIRECTUS_URL не определён");
+      setError('DIRECTUS_URL не определён');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       const res = await fetch(`${directusUrl}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
 
       const result = await res.json();
 
       if (!res.ok) {
-        setError("Неверный логин или пароль");
+        setError('Неверный логин или пароль');
         return;
       }
 
       const tokens = result.data || result;
       if (tokens.access_token && tokens.refresh_token) {
-        localStorage.setItem("access_token", tokens.access_token);
-        localStorage.setItem("refresh_token", tokens.refresh_token);
+        localStorage.setItem('access_token', tokens.access_token);
+        localStorage.setItem('refresh_token', tokens.refresh_token);
       } else {
-        console.error("[Auth] Invalid login response - missing tokens", tokens);
-        setError("Ошибка авторизации: токены не получены");
+        console.error('[Auth] Invalid login response - missing tokens', tokens);
+        setError('Ошибка авторизации: токены не получены');
         return;
       }
 
       await refreshProfile();
 
       // Role-based redirection
-      if (redirectTo === "/reports") {
-        const token = localStorage.getItem("access_token");
+      if (redirectTo === '/reports') {
+        const token = localStorage.getItem('access_token');
         const payload = token ? parseJwt(token) : null;
         const isAdmin = payload?.admin_access === true;
-        const target = isAdmin ? "/reports/couriers" : "/promotions";
+        const target = isAdmin ? '/reports/couriers' : '/reports';
         router.push(target);
       } else {
         router.push(redirectTo);
       }
     } catch (err) {
-      console.error("[Auth] Login exception:", err);
-      setError("Ошибка при входе. Попробуйте позже.");
+      console.error('[Auth] Login exception:', err);
+      setError('Ошибка при входе. Попробуйте позже.');
     } finally {
       setLoading(false);
     }
