@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCouriers } from "@/components/hooks/useCouriers";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/theme";
 
@@ -30,6 +31,7 @@ export default function CouriersPage() {
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [triggeredSearchQuery, setTriggeredSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const pageSize = 20;
@@ -68,20 +70,26 @@ export default function CouriersPage() {
     return { dateFrom: undefined, dateTo: undefined };
   }, [activePeriod]);
 
+  const handleSearch = () => {
+    setCurrentPage(1);
+    setTriggeredSearchQuery(searchQuery);
+  };
+
   const {
     couriers,
     meta: serverMeta,
     loading,
     error,
   } = useCouriers({
-    page: 1, // Always fetch first page for full list
-    pageSize: 1000, // Fetch all to allow client-side filtering/pagination
+    page: currentPage,
+    pageSize: pageSize,
     dateFrom,
     dateTo,
+    search: triggeredSearchQuery,
   });
 
   const [sortField, setSortField] = useState<SortField>("id");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const periods: { value: typeof activePeriod; label: string }[] = [
     { value: "day", label: "День" },
@@ -91,8 +99,13 @@ export default function CouriersPage() {
 
   const handlePeriodChange = (period: typeof activePeriod) => {
     setActivePeriod(period);
+    setCurrentPage(1);
     setIsDropdownOpen(false);
   };
+
+  useEffect(() => {
+    // Current page reset is now handled in handleSearch
+  }, [triggeredSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -119,18 +132,14 @@ export default function CouriersPage() {
   const filteredAndSortedCouriers = useMemo(() => {
     if (!couriers.length) return [];
 
-    let result = couriers.filter((c) => {
-      // 1. Search filter
-      const fullName = `${c.username || ""} ${c.lastname || ""}`.toLowerCase();
-      const matchesSearch =
-        fullName.includes(searchQuery.toLowerCase()) ||
-        String(c.id).includes(searchQuery);
-      if (!matchesSearch) return false;
-      if (showActiveOnly) {
-        return c.ordersLength > 0;
-      }
-      return true;
-    });
+    // All filtering and searching is now handled by the backend.
+    // We just apply client-side sorting if needed or just return the results.
+    // Note: The hook already sorts by ID DESC by default on the backend.
+    let result = [...couriers];
+
+    if (showActiveOnly) {
+      result = result.filter((c) => c.ordersLength > 0);
+    }
 
     result.sort((a, b) => {
       let aValue: any = a[sortField];
@@ -154,17 +163,14 @@ export default function CouriersPage() {
     });
 
     return result;
-  }, [couriers, searchQuery, sortField, sortDirection, showActiveOnly]);
+  }, [couriers, sortField, sortDirection, showActiveOnly]);
 
   const { paginatedCouriers, totalPages } = useMemo(() => {
-    const total = Math.ceil(filteredAndSortedCouriers.length / pageSize);
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
     return {
-      paginatedCouriers: filteredAndSortedCouriers.slice(start, end),
-      totalPages: Math.max(1, total),
+      paginatedCouriers: filteredAndSortedCouriers,
+      totalPages: serverMeta.totalPages || 1,
     };
-  }, [filteredAndSortedCouriers, currentPage, pageSize]);
+  }, [filteredAndSortedCouriers, serverMeta.totalPages]);
 
   const totals = useMemo(() => {
     return filteredAndSortedCouriers.reduce(
@@ -202,15 +208,29 @@ export default function CouriersPage() {
           Курьеры
         </h1>
 
-        {/* Search - Line style with icon on right */}
+        {/* Search - Line style with clickable icon */}
         <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
             placeholder="Поиск"
             className="w-full bg-transparent border-none outline-none text-[14px] placeholder:text-[#8E8E93] py-1"
           />
-          <Search className="text-[#111111] ml-2" size={18} />
+          <button
+            onClick={handleSearch}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors ml-2 group"
+            title="Поиск"
+          >
+            <Search
+              className="text-[#111111] group-hover:text-[#55CB00] transition-colors"
+              size={18}
+            />
+          </button>
         </div>
 
         {/* Vertical Divider */}

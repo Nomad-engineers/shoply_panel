@@ -33,9 +33,22 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                 queryParams.set("pageSize", String(props.pageSize || 20));
                 queryParams.set("relations", "orders,user");
 
-                // Note: /admin/delivery/list does not support date filtering params, 
-                // so we won't send dateFrom/dateTo/periodType to the backend.
-                // We will filter orders on the client side instead.
+                // Default sort by ID descending to show new couriers first
+                queryParams.set("sort", JSON.stringify({ id: "DESC" }));
+
+                if (props.search) {
+                    const searchId = parseInt(props.search);
+                    const isId = !isNaN(searchId);
+
+                    const searchObj = {
+                        or: [
+                            { user: { firstName: { like: props.search } } },
+                            { user: { lastName: { like: props.search } } },
+                            ...(isId ? [{ id: searchId }] : [])
+                        ]
+                    };
+                    queryParams.set("search", JSON.stringify(searchObj));
+                }
 
                 const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/delivery/list?${queryParams.toString()}`;
 
@@ -121,7 +134,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
 
     useEffect(() => {
         fetchCouriers(initialProps);
-    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.page, initialProps.pageSize]);
+    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.page, initialProps.pageSize, initialProps.search]);
 
     return { couriers: data, meta, loading, error, refetch: fetchCouriers };
 };
