@@ -141,7 +141,7 @@ export default function ShopDetailsPage() {
   const totalDelivery = Number(data?.totalDeliveryPrice || 0);
 
   const shopEarnings =
-    Number(finansShop?.total || 0) - totalCommission - totalDelivery;
+    Number(finansShop?.total || 0) - totalCommission - totalDiscount;
 
   const periods: { value: PeriodType; label: string }[] = [
     { value: "day", label: "Сегодня" },
@@ -504,7 +504,7 @@ export default function ShopDetailsPage() {
                   className="py-4 px-4 border-r"
                   style={{ borderColor: "rgba(220, 220, 230, 1)" }}
                 >
-                  {(Number(order.totalPrice) * shopCommission) / 100}
+                  {order.commissionService}
                 </td>
                 <td
                   className="py-4 px-4 font-medium border-r"

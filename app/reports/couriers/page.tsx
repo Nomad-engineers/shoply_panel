@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCouriers } from "@/components/hooks/useCouriers";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/theme";
 
@@ -30,8 +31,10 @@ export default function CouriersPage() {
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [triggeredSearchQuery, setTriggeredSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const pageSize = 20;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { dateFrom, dateTo } = useMemo(() => {
@@ -67,15 +70,26 @@ export default function CouriersPage() {
     return { dateFrom: undefined, dateTo: undefined };
   }, [activePeriod]);
 
-  const { couriers, meta, loading, error } = useCouriers({
+  const handleSearch = () => {
+    setCurrentPage(1);
+    setTriggeredSearchQuery(searchQuery);
+  };
+
+  const {
+    couriers,
+    meta: serverMeta,
+    loading,
+    error,
+  } = useCouriers({
     page: currentPage,
-    pageSize: 20,
+    pageSize: pageSize,
     dateFrom,
     dateTo,
+    search: triggeredSearchQuery,
   });
 
   const [sortField, setSortField] = useState<SortField>("id");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const periods: { value: typeof activePeriod; label: string }[] = [
     { value: "day", label: "День" },
@@ -85,8 +99,13 @@ export default function CouriersPage() {
 
   const handlePeriodChange = (period: typeof activePeriod) => {
     setActivePeriod(period);
+    setCurrentPage(1);
     setIsDropdownOpen(false);
   };
+
+  useEffect(() => {
+    // Current page reset is now handled in handleSearch
+  }, [triggeredSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,19 +132,14 @@ export default function CouriersPage() {
   const filteredAndSortedCouriers = useMemo(() => {
     if (!couriers.length) return [];
 
-    let result = couriers.filter((c) => {
-      // 1. Search filter
-      const fullName = `${c.username || ""} ${c.lastname || ""}`.toLowerCase();
-      const matchesSearch =
-        fullName.includes(searchQuery.toLowerCase()) ||
-        String(c.id).includes(searchQuery);
-      if(!matchesSearch) return false
-      if (showActiveOnly) {
-        return c.ordersLength > 0;
-      } else {
-        return c.ordersLength === 0;
-      }
-    });
+    // All filtering and searching is now handled by the backend.
+    // We just apply client-side sorting if needed or just return the results.
+    // Note: The hook already sorts by ID DESC by default on the backend.
+    let result = [...couriers];
+
+    if (showActiveOnly) {
+      result = result.filter((c) => c.ordersLength > 0);
+    }
 
     result.sort((a, b) => {
       let aValue: any = a[sortField];
@@ -149,7 +163,14 @@ export default function CouriersPage() {
     });
 
     return result;
-  }, [couriers, searchQuery, sortField, sortDirection, showActiveOnly]);
+  }, [couriers, sortField, sortDirection, showActiveOnly]);
+
+  const { paginatedCouriers, totalPages } = useMemo(() => {
+    return {
+      paginatedCouriers: filteredAndSortedCouriers,
+      totalPages: serverMeta.totalPages || 1,
+    };
+  }, [filteredAndSortedCouriers, serverMeta.totalPages]);
 
   const totals = useMemo(() => {
     return filteredAndSortedCouriers.reduce(
@@ -187,15 +208,29 @@ export default function CouriersPage() {
           Курьеры
         </h1>
 
-        {/* Search - Line style with icon on right */}
+        {/* Search - Line style with clickable icon */}
         <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
             placeholder="Поиск"
             className="w-full bg-transparent border-none outline-none text-[14px] placeholder:text-[#8E8E93] py-1"
           />
-          <Search className="text-[#111111] ml-2" size={18} />
+          <button
+            onClick={handleSearch}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors ml-2 group"
+            title="Поиск"
+          >
+            <Search
+              className="text-[#111111] group-hover:text-[#55CB00] transition-colors"
+              size={18}
+            />
+          </button>
         </div>
 
         {/* Vertical Divider */}
@@ -293,7 +328,7 @@ export default function CouriersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedCouriers.map((courier) => (
+            {paginatedCouriers.map((courier) => (
               <tr
                 key={courier.id}
                 onClick={() =>
@@ -352,7 +387,7 @@ export default function CouriersPage() {
       </div>
 
       {/* Pagination Controls */}
-      {!loading && meta.totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 mt-8">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -362,13 +397,13 @@ export default function CouriersPage() {
             Назад
           </button>
           <span className="text-sm font-medium text-[#8E8E93]">
-            {currentPage} из {meta.totalPages}
+            {currentPage} из {totalPages}
           </span>
           <button
             onClick={() =>
-              setCurrentPage((prev) => Math.min(meta.totalPages, prev + 1))
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
             }
-            disabled={currentPage === meta.totalPages}
+            disabled={currentPage === totalPages}
             className="px-4 py-2 border rounded-xl text-sm font-semibold text-[#111111] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-[#F2F2F7] border-[#E5E5EA]"
           >
             Вперед
