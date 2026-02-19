@@ -11,7 +11,9 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { parseJwt } from "@/lib/jwt";
-
+import Cookies from "js-cookie";
+import { authStorage } from "@/lib/utils";
+import { SWRConfig } from "swr";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -22,7 +24,7 @@ interface fetchSessionFn {
     url: string,
     getAccessToken: () => string | null,
     refreshSession: () => Promise<string>,
-    options?:RequestInit,
+    options?: RequestInit
   ): Promise<Response>;
 }
 
@@ -78,35 +80,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     try {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      authStorage.clear();
     } catch {}
 
     setAdminData(null);
-    router.push('/login');
+    router.push("/login");
   }, [router]);
 
   const refreshPromise = useRef<Promise<string> | null>(null);
 
   const refreshSession = useCallback(async (): Promise<string> => {
-    if (!directusUrl) throw new Error('DIRECTUS_URL не определён');
+    if (!directusUrl) throw new Error("DIRECTUS_URL не определён");
 
     // If a refresh is already in progress, return the existing promise
     if (refreshPromise.current) {
       return refreshPromise.current;
     }
 
-    const refresh = localStorage.getItem('refresh_token');
+    const refresh = localStorage.getItem("refresh_token");
     if (!refresh) {
-      throw new Error('Нет refresh токена');
+      throw new Error("Нет refresh токена");
     }
 
     refreshPromise.current = (async () => {
       try {
         const res = await fetch(`${directusUrl}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refresh, mode: 'json' }),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refresh, mode: "json" }),
         });
 
         if (!res.ok) {
@@ -118,13 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const result = await res.json();
         const tokens = result.data || result;
-
         if (!tokens.access_token || !tokens.refresh_token) {
-          throw new Error('Некорректный ответ от API');
+          throw new Error("Некорректный ответ от API");
         }
-
-        localStorage.setItem('access_token', tokens.access_token);
-        localStorage.setItem('refresh_token', tokens.refresh_token);
+        authStorage.setTokens(
+          tokens.access_token,
+          tokens.refresh_token,
+          tokens.expires
+        );
 
         return tokens.access_token;
       } catch (err) {
@@ -144,14 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
         setLoading(false);
         return;
       }
 
       const res = await fetchWithSession(
-        `${directusUrl}/users/me`,
+        `${directusUrl}/users/me?fields=*,role.*`,
         () => token,
         refreshSession
       );
@@ -178,11 +180,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
 
           const queryParams = new URLSearchParams();
-          queryParams.set('relations', 'members,photo');
-          queryParams.set('search', JSON.stringify(searchParams));
-          queryParams.set('page', '1');
-          queryParams.set('pageSize', '10');
-          queryParams.set('isPublic', 'true');
+          queryParams.set("relations", "members,photo");
+          queryParams.set("search", JSON.stringify(searchParams));
+          queryParams.set("page", "1");
+          queryParams.set("pageSize", "10");
+          queryParams.set("isPublic", "true");
 
           const shopsRes = await fetchWithSession(
             `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
@@ -197,82 +199,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (Array.isArray(shopsList) && shopsList.length > 0) {
               userData.shop = shopsList[0];
               console.log(
-                '[Auth] Found user shop via search:',
+                "[Auth] Found user shop via search:",
                 shopsList[0].name
               );
             } else {
               console.warn(
-                '[Auth] No shop found for user email:',
+                "[Auth] No shop found for user email:",
                 userData.email
               );
             }
           } else {
-            console.error('[Auth] /shops failed:', shopsRes.status);
+            console.error("[Auth] /shops failed:", shopsRes.status);
           }
         } catch (e) {
-          console.error('[Auth] Failed to fetch user shop', e);
+          console.error("[Auth] Failed to fetch user shop", e);
         }
       }
-
+      Cookies.set("user_role", userData.role.name);
+      const shopId = userData.shop?.id;
+      Cookies.set("user_shop_id", shopId);
       setAdminData(userData);
     } catch (err) {
-      console.error('Profile refresh failed', err);
+      console.error("Profile refresh failed", err);
     } finally {
       setLoading(false);
     }
   }, [directusUrl, fetchWithSession, refreshSession]);
 
-  const login = async (
-    form: LoginFormValues,
-    redirectTo: string = '/reports'
-  ) => {
+  const login = async (form: LoginFormValues, redirectTo: string = "/") => {
     if (!directusUrl) {
-      setError('DIRECTUS_URL не определён');
+      setError("DIRECTUS_URL не определён");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const res = await fetch(`${directusUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
       const result = await res.json();
 
       if (!res.ok) {
-        setError('Неверный логин или пароль');
+        setError("Неверный логин или пароль");
         return;
       }
-
+      await refreshProfile();
       const tokens = result.data || result;
       if (tokens.access_token && tokens.refresh_token) {
-        localStorage.setItem('access_token', tokens.access_token);
-        localStorage.setItem('refresh_token', tokens.refresh_token);
+        authStorage.setTokens(
+          tokens.access_token,
+          tokens.refresh_token,
+          tokens.expires
+        );
       } else {
-        console.error('[Auth] Invalid login response - missing tokens', tokens);
-        setError('Ошибка авторизации: токены не получены');
+        setError("Ошибка авторизации: токены не получены");
         return;
       }
 
       await refreshProfile();
 
-      // Role-based redirection
-      if (redirectTo === '/reports') {
-        const token = localStorage.getItem('access_token');
-        const payload = token ? parseJwt(token) : null;
-        const isAdmin = payload?.admin_access === true;
-        const target = isAdmin ? '/reports/couriers' : '/reports';
-        router.push(target);
-      } else {
-        router.push(redirectTo);
-      }
+      const token = localStorage.getItem("access_token");
+      const payload = token ? parseJwt(token) : null;
+      const isAdmin = payload?.admin_access === true;
+      const target = isAdmin ? "/reports/couriers" : "/categories";
+      router.push(target);
     } catch (err) {
-      console.error('[Auth] Login exception:', err);
-      setError('Ошибка при входе. Попробуйте позже.');
+      setError("Ошибка при входе. Попробуйте позже.");
     } finally {
       setLoading(false);
     }
@@ -302,10 +299,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshProfile,
       refreshSession,
       fetchWithSession,
-    ],
+    ]
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <SWRConfig
+      value={{
+        revalidateOnFocus: false,
+        dedupingInterval: 60000,
+        fetcher: (url: string) =>
+          fetchWithSession(
+            url,
+            () => localStorage.getItem("access_token"),
+            refreshSession
+          ).then((res) => res.json()),
+      }}
+    >
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    </SWRConfig>
+  );
 }
 
 export function useAuthContext() {

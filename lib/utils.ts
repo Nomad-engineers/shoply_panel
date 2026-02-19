@@ -1,13 +1,21 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import Cookies from "js-cookie";
+import { parseJsonFile } from "next/dist/build/load-jsconfig";
+import { parseJwt } from "./jwt";
+
+interface TokenOptions {
+  expires?: number;
+  role?: string;
+}
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function getImageUrl(
   input: string | { id?: string; url?: string | null } | null | undefined,
-  options: { width?: number; height?: number; fit?: string } = {},
+  options: { width?: number; height?: number; fit?: string } = {}
 ) {
   if (!input) return "";
 
@@ -53,3 +61,21 @@ export function getImageUrl(
 
   return "";
 }
+
+export const authStorage = {
+  setTokens: (access: string, refresh: string, expiresMs?: number) => {
+    localStorage.setItem("access_token", access);
+    localStorage.setItem("refresh_token", refresh);
+    const expires = expiresMs ? expiresMs / (1000 * 60 * 60 * 24) : 7;
+    Cookies.set("auth_token", access, { expires: expires || 1, path: "/" });
+  },
+
+  clear: () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    Cookies.remove("auth_token");
+    Cookies.remove("user_role");
+    Cookies.remove("user_shop_id");
+  },
+};
+

@@ -100,7 +100,7 @@ interface ContentProps {
 const Content = React.forwardRef<HTMLDivElement, ContentProps>(
   ({ className, children }, ref) => {
     return (
-      <div ref={ref} className={cn("px-8 pt-8", className)}>
+      <div ref={ref} className={cn("px-4 pt-8", className)}>
         {children}
       </div>
     );
