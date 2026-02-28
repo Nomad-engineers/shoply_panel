@@ -1,18 +1,17 @@
-import { Barcode } from 'lucide-react';
-
-
+import { Barcode } from "lucide-react";
+import { Shop } from "./shop";
 
 export enum ProductMeasure {
-  LITER = 'liter',
-  ML = 'ml',
-  KG = 'kg',
-  GRAM = 'gram',
-  PIECE = 'pc', // Штука (ШТ)
-  UNIT = 'unit', // Единица (ЕД)
-  PACK = 'pack', // Пачка (ПАЧ)
-  BOTTLE = 'bottle',
-  METER = 'm',
-  COND_UNIT = 'cu', // Условная единица (УСЛ ЕД)
+  LITER = "liter",
+  ML = "ml",
+  KG = "kg",
+  GRAM = "gram",
+  PIECE = "pc", // Штука (ШТ)
+  UNIT = "unit", // Единица (ЕД)
+  PACK = "pack", // Пачка (ПАЧ)
+  BOTTLE = "bottle",
+  METER = "m",
+  COND_UNIT = "cu", // Условная единица (УСЛ ЕД)
 }
 export const measureLabels: Record<ProductMeasure, string> = {
   [ProductMeasure.LITER]: "л",
@@ -31,26 +30,22 @@ export interface Product {
   id: number;
   name: string;
   weight: number;
-  price:number;
-  createdAt:string,
-  inStock:boolean,
-  purchasePrice:number,
-  archivedAt:string,
+  createdAt: string;
   measure: ProductMeasure;
   article: string;
   barcodes: string[];
   subCategory: SubCategory;
-  photos?: ProductPhoto[],
-  shopProduct?: ShopProduct[];
+  photos?: ProductPhoto[];
+  shopProduct: ShopProduct[];
 }
-export interface ProductPhoto{
-  id:number,
-  cretedAt:string,
-  file:PhotoFile
+export interface ProductPhoto {
+  id: number;
+  cretedAt: string;
+  file: PhotoFile;
 }
-interface PhotoFile{
-  id:number,
-  url:string
+interface PhotoFile {
+  id: number;
+  url: string;
 }
 
 export interface SubCategory {
@@ -58,11 +53,11 @@ export interface SubCategory {
   name: string;
   category: Category;
   products?: Product[];
-  photo?:{
-        id: string;
-        url: string;
-        filename_download: string;
-    } | null
+  photo?: {
+    id: string;
+    url: string;
+    filename_download: string;
+  } | null;
   customOrderId: number;
 }
 
@@ -70,19 +65,20 @@ export interface Category {
   id: number;
   name: string;
   photo?: {
-        id: string;
-        url: string;
-        filename_download: string;
-    } | null
+    id: string;
+    url: string;
+    filename_download: string;
+  } | null;
   subCategory?: SubCategory[];
   customOrderId: number;
 }
 
 export interface ShopProduct {
   id: number;
-  shop_id: number;
-  product_id: number | Product;
+  shop: Shop;
+  purchasePrice: number;
+  inStock: boolean;
+  product: Product;
+  archivedAt: string;
   price: number;
-  quantity: number;
-  isAvailable: boolean;
 }

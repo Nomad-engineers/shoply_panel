@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Product, ProductMeasure } from "@/types/category.types";
+import { ProductMeasure, ShopProduct } from "@/types/category.types";
+import { calculatePrice } from "@/lib/utils";
 
 interface PhotoState {
   id?: number;
@@ -7,13 +8,17 @@ interface PhotoState {
   file?: File;
 }
 
-export function useEditProductForm(product: Product | undefined, initialSubCategoryId: number) {
+export function useProductForm(
+  shopProduct: ShopProduct | undefined,
+  initialSubCategoryId: number,
+  shopId: string | null
+) {
   const [photos, setPhotos] = useState<PhotoState[]>([]);
 
-  // 2. Состояние полей формы
   const [formData, setFormData] = useState({
     subCategoryId: initialSubCategoryId,
     name: "",
+    article: "",
     mainBarcode: "",
     extraBarcodes: [] as string[],
     purchasePrice: 0 as number | "",
@@ -24,140 +29,190 @@ export function useEditProductForm(product: Product | undefined, initialSubCateg
     inStock: true,
   });
 
-  // Инициализация при загрузке данных продукта
+  // Инициализация данных из ShopProduct
   useEffect(() => {
-    if (product) {
-      const pPrice = product.purchasePrice || 0;
-      const sPrice = product.price || 0;
+    if (shopProduct) {
+      const baseProduct = shopProduct.product;
+      const pPrice = shopProduct.purchasePrice || 0;
+      const sPrice = shopProduct.price || 0;
 
-      setPhotos(product.photos?.map(p => ({ id: p.id, url: p.file.url })) || []);
+      setPhotos(
+        baseProduct?.photos?.map((p) => ({
+          id: p.id,
+          url: p.file?.url || "",
+        })) || []
+      );
 
       setFormData({
-        subCategoryId: product.subCategory?.id || Number(initialSubCategoryId),
-        name: product.name || "",
-        mainBarcode: (product.barcodes || [])[0] || "",
-        extraBarcodes: (product.barcodes || []).slice(1),
+        subCategoryId:
+          baseProduct?.subCategory?.id || Number(initialSubCategoryId),
+        name: baseProduct?.name || "",
+        mainBarcode: (baseProduct?.barcodes || [])[0] || "",
+        extraBarcodes: (baseProduct?.barcodes || []).slice(1),
         purchasePrice: pPrice,
         price: sPrice,
-        markup: pPrice > 0 ? Number(((sPrice - pPrice) / pPrice * 100).toFixed(2)) : 0,
-        weight: product.weight || 0,
-        measure: (product.measure as ProductMeasure) || ProductMeasure.PIECE,
-        inStock: product.inStock ?? true,
+        markup:
+          pPrice > 0
+            ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
+            : 0,
+        weight: baseProduct?.weight || 0,
+        article: baseProduct?.article || "",
+        measure:
+          (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
+        inStock: shopProduct.inStock ?? true,
       });
     }
-  }, [product, initialSubCategoryId]);
+  }, [shopProduct, initialSubCategoryId]);
 
-  // --- Логика штрихкодов ---
   const generateEAN13 = useCallback(() => {
-    let code = "29" + Array.from({ length: 10 }, () => Math.floor(Math.random() * 10)).join("");
+    let code =
+      "29" +
+      Array.from({ length: 10 }, () => Math.floor(Math.random() * 10)).join("");
     let sum = 0;
-    for (let i = 0; i < 12; i++) sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3);
+    for (let i = 0; i < 12; i++)
+      sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3);
     const checkSum = (10 - (sum % 10)) % 10;
     return code + checkSum;
   }, []);
 
-   const handleGenerateMainBarcode = () => {
-    setFormData(prev => ({ ...prev, mainBarcode: generateEAN13() }));
+  const handleGenerateMainBarcode = () => {
+    setFormData((prev) => ({ ...prev, mainBarcode: generateEAN13() }));
   };
 
   const handleAddExtraBarcode = () => {
-    setFormData(prev => ({ ...prev, extraBarcodes: [...prev.extraBarcodes, generateEAN13()] }));
+    setFormData((prev) => ({
+      ...prev,
+      extraBarcodes: [...prev.extraBarcodes, generateEAN13()],
+    }));
   };
 
   const handleRemoveExtraBarcode = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      extraBarcodes: prev.extraBarcodes.filter((_, i) => i !== index)
+      extraBarcodes: prev.extraBarcodes.filter((_, i) => i !== index),
     }));
   };
+
   const sanitize = (v: string) => {
     const clean = v.replace(/[^\d.]/g, "");
     return clean === "" ? "" : Number(clean);
   };
-  // --- Логика финансов ---
-  const handleFinanceChange = (field: "price" | "markup" | "purchasePrice", val: string) => {
 
+  const handleFinanceChange = (
+    field: "price" | "markup" | "purchasePrice",
+    val: string
+  ) => {
     const num = sanitize(val);
-    const pPrice = field === "purchasePrice" ? (num === "" ? 0 : num) : (Number(formData.purchasePrice) || 0);
-    
-    let updates: any = { [field]: num };
+    const numVal = num === "" ? 0 : Number(num);
 
-    if (field === "purchasePrice") {
-      const currentMarkup = Number(formData.markup) || 0;
-      updates.price = num === "" ? "" : Number((num + (num * (currentMarkup / 100))).toFixed(2));
-    } else if (field === "markup") {
-      updates.price = pPrice > 0 && num !== "" 
-        ? Number((pPrice + (pPrice * (num / 100))).toFixed(2)) 
-        : formData.price;
-    } else if (field === "price") {
-      updates.markup = pPrice > 0 && num !== "" 
-        ? Number(((num - pPrice) / pPrice * 100).toFixed(2)) 
-        : 0;
-    }
-    setFormData(prev => ({ ...prev, ...updates }));
-  };
+    setFormData((prev) => {
+      const updates: any = { [field]: num };
+      const currentPurchasePrice =
+        field === "purchasePrice" ? numVal : Number(prev.purchasePrice) || 0;
+      const currentPrice = field === "price" ? numVal : Number(prev.price) || 0;
+      const currentMarkup =
+        field === "markup" ? numVal : Number(prev.markup) || 0;
 
-  // --- Проверка на "грязную" форму (изменения) ---
-  const isDirty = useMemo(() => {
-    if (!product) return false;
-
-    const initialBarcodes = product.barcodes || [];
-    const currentBarcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(Boolean);
-
-    const hasFormChanged = 
-      formData.name !== product.name ||
-      formData.subCategoryId !== product.subCategory?.id ||
-      Number(formData.price) !== product.price ||
-      Number(formData.purchasePrice) !== (product.purchasePrice || 0) ||
-      Number(formData.weight) !== product.weight ||
-      formData.measure !== product.measure ||
-      formData.inStock !== product.inStock ||
-      JSON.stringify(initialBarcodes) !== JSON.stringify(currentBarcodes);
-
-    const initialPhotoUrls = product.photos?.map(p => p.file.url) || [];
-    const currentPhotoUrls = photos.map(p => p.url);
-    const hasPhotosChanged = JSON.stringify(initialPhotoUrls) !== JSON.stringify(currentPhotoUrls);
-
-    return hasFormChanged || hasPhotosChanged;
-  }, [formData, photos, product]);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) {
-        const newFiles = Array.from(e.target.files).map(file => ({
-          url: URL.createObjectURL(file),
-          file: file
-        }));
-        setPhotos(prev => [...prev, ...newFiles]);
+      if (field === "purchasePrice") {
+        updates.price = calculatePrice(numVal, currentMarkup);
+      } else if (field === "markup") {
+        updates.price = calculatePrice(currentPurchasePrice, numVal);
+      } else if (field === "price") {
+        updates.markup =
+          currentPurchasePrice > 0
+            ? Number(
+                (
+                  ((numVal - currentPurchasePrice) / currentPurchasePrice) *
+                  100
+                ).toFixed(2)
+              )
+            : 0;
       }
-    };
-  
-    const handleDeletePhoto = (index: number) => {
-      setPhotos(prev => prev.filter((_, i) => i !== index));
-    };
 
-    const handleReset = () => {
-    if (!product) return;
-
-    // Сбрасываем фотографии к начальному состоянию из API
-    setPhotos(product.photos?.map(p => ({ id: p.id, url: p.file.url })) || []);
-
-    // Сбрасываем поля формы
-    setFormData({
-      subCategoryId: product.subCategory?.id || initialSubCategoryId,
-      name: product.name || "",
-      mainBarcode: (product.barcodes || [])[0] || "",
-      extraBarcodes: (product.barcodes || []).slice(1),
-      purchasePrice: product.purchasePrice || 0,
-      price: product.price || 0,
-      markup: product.purchasePrice 
-        ? Number(((product.price - product.purchasePrice) / product.purchasePrice * 100).toFixed(2)) 
-        : 0,
-      weight: product.weight || 0,
-      measure: (product.measure as ProductMeasure) || ProductMeasure.PIECE,
-      inStock: product.inStock ?? true,
+      return { ...prev, ...updates };
     });
   };
-  
+
+  const isDirty = useMemo(() => {
+    if (!shopProduct) return false;
+
+    const baseProduct = shopProduct.product;
+    const initialBarcodes = baseProduct?.barcodes || [];
+    const currentBarcodes = [
+      formData.mainBarcode,
+      ...formData.extraBarcodes,
+    ].filter(Boolean);
+
+    const hasFormChanged =
+      formData.name !== baseProduct?.name ||
+      formData.subCategoryId !== baseProduct?.subCategory?.id ||
+      Number(formData.price) !== (shopProduct.price || 0) ||
+      Number(formData.purchasePrice) !== (shopProduct.purchasePrice || 0) ||
+      Number(formData.weight) !== (baseProduct?.weight || 0) ||
+      formData.measure !== baseProduct?.measure ||
+      formData.inStock !== (shopProduct.inStock ?? true) ||
+      formData.article !== (baseProduct?.article || "") ||
+      JSON.stringify(initialBarcodes) !== JSON.stringify(currentBarcodes);
+
+    const initialPhotoUrls = baseProduct?.photos?.map((p) => p.file?.url) || [];
+    const currentPhotoUrls = photos.map((p) => p.url);
+    const hasPhotosChanged =
+      JSON.stringify(initialPhotoUrls) !== JSON.stringify(currentPhotoUrls);
+
+    return hasFormChanged || hasPhotosChanged;
+  }, [formData, photos, shopProduct]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).map((file) => ({
+        url: URL.createObjectURL(file),
+        file: file,
+      }));
+      setPhotos((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleDeletePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReset = () => {
+    if (!shopProduct) return;
+    const baseProduct = shopProduct.product;
+    const pPrice = shopProduct.purchasePrice || 0;
+    const sPrice = shopProduct.price || 0;
+
+    setPhotos(
+      baseProduct?.photos?.map((p) => ({
+        id: p.id,
+        url: p.file?.url || "",
+      })) || []
+    );
+
+    setFormData({
+      subCategoryId: baseProduct?.subCategory?.id || initialSubCategoryId,
+      name: baseProduct?.name || "",
+      mainBarcode: (baseProduct?.barcodes || [])[0] || "",
+      extraBarcodes: (baseProduct?.barcodes || []).slice(1),
+      purchasePrice: pPrice,
+      price: sPrice,
+      article: baseProduct?.article || "",
+      markup:
+        pPrice > 0
+          ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
+          : 0,
+      weight: baseProduct?.weight || 0,
+      measure: (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
+      inStock: shopProduct.inStock ?? true,
+    });
+  };
+
+  const handleGenerateArticle = useCallback(() => {
+    const generated = Math.floor(
+      100000000 + Math.random() * 900000000
+    ).toString();
+    setFormData((prev) => ({ ...prev, article: generated }));
+  }, []);
 
   return {
     formData,
@@ -173,6 +228,7 @@ export function useEditProductForm(product: Product | undefined, initialSubCateg
     handleFileChange,
     handleGenerateMainBarcode,
     sanitize,
-    handleReset
+    handleReset,
+    handleGenerateArticle,
   };
 }

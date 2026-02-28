@@ -79,3 +79,18 @@ export const authStorage = {
   },
 };
 
+export const calculatePrice = (
+  purchasePrice: number,
+  markup: number
+): number => {
+  const purchase = Number(purchasePrice) || 0;
+
+  const margin = Number(markup) || 0;
+
+  if (purchase === 0) return 0;
+
+  const result = purchase + purchase * (margin / 100);
+
+  return Number(result.toFixed(2));
+};
+

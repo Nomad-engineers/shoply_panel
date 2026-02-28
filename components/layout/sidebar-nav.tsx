@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Plus } from "lucide-react";
+import { Divide, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
@@ -19,6 +19,7 @@ import { useShops } from "../hooks/useShops";
 import { useState } from "react";
 import { Shop } from "@/types/shop";
 import { getImageUrl } from "@/lib/utils";
+import { useApiData } from "../hooks/useApiData";
 
 interface NavItemProps {
   href: string;
@@ -99,23 +100,13 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
   ({ className, isCollapsed: externalIsCollapsed, onToggleCollapse }, ref) => {
     const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL;
     const { adminData, logout } = useAuth(directusUrl);
-    const [userShop, setUserShop] = useState<Shop | undefined>();
-    const { shops } = useShops();
+    const shopId = Cookies.get("user_shop_id");
+    const { singleItem: shop } = useApiData<Shop>(`shops/${shopId}`, {
+      relations: ["photo"],
+    });
     const [internalIsCollapsed, setInternalIsCollapsed] = React.useState(false);
     const isCollapsed = externalIsCollapsed ?? internalIsCollapsed;
     const isLoggedIn = !!adminData;
-
-    React.useEffect(() => {
-      if (isLoggedIn && !adminData?.isAdmin) {
-        const shopIdFromCookie = Cookies.get("user_shop_id");
-        if (shopIdFromCookie && shops.length > 0) {
-          const shop = shops.find(
-            (s) => String(s.id) === String(shopIdFromCookie)
-          );
-          setUserShop(shop);
-        }
-      }
-    }, [isLoggedIn, adminData, shops]);
 
     const navigationItems = [
       {
@@ -157,7 +148,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           className
         )}
       >
-        {isLoggedIn && !adminData?.isAdmin && userShop && (
+        {isLoggedIn && !adminData?.isAdmin && shop && (
           <div
             className={cn(
               "px-4 py-4 border-b border-gray-100 shrink-0",
@@ -166,26 +157,30 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           >
             <div className="flex items-center gap-3 justify-center">
               <div className="relative shrink-0">
-                <img
-                  src={getImageUrl(userShop?.photo, {
-                    width: 40,
-                    height: 40,
-                    fit: "cover",
-                  })}
-                  alt={userShop.name}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-100"
-                />
+                {shop.photo ? (
+                  <img
+                    src={getImageUrl(shop?.photo, {
+                      width: 40,
+                      height: 40,
+                      fit: "cover",
+                    })}
+                    alt={shop.name}
+                    className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                  />
+                ) : (
+                  <div className="w-[30px] h-[30px] rounded-full bg-gray-200"></div>
+                )}
               </div>
 
               {!isCollapsed && (
                 <div className="flex-1 min-w-0 ">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-text-primary truncate">
-                      {userShop.name}
+                      {shop.name}
                     </h3>
                   </div>
                   <p className="text-[11px] text-[#55CB00] font-medium">
-                    Открыто до {userShop.workTimeEnd.slice(0, -3)}
+                    Открыто до {shop.workTimeEnd.slice(0, -3)}
                   </p>
                 </div>
               )}

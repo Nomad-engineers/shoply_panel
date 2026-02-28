@@ -7,11 +7,5 @@ export default function CategoryLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <DashboardLayout>
-      <div>
-        {children}
-      </div>
-    </DashboardLayout>
-  );
+  return <DashboardLayout>{children}</DashboardLayout>;
 }

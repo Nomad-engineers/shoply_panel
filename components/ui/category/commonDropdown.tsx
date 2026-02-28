@@ -18,7 +18,6 @@ export const CategoryBaseDropdown = <T extends string | boolean | number>({
   isOpen, 
   onToggle, 
   onSelect,
-  placeholder = "Выбрать"
 }: CategoryBaseDropdownProps<T>) => (
   <div className="relative">
     <label className="text-xs text-gray-400 mb-1.5 block mt-3 uppercase font-bold">{label}</label>
@@ -31,7 +30,7 @@ export const CategoryBaseDropdown = <T extends string | boolean | number>({
       )}
     >
       <span className={cn("font-bold", (value !== "" && value !== null) ? "text-gray-600" : "text-gray-400")}>
-        {options.find(o => o.value === value)?.label || placeholder}
+        {options.find(o => o.value === value)?.label}
       </span>
       <ChevronDown size={16} className={cn("text-gray-400 transition-transform duration-200", isOpen && "rotate-180")} />
     </button>

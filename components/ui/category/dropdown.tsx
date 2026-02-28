@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/theme"; 
-import { ProductMeasure } from "@/types/category.types";
+import { cn } from "@/lib/theme";
+import { ProductMeasure, measureLabels } from "@/types/category.types";
 
 interface MeasureDropDownProps {
   product: any;
@@ -9,6 +9,7 @@ interface MeasureDropDownProps {
   activeDropdown: number | null;
   setActiveDropdown: (id: number | null) => void;
   toggleFieldUnique: (id: number, field: string) => void;
+  displayValue: string;
   changes: { measure: string };
   onMeasureSelect?: (measure: string, productId: number) => void;
 }
@@ -20,24 +21,28 @@ export const MeasureDropDown = ({
   product,
   changes,
   setActiveDropdown,
-  onMeasureSelect
+  onMeasureSelect,
+  displayValue,
 }: MeasureDropDownProps) => {
+  const currentKey = measureUnique
+    ? product.measure
+    : changes.measure || product.measure;
   return (
     <div className="relative">
       <div
         onClick={() => toggleFieldUnique(product.id, "measure")}
         className={cn(
-          "rounded-md px-3 py-2 border text-xs transition-all cursor-pointer relative",
+          "rounded-md px-3 py-3 border text-xs transition-all cursor-pointer relative",
           measureUnique
-            ? "!border-purple-400 text-purple-600 bg-white"
-            : "border-2 border-gray-200 text-gray-700 bg-white"
+            ? "!border-purple-400 text-purple-600 bg-white shadow-sm"
+            : changes.measure !== ""
+              ? "border-blue-300 text-blue-500 bg-blue-50/30"
+              : "border-1 border-gray-200 text-gray-700 bg-white"
         )}
       >
         <div className="flex items-center justify-center w-full gap-1.5">
-          <span className="truncate">
-            {measureUnique
-              ? product.measure || "Литр"
-              : changes.measure || product.measure || "Литр"}
+          <span className="truncate font-medium">
+            {measureLabels[displayValue as keyof typeof measureLabels] || "шт"}
           </span>
 
           {measureUnique && (
@@ -47,12 +52,14 @@ export const MeasureDropDown = ({
           <div
             onClick={(e) => {
               e.stopPropagation();
-              setActiveDropdown(activeDropdown === product.id ? null : product.id);
+              setActiveDropdown(
+                activeDropdown === product.id ? null : product.id
+              );
             }}
-            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+            className="ml-auto p-0.5 hover:bg-gray-100 rounded transition-colors"
           >
             <ChevronDown
-              size={14}
+              size={12}
               className={measureUnique ? "text-purple-400" : "text-gray-400"}
             />
           </div>
@@ -65,18 +72,18 @@ export const MeasureDropDown = ({
             className="fixed inset-0 z-[110]"
             onClick={() => setActiveDropdown(null)}
           />
-          <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-            {Object.values(ProductMeasure).map((m) => (
+          <div className="absolute top-[calc(100%+4px)] left-0 min-w-full bg-white border border-gray-200 rounded-xl shadow-xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+            {Object.entries(measureLabels).map(([value, label]) => (
               <button
-                key={m}
+                key={value}
                 type="button"
                 onClick={() => {
-                  if (onMeasureSelect) onMeasureSelect(m, product.id);
+                  if (onMeasureSelect) onMeasureSelect(value, product.id);
                   setActiveDropdown(null);
                 }}
-                className="w-full px-4 py-2.5 text-left text-[11px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                className="w-full px-4 py-2 text-left text-[11px] text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-gray-50 last:border-none"
               >
-                {m}
+                {label}
               </button>
             ))}
           </div>

@@ -7,9 +7,8 @@ interface ProductLayoutProps {
 
 export default function ProductLayout({ children }: ProductLayoutProps) {
   return (
-
-      <div className="bg-white rounded-4xl p-8 shadow-sm border border-gray-50 mt-6 min-h-[calc(100vh-280px)]">
-        {children}
-       </div>
+    <div className="bg-white rounded-4xl p-8 shadow-sm border border-gray-50 min-h-[calc(100vh-280px)]">
+      {children}
+    </div>
   );
 }

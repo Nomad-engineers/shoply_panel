@@ -14,6 +14,7 @@ import { parseJwt } from "@/lib/jwt";
 import Cookies from "js-cookie";
 import { authStorage } from "@/lib/utils";
 import { SWRConfig } from "swr";
+import { ROLES } from "@/middleware";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -153,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const res = await fetchWithSession(
-        `${directusUrl}/users/me?fields=*,role.*`,
+        `${directusUrl}/users/me?fields=*,role.*,shop.*`,
         () => token,
         refreshSession
       );
@@ -165,119 +166,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await res.json();
       let userData = result.data ?? result;
 
-      // Check Admin Access via JWT
+      if (!userData.first_name) {
+        authStorage.clear();
+        router.push("/login");
+        alert("Установите свой профиль в панели Directus");
+        return;
+      }
+
       const payload = parseJwt(token);
       userData.isAdmin = payload?.admin_access === true;
 
-      // If NOT Admin and NO Shop, try to find the shop via members
-      if (!userData.isAdmin && !userData.shop && userData.email) {
+      if (!userData.isAdmin && userData.email) {
         try {
-          // Build search query to filter shops by member email
-          const searchParams = {
-            members: {
-              email: userData.email,
-            },
-          };
+          if (!userData.shop) {
+            const searchParams = {
+              members: {
+                email: userData.email,
+              },
+            };
 
-          const queryParams = new URLSearchParams();
-          queryParams.set("relations", "members,photo");
-          queryParams.set("search", JSON.stringify(searchParams));
-          queryParams.set("page", "1");
-          queryParams.set("pageSize", "10");
-          queryParams.set("isPublic", "true");
+            const queryParams = new URLSearchParams();
+            queryParams.set("relations", "members,photo");
+            queryParams.set("search", JSON.stringify(searchParams));
+            queryParams.set("page", "1");
+            queryParams.set("pageSize", "10");
+            queryParams.set("isPublic", "true");
 
-          const shopsRes = await fetchWithSession(
-            `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
-            () => token,
-            refreshSession
-          );
+            const shopsRes = await fetchWithSession(
+              `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
+              () => token,
+              refreshSession
+            );
 
-          if (shopsRes.ok) {
-            const result = await shopsRes.json();
-            const shopsList = result.data || result;
+            if (shopsRes.ok) {
+              const shopsResult = await shopsRes.json();
+              const shopsList = shopsResult.data || shopsResult;
 
-            if (Array.isArray(shopsList) && shopsList.length > 0) {
-              userData.shop = shopsList[0];
-              console.log(
-                "[Auth] Found user shop via search:",
-                shopsList[0].name
-              );
-            } else {
-              console.warn(
-                "[Auth] No shop found for user email:",
-                userData.email
-              );
+              if (Array.isArray(shopsList) && shopsList.length > 0) {
+                userData.shop = shopsList[0];
+              } else {
+                authStorage.clear();
+                router.push("/login");
+                alert("У вас нет связанного магазина.");
+                return;
+              }
             }
-          } else {
-            console.error("[Auth] /shops failed:", shopsRes.status);
           }
         } catch (e) {
-          console.error("[Auth] Failed to fetch user shop", e);
+          console.error(e);
         }
       }
-      Cookies.set("user_role", userData.role.name);
-      const shopId = userData.shop?.id;
-      Cookies.set("user_shop_id", shopId);
+
+      if (!userData.isAdmin && !userData.shop) {
+        authStorage.clear();
+        router.push("/login");
+        alert("У вас нет связанного магазина.");
+        return;
+      }
+
+      Cookies.set("user_role", userData.role?.name || "");
+      if (userData.shop?.id) {
+        Cookies.set("user_shop_id", String(userData.shop.id));
+      }
+
       setAdminData(userData);
     } catch (err) {
-      console.error("Profile refresh failed", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [directusUrl, fetchWithSession, refreshSession]);
+  }, [directusUrl, fetchWithSession, refreshSession, router]);
 
   const login = async (form: LoginFormValues, redirectTo: string = "/") => {
-    if (!directusUrl) {
-      setError("DIRECTUS_URL не определён");
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await fetch(`${directusUrl}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) {
+      setError("Неверный логин или пароль");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError("");
+    const result = await res.json();
+    const tokens = result.data || result;
 
-    try {
-      const res = await fetch(`${directusUrl}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        setError("Неверный логин или пароль");
-        return;
-      }
-      await refreshProfile();
-      const tokens = result.data || result;
-      if (tokens.access_token && tokens.refresh_token) {
-        authStorage.setTokens(
-          tokens.access_token,
-          tokens.refresh_token,
-          tokens.expires
-        );
-      } else {
-        setError("Ошибка авторизации: токены не получены");
-        return;
-      }
-
-      await refreshProfile();
-
-      const token = localStorage.getItem("access_token");
-      const payload = token ? parseJwt(token) : null;
+    if (tokens.access_token && tokens.refresh_token) {
+      authStorage.setTokens(tokens.access_token, tokens.refresh_token, tokens.expires);
+      
+      await refreshProfile(); 
+      
+      const payload = parseJwt(tokens.access_token);
       const isAdmin = payload?.admin_access === true;
-      const target = isAdmin ? "/reports/couriers" : "/categories";
-      router.push(target);
-    } catch (err) {
-      setError("Ошибка при входе. Попробуйте позже.");
-    } finally {
-      setLoading(false);
+      router.push(isAdmin ? "/reports/couriers" : "/categories");
     }
-  };
+  } catch (err) {
+    setError("Ошибка при входе.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
-    refreshProfile();
-  }, [refreshProfile]);
+    const token = localStorage.getItem("access_token");
+    if (token && !adminData) {
+      refreshProfile();
+    } else if (!token) {
+      setLoading(false);
+    }
+  }, [adminData, refreshProfile])
 
   const value = useMemo(
     () => ({
@@ -305,7 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <SWRConfig
       value={{
         revalidateOnFocus: false,
-        dedupingInterval: 60000,
+        revalidateOnReconnect: true,
+        dedupingInterval: 10000, 
         fetcher: (url: string) =>
           fetchWithSession(
             url,

@@ -2,8 +2,8 @@
   import type { NextRequest } from 'next/server'
 
   export const ROLES = {
-    ADMIN: 'admin',
-    SHOP_OWNER: 'Shop Owner',
+    ADMIN: "Administrator",
+    SHOP_OWNER: "Shop Owner",
   } as const;
 
   const FORBIDDEN_FOR_SHOP = [
