@@ -20,7 +20,7 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
-      router.push("/reports/couriers");
+      router.push("/categories");
     };
 
     return (

@@ -45,7 +45,7 @@ const getContentLabel = (p: Promocode) => {
 export default function PromotionsPage() {
   const router = useRouter();
   const { adminData, loading: authLoading } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL,
+    process.env.NEXT_PUBLIC_DIRECTUS_URL
   );
 
   const derivedShopId =
@@ -60,7 +60,7 @@ export default function PromotionsPage() {
   }, [derivedShopId]);
 
   const [activeTab, setActiveTab] = useState<"promocodes" | "contests">(
-    "promocodes",
+    "promocodes"
   );
   const [filterActive, setFilterActive] = useState(false);
   const [selectedFilterShopId, setSelectedFilterShopId] = useState<
@@ -82,7 +82,7 @@ export default function PromotionsPage() {
     if (!shopSearchQuery) return allShops || [];
     const lowerQuery = shopSearchQuery.toLowerCase();
     return (allShops || []).filter((s) =>
-      s.name.toLowerCase().includes(lowerQuery),
+      s.name.toLowerCase().includes(lowerQuery)
     );
   }, [allShops, shopSearchQuery]);
 
@@ -95,7 +95,7 @@ export default function PromotionsPage() {
   });
 
   const { fetchWithSession, refreshSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL,
+    process.env.NEXT_PUBLIC_DIRECTUS_URL
   );
 
   const [allTimeTurnover, setAllTimeTurnover] = useState<number | null>(null);
@@ -129,7 +129,7 @@ export default function PromotionsPage() {
         const res = await fetchWithSession(
           url,
           () => localStorage.getItem("access_token"),
-          refreshSession,
+          refreshSession
         );
 
         if (res.ok) {
@@ -140,7 +140,7 @@ export default function PromotionsPage() {
           const total = allItems.reduce((sum, p) => {
             const ordersSum = (p.orders ?? []).reduce(
               (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-              0,
+              0
             );
             return sum + ordersSum;
           }, 0);
@@ -182,7 +182,7 @@ export default function PromotionsPage() {
         (p) =>
           p.name.toLowerCase().includes(lowerSearch) ||
           p.technicalName?.toLowerCase().includes(lowerSearch) ||
-          String(p.id).includes(lowerSearch),
+          String(p.id).includes(lowerSearch)
       );
     }
 
@@ -201,7 +201,7 @@ export default function PromotionsPage() {
     return promocodes.reduce((sum, p) => {
       const ordersSum = (p.orders ?? []).reduce(
         (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-        0,
+        0
       );
       return sum + ordersSum;
     }, 0);
@@ -228,7 +228,7 @@ export default function PromotionsPage() {
                 "text-[16px] font-medium pb-2 transition-all relative",
                 activeTab === "promocodes"
                   ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform",
+                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform"
               )}
             >
               Промокоды
@@ -239,7 +239,7 @@ export default function PromotionsPage() {
                 "text-[16px] font-medium pb-2 transition-all relative",
                 activeTab === "contests"
                   ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform",
+                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform"
               )}
             >
               Конкурсы
@@ -302,7 +302,7 @@ export default function PromotionsPage() {
               >
                 <span
                   className={cn(
-                    selectedFilterShopId ? "text-[#111111]" : "text-[#8E8E93]",
+                    selectedFilterShopId ? "text-[#111111]" : "text-[#8E8E93]"
                   )}
                 >
                   {selectedFilterShopId
@@ -313,7 +313,7 @@ export default function PromotionsPage() {
                   size={16}
                   className={cn(
                     "text-[#8E8E93] transition-transform",
-                    isFilterShopDropdownOpen && "rotate-180",
+                    isFilterShopDropdownOpen && "rotate-180"
                   )}
                 />
               </button>
@@ -344,7 +344,7 @@ export default function PromotionsPage() {
                         "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                         !selectedFilterShopId
                           ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                          : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]",
+                          : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]"
                       )}
                     >
                       Все магазины
@@ -361,7 +361,7 @@ export default function PromotionsPage() {
                           "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between",
                           selectedFilterShopId === s.id
                             ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                            : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]",
+                            : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]"
                         )}
                       >
                         <span className="truncate">{s.name}</span>
@@ -455,7 +455,7 @@ export default function PromotionsPage() {
                     {promocodes.map((p) => {
                       const turnover = (p.orders ?? []).reduce(
                         (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-                        0,
+                        0
                       );
                       const activation = (p.orders ?? []).length;
 

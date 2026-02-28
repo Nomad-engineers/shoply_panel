@@ -1,114 +1,105 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "./useLogin";
 import { Shop, ShopStats } from "@/types/shop";
+import useSWR from "swr";
 
 interface FetchShopsParams {
-    periodType?: "day" | "week" | "month" | "halfYear" | "year" | "period";
-    dateFrom?: string;
-    dateTo?: string;
-    isPublic?: string;
-    skip?: boolean;
-    isAdmin?: boolean;
+  periodType?: "day" | "week" | "month" | "halfYear" | "year" | "period";
+  dateFrom?: string;
+  dateTo?: string;
+  isPublic?: string;
+  skip?: boolean;
+  isAdmin?: boolean;
 }
 
 export const useShops = (initialParams?: FetchShopsParams) => {
-    const { refreshSession, fetchWithSession } = useAuth(
-        process.env.NEXT_PUBLIC_DIRECTUS_URL
-    );
-    const [shops, setShops] = useState<Shop[]>([]);
-    const [shopsStats, setShopsStats] = useState<ShopStats[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const { refreshSession, fetchWithSession } = useAuth(
+    process.env.NEXT_PUBLIC_DIRECTUS_URL
+  );
+  const [params, setParams] = useState<FetchShopsParams | undefined>(
+    initialParams
+  );
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [shopsStats, setShopsStats] = useState<ShopStats[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-    const calculateShopStats = (shopsData: Shop[]): ShopStats[] => {
-        return shopsData.map((shop) => {
-            // Filter only completed and non-cancelled orders
-            const orders = shop.orders || [];
-            const validOrders = orders.filter(
-                (order) => order.status === "completed" && !order.isCancelled
-            );
+  const url = useMemo(() => {
+    if (params?.skip) return null;
 
-            const orderCount = validOrders.length;
-            const revenue = validOrders.reduce(
-                (sum, order) => sum + (Number(order.subtotalPrice) || 0),
-                0
-            );
-            const serviceIncome = validOrders.reduce(
-                (sum, order) => sum + (Number(order.commissionService) || 0),
-                0
-            );
+    const isAdmin = params?.isAdmin;
+    let baseUrl = `${process.env.NEXT_PUBLIC_API_URL}${isAdmin ? "/admin" : ""}/shops`;
 
-            return {
-                id: shop.id,
-                name: shop.name,
-                orderCount,
-                revenue,
-                serviceIncome,
-                photoUrl: shop.photo?.url || null,
-                photo: shop.photo,
-            };
-        });
-    };
+    const queryParams = new URLSearchParams();
+    if (params?.periodType) queryParams.append("periodType", params.periodType);
+    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
+    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
+    if (params?.isPublic) queryParams.append("isPublic", params.isPublic);
 
-    const fetchShopsData = async (params?: FetchShopsParams) => {
-        if (params?.skip || (params === undefined && initialParams?.skip)) return;
+    queryParams.append("relations", "photo,orders");
 
-        setLoading(true);
-        setError(null);
+    return `${baseUrl}?${queryParams.toString()}`;
+  }, [params]);
 
-        try {
-            const isAdmin = params?.isAdmin ?? initialParams?.isAdmin;
-            let url = `${process.env.NEXT_PUBLIC_API_URL}${isAdmin ? "/admin" : ""}/shops`;
+  const { data, error: swrError, isLoading, mutate } = useSWR(url);
 
-            // Add query parameters if provided
-            const queryParams = new URLSearchParams();
-            if (params?.periodType) {
-                queryParams.append("periodType", params.periodType);
-            }
-            if (params?.dateFrom) {
-                queryParams.append("dateFrom", params.dateFrom);
-            }
-            if (params?.dateTo) {
-                queryParams.append("dateTo", params.dateTo);
-            }
-            if (params?.isPublic) {
-                queryParams.append("isPublic", params.isPublic);
-            }
-            queryParams.append("relations", "photo");
+  const calculateShopStats = (shopsData: Shop[]): ShopStats[] => {
+    return shopsData.map((shop) => {
+      const orders = shop.orders || [];
+      const validOrders = orders.filter(
+        (order) => order.status === "completed" && !order.isCancelled
+      );
 
-            const queryString = queryParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+      const orderCount = validOrders.length;
+      const revenue = validOrders.reduce(
+        (sum, order) => sum + (Number(order.subtotalPrice) || 0),
+        0
+      );
+      const serviceIncome = validOrders.reduce(
+        (sum, order) => sum + (Number(order.commissionService) || 0),
+        0
+      );
 
-            const res = await fetchWithSession(
-                url,
-                () => localStorage.getItem("access_token"),
-                refreshSession
-            );
-            if (!res.ok) throw new Error("Ошибка при получении магазинов");
-            const response = await res.json();
-            const shopsData = response.data || [];
+      return {
+        id: shop.id,
+        name: shop.name,
+        orderCount,
+        revenue,
+        serviceIncome,
+        photoUrl: shop.photo?.url || null,
+        photo: shop.photo,
+      };
+    });
+  };
 
-            const stats = calculateShopStats(shopsData);
+  useEffect(() => {
+    if (data) {
+      const rawData = data.data || data;
+      const shopsData = Array.isArray(rawData) ? rawData : [];
+      const stats = calculateShopStats(shopsData);
 
-            setShops(shopsData);
-            setShopsStats(stats);
-        } catch (e: any) {
-            setError(e.message);
-            setShops([]);
-            setShopsStats([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+      setShops(shopsData);
+      setShopsStats(stats);
+    }
+    if (swrError) {
+      setError(swrError.message);
+    }
+  }, [data, swrError]);
 
-    useEffect(() => {
-        if (initialParams?.skip) return;
-        fetchShopsData(initialParams);
-    }, [initialParams?.skip]);
+  const fetchShopsData = (newParams?: FetchShopsParams) => {
+    if (newParams) {
+      setParams((prev) => ({ ...prev, ...newParams }));
+    } else {
+      mutate();
+    }
+  };
 
-    return { shops, shopsStats, loading, error, refetch: fetchShopsData };
+  return {
+    shops,
+    shopsStats,
+    loading: isLoading,
+    error,
+    refetch: fetchShopsData,
+  };
 };

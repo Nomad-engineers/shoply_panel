@@ -14,14 +14,7 @@ export default function ReportsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { adminData, loading } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
-
-  useEffect(() => {
-    if (!loading && adminData && !adminData.isAdmin) {
-      router.replace("/promotions");
-    }
-  }, [adminData, loading, router]);
 
   const tabs = [
     {
