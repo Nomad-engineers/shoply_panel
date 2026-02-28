@@ -37,7 +37,18 @@ export function ProductGridCard({
       </div>
       <div className="aspect-square bg-gray-100 rounded-[24px] mb-3 relative overflow-hidden">
         {product.photos?.[0]?.file?.url && (
-          <Image src={product.photos[0].file.url} alt="" fill className="object-cover" />
+          <div
+            style={{
+              backgroundImage: `url("${product.photos[0].file.url}")`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              position: "absolute",
+              inset: 0,
+            }}
+            className="object-cover transition-all"
+            aria-hidden="true"
+          />
         )}
       </div>
       <h4 className="text-md font-semibold leading-tight mb-1">

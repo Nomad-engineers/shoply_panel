@@ -219,11 +219,17 @@ export default function EditProductPage() {
               key={i}
               className="relative w-38 h-38 group rounded-2xl border-3"
             >
-              <Image
-                src={p.url}
-                alt="product"
-                fill
-                className="object-cover rounded-xl"
+              <div
+                style={{
+                  backgroundImage: `url("${p.url}")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  position: "absolute",
+                  inset: 0,
+                }}
+                className="rounded-xl object-cover transition-all"
+                aria-label="product"
               />
               <button
                 type="button"

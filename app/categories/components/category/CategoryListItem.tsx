@@ -31,16 +31,21 @@ export function CategoryListItem({ category, isSelected, onToggle, onClick }: Ca
       >
         <div className="flex items-center gap-5">
           <div className="relative">
-            {category.photo ? (
-              <Image
-                src={category.photo.url}
-                alt={category.name}
-                width={120}
-                height={50}
-                className="object-cover rounded-xl transition-all"
+            {category.photo?.url ? (
+              <div
+                style={{
+                  backgroundImage: `url("${category.photo.url}")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  width: "120px",
+                  height: "70px",
+                }}
+                className="rounded-xl transition-all object-cover"
+                aria-label={category.name}
               />
             ) : (
-              <div className="w-[120px] h-[70px] rounded-xl flex items-center justify-center text-[8px] bg-gray-200 text-gray-400 font-bold">
+              <div className="w-[120px] h-[70px] rounded-xl flex items-center justify-center text-[8px] bg-gray-200 text-gray-400 font-bold uppercase">
                 Нет фото
               </div>
             )}

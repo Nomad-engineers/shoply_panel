@@ -44,11 +44,18 @@ export function ProductListItem({
         </div>
         <div className="w-12 h-12 bg-[#F5F7F9] rounded-xl relative overflow-hidden">
           {product.photos?.[0]?.file?.url && (
-            <Image
-              src={product.photos[0].file.url}
-              alt=""
-              fill
-              className="object-cover"
+            <div
+              style={{
+                backgroundImage: `url("${product.photos[0].file.url}")`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                position: "absolute",
+                width: "120px",
+                height: "70px",
+              }}
+              className="transition-all"
+              aria-hidden="true"
             />
           )}
         </div>
