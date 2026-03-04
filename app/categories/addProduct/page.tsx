@@ -16,23 +16,35 @@ import { ProductFinanceInfo } from "./components/ProductFinanceInfo";
 import { ProductAttributes } from "./components/ProductAttributes";
 import { StockToggle } from "./components/StockToggle";
 
-import {
-  SubCategory,
-  measureLabels,
-} from "@/types/category.types";
+import { SubCategory, measureLabels } from "@/types/category.types";
 import { Shop } from "@/types/shop";
+import { ROLES } from "@/middleware";
 
 export default function AddProductPage() {
   const router = useRouter();
   const { refreshSession, fetchWithSession } = useAuthContext();
-
+  const userRole = Cookies.get("user_role");
   const [isMounted, setIsMounted] = useState(false);
   const [isMeasureOpen, setIsMeasureOpen] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState("");
   const [articleError, setArticleError] = useState("");
 
   const { data: shops = [] } = useApiData<Shop>("shops");
-  const { data: subcategories = [] } = useApiData<SubCategory>(`subcategory`);
+
+  const params = useMemo(() => {
+    let searchParams = {};
+    if (userRole === ROLES.SHOP_OWNER) {
+      const shopId = Cookies.get("user_shop_id");
+      searchParams = {
+        search: JSON.stringify({ category: { shop: { id: shopId } } }),
+      };
+    }
+    return searchParams;
+  }, [userRole]);
+
+  const { data: subcategories = [] } = useApiData<SubCategory>(`subcategory`, {
+    searchParams: params,
+  });
 
   useEffect(() => {
     const shopIdFromCookie = Cookies.get("user_shop_id");
@@ -50,7 +62,7 @@ export default function AddProductPage() {
     handleDeletePhoto,
     handleFileChange,
     sanitize,
-    handleGenerateArticle
+    handleGenerateArticle,
   } = useProductForm(undefined, 0, selectedShopId);
 
   // Лог для проверки: теперь ты увидишь, как объект наполняется
@@ -89,14 +101,19 @@ export default function AddProductPage() {
   const handleSave = async () => {
     try {
       setArticleError("");
-      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("access_token")
+          : null;
       if (!token) return alert("Ошибка авторизации");
       if (!selectedShopId) return alert("Выберите магазин");
       if (!formData.name) return alert("Введите название товара"); // Важная проверка
       if (!formData.subCategoryId) return alert("Выберите подкатегорию");
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
-      const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(b => String(b).trim() !== "");
+      const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(
+        (b) => String(b).trim() !== ""
+      );
 
       const createPayload = {
         name: formData.name,
@@ -165,13 +182,17 @@ export default function AddProductPage() {
 
   if (!isMounted) return null;
 
-  const inputClasses = "w-full h-[54px] px-4 bg-[#F1F2F6] rounded-xl border-none outline-none font-medium text-gray-800";
+  const inputClasses =
+    "w-full h-[54px] px-4 bg-[#F1F2F6] rounded-xl border-none outline-none font-medium text-gray-800";
   const labelClasses = "text-xs font-bold text-gray-400 uppercase ml-1";
 
   return (
     <div className="min-h-screen rounded-4xl bg-white px-8 py-4">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
+        <button
+          onClick={() => router.back()}
+          className="p-2 hover:bg-gray-100 rounded-full"
+        >
           <ChevronLeft size={24} />
         </button>
         <h1 className="text-xl font-bold">Добавление товара</h1>
@@ -210,17 +231,26 @@ export default function AddProductPage() {
           <ProductBarcodeSection
             mainBarcode={formData.mainBarcode}
             extraBarcodes={formData.extraBarcodes}
-            onMainBarcodeChange={(value) => setFormData(p => ({ ...p, mainBarcode: value }))}
+            onMainBarcodeChange={(value) =>
+              setFormData((p) => ({ ...p, mainBarcode: value }))
+            }
             onGenerateMainBarcode={handleGenerateMainBarcode}
             onAddExtraBarcode={handleAddExtraBarcode}
             onExtraBarcodeChange={(index, value) => {
-              setFormData(p => {
+              setFormData((p) => {
                 const bcs = [...p.extraBarcodes];
                 bcs[index] = value;
                 return { ...p, extraBarcodes: bcs };
               });
             }}
-            onRemoveExtraBarcode={(index) => setFormData(p => ({ ...p, extraBarcodes: p.extraBarcodes.filter((_, idx) => idx !== index) }))}
+            onRemoveExtraBarcode={(index) =>
+              setFormData((p) => ({
+                ...p,
+                extraBarcodes: p.extraBarcodes.filter(
+                  (_, idx) => idx !== index
+                ),
+              }))
+            }
             inputClasses={inputClasses}
             labelClasses={labelClasses}
           />
@@ -239,8 +269,12 @@ export default function AddProductPage() {
             isMeasureOpen={isMeasureOpen}
             setIsMeasureOpen={setIsMeasureOpen}
             measureOptions={measureOptions}
-            onWeightChange={(value) => setFormData(p => ({ ...p, weight: sanitize(value) }))}
-            onMeasureChange={(value) => setFormData(p => ({ ...p, measure: value }))}
+            onWeightChange={(value) =>
+              setFormData((p) => ({ ...p, weight: sanitize(value) }))
+            }
+            onMeasureChange={(value) =>
+              setFormData((p) => ({ ...p, measure: value }))
+            }
             inputClasses={inputClasses}
             labelClasses={labelClasses}
           />
@@ -248,7 +282,7 @@ export default function AddProductPage() {
 
         <StockToggle
           inStock={formData.inStock}
-          onToggle={() => setFormData(p => ({ ...p, inStock: !p.inStock }))}
+          onToggle={() => setFormData((p) => ({ ...p, inStock: !p.inStock }))}
         />
 
         <div className="mt-8">

@@ -140,6 +140,8 @@ export default function EditProductPage() {
         )
       );
 
+      const baseProductId = shopProduct?.id;
+
       if (shopProduct.product?.photos) {
         const currentPhotoIds = photos.map((p) => p.id).filter(Boolean);
         const photosToDelete = shopProduct.product.photos.filter(
