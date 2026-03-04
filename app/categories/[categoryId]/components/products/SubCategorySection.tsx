@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { cn } from "@/lib/theme";
 import { SubCategoryHeader } from "./SubCategoryHeader";
 import { ProductsList } from "./ProductsList";
 import { ProductsGrid } from "./ProductsGrid";
 import { FlattenedProduct, SubCategoryWithFlattened } from "./types";
+import { useSearchParams } from "next/navigation";
 
 interface SubCategorySectionProps {
   sub: SubCategoryWithFlattened;
@@ -16,7 +17,11 @@ interface SubCategorySectionProps {
   onToggleProducts: (subId: number, e: React.MouseEvent) => void;
   onToggleOpen: () => void;
   onProductToggle: (key: string, e: React.MouseEvent) => void;
-  onProductClick: (shopId: number, shopProductId: number) => void;
+  onProductClick: (
+    subId: number,
+    shopId: string | undefined,
+    shopProductId: number
+  ) => void;
   onCopyArticle: (text: string | null | undefined, e: React.MouseEvent) => void;
 }
 
@@ -34,11 +39,22 @@ export function SubCategorySection({
   onProductClick,
   onCopyArticle,
 }: SubCategorySectionProps) {
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "active";
+
+  const displayedProducts = useMemo(() => {
+    if (!sub.products) return [];
+    return sub.products.filter((p) => {
+      const isArchived = !!p.activeShopProduct.archivedAt;
+      return activeTab === "archived" ? isArchived : !isArchived;
+    });
+  }, [sub.products, activeTab]);
+
   return (
     <div className="mb-6 border-b border-gray-50 pb-4 last:border-0">
       <SubCategoryHeader
         name={sub.name}
-        displayCount={sub.displayCount}
+        displayCount={displayedProducts.length}
         isOpen={isOpen}
         isFullySelected={isFullySelected}
         isPartiallySelected={isPartiallySelected}
@@ -51,7 +67,7 @@ export function SubCategorySection({
         <div className="mt-6">
           {viewMode === "list" ? (
             <ProductsList
-              products={sub.products}
+              products={displayedProducts}
               selectedUniqueKeys={selectedUniqueKeys}
               shopId={shopId}
               onToggle={onProductToggle}
@@ -60,10 +76,11 @@ export function SubCategorySection({
             />
           ) : (
             <ProductsGrid
-              products={sub.products}
+              products={displayedProducts}
               selectedUniqueKeys={selectedUniqueKeys}
               onToggle={onProductToggle}
               onClick={onProductClick}
+              shopId={shopId}
             />
           )}
         </div>

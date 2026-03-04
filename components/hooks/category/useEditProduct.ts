@@ -14,7 +14,6 @@ export function useProductForm(
   shopId: string | null
 ) {
   const [photos, setPhotos] = useState<PhotoState[]>([]);
-
   const [formData, setFormData] = useState({
     subCategoryId: initialSubCategoryId,
     name: "",

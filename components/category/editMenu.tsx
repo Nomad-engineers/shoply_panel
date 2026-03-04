@@ -151,7 +151,7 @@ export const EditMenu = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-[2fr_1fr_0.8fr_0.8fr_1.1fr_1fr] gap-3 px-2 mb-3 text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+          <div className="grid grid-cols-[2fr_1.1fr_0.8fr_0.8fr_0.8fr_1.1fr] gap-3 px-2 mb-3 text-[11px] font-bold text-gray-400 uppercase tracking-tight">
             <span>Название</span>
             <span className="text-center">Цена</span>
             <span className="text-center">Накрутка</span>
@@ -203,7 +203,7 @@ export const EditMenu = ({
               return (
                 <div
                   key={uKey}
-                  className="grid grid-cols-[2fr_1fr_0.8fr_0.8fr_1.1fr_1fr] gap-1 items-center px-2"
+                  className="grid grid-cols-[2fr_1.1fr_0.8fr_0.8fr_0.8fr_1.1fr] gap-1 items-center px-2"
                 >
                   <div className="bg-white border-1 border-gray-200 rounded-md px-4 py-1 text-xs flex flex-col justify-center min-h-[42px]">
                     <div className="truncate font-medium text-gray-800">
@@ -289,7 +289,7 @@ export const EditMenu = ({
                     className={cn(
                       "flex items-center justify-center gap-1.5 border-1 rounded-md py-3 text-center text-[10px] font-bold uppercase cursor-pointer relative",
                       stockUnique
-                        ? "border-purple-400 text-purple-600 bg-white shadow-sm"
+                        ? "!border-purple-400  text-purple-600 bg-white shadow-sm"
                         : currentStock
                           ? "text-gray-500 border-gray-200"
                           : "border-red-100 text-red-400 bg-red-50/50"

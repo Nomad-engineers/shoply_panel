@@ -17,11 +17,11 @@ export function CategoryListView({
 }: CategoryListViewProps) {
   return (
     <div className="space-y-2">
-      {categories.map((cat: Category) => {
+      {categories.map((cat: Category, index) => {
         const isSelected = selectedIds.includes(cat.id);
         return (
           <CategoryListItem
-            key={cat.id}
+            key={`${cat.id}-${index}`}
             category={cat}
             isSelected={isSelected}
             onToggle={onToggle}

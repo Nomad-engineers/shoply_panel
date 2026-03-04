@@ -5,12 +5,18 @@ import { FlattenedProduct } from "./types";
 interface ProductsGridProps {
   products: FlattenedProduct[];
   selectedUniqueKeys: string[];
+  shopId: string | undefined;
   onToggle: (key: string, e: React.MouseEvent) => void;
-  onClick: (shopId: number, shopProductId: number) => void;
+  onClick: (
+    subId: number,
+    shopId: string | undefined,
+    shopProductId: number
+  ) => void;
 }
 
 export function ProductsGrid({
   products,
+  shopId,
   selectedUniqueKeys,
   onToggle,
   onClick,
@@ -26,6 +32,7 @@ export function ProductsGrid({
             isSelected={isSelected}
             onToggle={onToggle}
             onClick={onClick}
+            shopId={shopId}
           />
         );
       })}

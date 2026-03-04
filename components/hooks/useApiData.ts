@@ -36,7 +36,6 @@ export const useApiData = <T>(
   }, [path, options.relations, options.searchParams]);
 
   const { data, error, isLoading, mutate } = useSWR(url);
-
   useEffect(() => {
     if (data?.statusCode === 403 || data?.statusCode === 404) {
       router.push("/not-found");
@@ -51,6 +50,7 @@ export const useApiData = <T>(
 
   return {
     data: resultData as T[],
+    dataCount: data?.meta?.total,
     singleItem: (data?.data ?? data) as T,
     loading: isLoading || authLoading,
     error: error?.message || null,

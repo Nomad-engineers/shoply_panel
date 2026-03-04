@@ -8,49 +8,65 @@ import Cookies from "js-cookie";
 import { ROLES } from "@/middleware";
 import Link from "next/link";
 interface CategoryHeaderProps {
-  archiveCount?: number;
   onImport?: () => void;
+  activeTab: "active" | "archived";
+  setActiveTab: (tab: "active" | "archived") => void;
 }
 
 export const CategoryHeader = ({
-  archiveCount = 0,
   onImport,
+  activeTab,
+  setActiveTab,
 }: CategoryHeaderProps) => {
-  const [activeTab, setActiveTab] = useState<"all" | "archive">("all");
-  const userRole = Cookies.get("user_role");
-  const params = useMemo(() => {
-    let searchParams = {};
+  const shopId = Cookies.get("user_shop_id");
 
-    if (userRole === ROLES.SHOP_OWNER) {
-      const shopId = Cookies.get("user_shop_id");
+  const activeParams = useMemo(() => {
+    const filter = {
+      shopProduct: {
+        id: { isNull: false },
+        shop: { id: Number(shopId) },
+        archivedAt: { isNull: true },
+      },
+    };
 
-      searchParams = {
-        search: JSON.stringify({
-          shopProduct: { shop: { id: shopId } },
-        }),
-      };
-    }
+    return {
+      search: JSON.stringify(filter),
+      pageSize: "1",
+      page: "1",
+    };
+  }, [shopId]);
 
-    return searchParams;
-  }, [userRole]);
-  const { data: products = [] } = useApiData<Product>("products", {
-    relations: ["shopProduct", "shopProduct.shop"],
-    searchParams: params,
-  });
+  const archiveParams = useMemo(() => {
+    const filter = {
+      shopProduct: {
+        id: { isNull: false },
+        shop: { id: Number(shopId) },
+        archivedAt: { isNull: false },
+      },
+    };
 
-  const totalAllProducts = useMemo(() => {
-    if (userRole === ROLES.ADMIN) {
-      return products.reduce((acc, product) => {
-        return acc + (product.shopProduct?.length || 0);
-      }, 0);
-    }
+    return {
+      search: JSON.stringify(filter),
+      pageSize: "1",
+      page: "1",
+    };
+  }, [shopId]);
 
-    const shopId = Cookies.get("user_shop_id");
+  const { dataCount: productCount, refetch: refetchActive } =
+    useApiData<Product>("products", {
+      searchParams: activeParams,
+      relations: ["shopProduct"],
+    });
+  const { dataCount: archiveCount, refetch: refetchArchive } =
+    useApiData<Product>("products", {
+      searchParams: archiveParams,
+      relations: ["shopProduct"],
+    });
 
-    return products.filter((product) =>
-      product.shopProduct?.some((sp) => String(sp.shop?.id) === String(shopId))
-    ).length;
-  }, [products, userRole]);
+  React.useEffect(() => {
+    refetchActive();
+    refetchArchive();
+  }, [activeTab, refetchActive, refetchArchive]);
 
   return (
     <div className="flex flex-col gap-8 w-full mb-10 px-5">
@@ -61,10 +77,10 @@ export const CategoryHeader = ({
           {/* Табы */}
           <div className="flex gap-8  border-transparent">
             <button
-              onClick={() => setActiveTab("all")}
+              onClick={() => setActiveTab?.("active")}
               className={cn(
                 " text-lg font-medium transition-all relative",
-                activeTab === "all"
+                activeTab === "active"
                   ? "text-[#55CB00] border-b-2 border-[#55CB00]"
                   : "text-gray-400 hover:text-gray-600"
               )}
@@ -73,20 +89,20 @@ export const CategoryHeader = ({
               <span
                 className={cn(
                   "ml-2 text-xs px-2 py-0.5 rounded-full",
-                  activeTab === "all"
+                  activeTab === "active"
                     ? "bg-[#55CB00]/10 text-[#55CB00]"
                     : "bg-gray-100 text-gray-500"
                 )}
               >
-                {totalAllProducts}
+                {productCount}
               </span>
             </button>
 
             <button
-              onClick={() => setActiveTab("archive")}
+              onClick={() => setActiveTab?.("archived")}
               className={cn(
                 " text-lg font-medium transition-all relative",
-                activeTab === "archive"
+                activeTab === "archived"
                   ? "text-[#55CB00] border-b-2 border-[#55CB00]"
                   : "text-gray-400 hover:text-gray-600"
               )}
@@ -95,7 +111,7 @@ export const CategoryHeader = ({
               <span
                 className={cn(
                   "ml-2 text-xs px-2 py-0.5 rounded-full",
-                  activeTab === "archive"
+                  activeTab === "archived"
                     ? "bg-[#55CB00]/10 text-[#55CB00]"
                     : "bg-gray-100 text-gray-500"
                 )}

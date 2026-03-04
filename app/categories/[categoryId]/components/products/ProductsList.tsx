@@ -7,7 +7,11 @@ interface ProductsListProps {
   selectedUniqueKeys: string[];
   shopId: string | undefined;
   onToggle: (key: string, e: React.MouseEvent) => void;
-  onClick: (shopId: number, shopProductId: number) => void;
+  onClick: (
+    subId: number,
+    shopId: string | undefined,
+    shopProductId: number
+  ) => void;
   onCopyArticle: (text: string | null | undefined, e: React.MouseEvent) => void;
 }
 

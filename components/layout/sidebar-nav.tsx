@@ -101,9 +101,12 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL;
     const { adminData, logout } = useAuth(directusUrl);
     const shopId = Cookies.get("user_shop_id");
-    const { singleItem: shop } = useApiData<Shop>(`shops/${shopId}`, {
-      relations: ["photo"],
-    });
+    const { singleItem: shop } = useApiData<Shop>(
+      shopId ? `shops/${shopId}` : null,
+      {
+        relations: ["photo"],
+      }
+    );
     const [internalIsCollapsed, setInternalIsCollapsed] = React.useState(false);
     const isCollapsed = externalIsCollapsed ?? internalIsCollapsed;
     const isLoggedIn = !!adminData;

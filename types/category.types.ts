@@ -59,6 +59,7 @@ export interface SubCategory {
     filename_download: string;
   } | null;
   customOrderId: number;
+  isArchived?: boolean;
 }
 
 export interface Category {
@@ -71,6 +72,7 @@ export interface Category {
   } | null;
   subCategory?: SubCategory[];
   customOrderId: number;
+  isArchived?: boolean;
 }
 
 export interface ShopProduct {

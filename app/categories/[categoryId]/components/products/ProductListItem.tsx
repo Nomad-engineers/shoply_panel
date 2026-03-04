@@ -10,7 +10,11 @@ interface ProductListItemProps {
   isSelected: boolean;
   shopId: string | undefined;
   onToggle: (key: string, e: React.MouseEvent) => void;
-  onClick: (shopId: number, shopProductId: number) => void;
+  onClick: (
+    subId: number,
+    shopId: string | undefined,
+    shopProductId: number
+  ) => void;
   onCopyArticle: (text: string | null | undefined, e: React.MouseEvent) => void;
 }
 
@@ -27,10 +31,9 @@ export function ProductListItem({
     product.measure && measureLabels[product.measure]
       ? measureLabels[product.measure]
       : "шт";
-
   return (
     <div
-      onClick={() => onClick(sp.shop.id, sp.id)}
+      onClick={() => onClick(product.subCategoryId, shopId, sp.id)}
       className="flex items-center justify-between py-2 hover:bg-gray-50/50 rounded-lg cursor-pointer"
     >
       <div className="flex items-center gap-4 flex-1">
@@ -42,21 +45,17 @@ export function ProductListItem({
             )}
           />
         </div>
-        <div className="w-12 h-12 bg-[#F5F7F9] rounded-xl relative overflow-hidden">
-          {product.photos?.[0]?.file?.url && (
-            <div
-              style={{
-                backgroundImage: `url("${product.photos[0].file.url}")`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                position: "absolute",
-                width: "120px",
-                height: "70px",
-              }}
-              className="transition-all"
-              aria-hidden="true"
+        <div className="bg-[#F5F7F9] rounded-xl overflow-hidden flex-shrink-0">
+          {product.photos?.[0]?.file?.url ? (
+            <img
+              src={product.photos[0].file.url}
+              alt={product.name}
+              className="w-[60px] h-[60px] object-cover block"
             />
+          ) : (
+            <div className="w-[60px] h-[60px] flex items-center justify-center text-gray-400">
+              <span className="text-[10px]">Нет фото</span>
+            </div>
           )}
         </div>
         <div>

@@ -110,16 +110,25 @@ export default function AddProductPage() {
         barcodes: barcodes,
         shopId: Number(selectedShopId),
       };
-      console.log(createPayload)
-      const res = await fetchWithSession(`${apiBase}/shop/shopProduct`, () => token, refreshSession, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createPayload),
-      });
+      const res = await fetchWithSession(
+        `${apiBase}/shop/shopProduct`,
+        () => token,
+        refreshSession,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(createPayload),
+        }
+      );
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: "Failed to create product" }));
-        if (errorData.message && errorData.message.includes("Артикул уже используется")) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ message: "Failed to create product" }));
+        if (
+          errorData.message &&
+          errorData.message.includes("Артикул уже используется")
+        ) {
           setArticleError(errorData.message);
           return;
         }
@@ -127,8 +136,7 @@ export default function AddProductPage() {
       }
 
       const responseData = await res.json();
-      const baseProductId = responseData.product?.id || responseData.productId;
-
+      const baseProductId = responseData.data.product.id;
       const newFiles = photos.filter((p) => p.file).map((p) => p.file as File);
 
       if (newFiles.length > 0 && baseProductId) {
@@ -136,10 +144,15 @@ export default function AddProductPage() {
         photoFormData.append("productId", String(baseProductId));
         newFiles.forEach((file) => photoFormData.append("photos", file));
 
-        await fetchWithSession(`${apiBase}/shop/product/photos`, () => token, refreshSession, {
-          method: "POST",
-          body: photoFormData,
-        });
+        await fetchWithSession(
+          `${apiBase}/shop/product/photos`,
+          () => token,
+          refreshSession,
+          {
+            method: "POST",
+            body: photoFormData,
+          }
+        );
       }
 
       alert("Товар успешно создан");

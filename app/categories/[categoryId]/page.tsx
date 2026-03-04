@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { List, LayoutGrid, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/theme";
-import Image from "next/image";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import {
+  useRouter,
+  useParams,
+  useSearchParams,
+  usePathname,
+} from "next/navigation";
 import { SelectionButtons } from "@/components/category/selectionButtons";
 import { CategoryHeader } from "@/components/category/header";
 import { EditMenu } from "@/components/category/editMenu";
@@ -14,21 +18,60 @@ import { useProductData } from "./components/products/hooks/useProductData";
 import { useProductSelection } from "./components/products/hooks/useProductSelection";
 import { useSubCategoryExpansion } from "./components/products/hooks/useSubCategoryExpansion";
 import { SubCategorySection } from "./components/products/SubCategorySection";
+import { useApiMutation } from "@/components/hooks/useApiMutation";
 
 export default function SubCategoryPage() {
   const router = useRouter();
   const { categoryId } = useParams();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const categoryName = searchParams.get("name");
   const shopId = Cookies.get("user_shop_id");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
 
-  const { subCategories, loading } = useProductData({
+  const { mutate } = useApiMutation();
+
+  const activeTab =
+    (searchParams.get("tab") as "active" | "archived") || "active";
+
+  const { subCategories, loading, refetch } = useProductData({
     categoryId: categoryId as string,
     searchQuery,
+    tab: activeTab,
   });
+
+  const setActiveTab = (tab: "active" | "archived") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const filteredSubCategories = useMemo(() => {
+    return subCategories
+      .map((sub) => {
+        const filteredProducts =
+          sub.products?.filter((p: any) => {
+            const isArchived = !!p.activeShopProduct?.archivedAt;
+            return activeTab === "archived" ? isArchived : !isArchived;
+          }) || [];
+
+        return {
+          ...sub,
+          products: filteredProducts,
+          hasMatchProducts: filteredProducts.length > 0,
+        };
+      })
+      .filter((sub) => {
+        if (activeTab === "archived") {
+          return sub.hasMatchProducts || sub.isArchived;
+        }
+
+        return !sub.isArchived;
+      });
+  }, [subCategories, activeTab]);
 
   const {
     selectedUniqueKeys,
@@ -37,12 +80,18 @@ export default function SubCategoryPage() {
     toggleProduct,
     toggleSubCategoryProducts,
     toggleAll,
-  } = useProductSelection({ subCategories });
+  } = useProductSelection({ subCategories: filteredSubCategories });
 
   const { openSubCategoryIds, toggleSubCategory } = useSubCategoryExpansion({
-    subCategories,
+    subCategories: filteredSubCategories,
     searchQuery,
   });
+
+  useEffect(() => {
+    if (selectedUniqueKeys.length > 0) {
+      toggleAll();
+    }
+  }, [activeTab]);
 
   const copyToClipboard = (
     text: string | null | undefined,
@@ -52,24 +101,106 @@ export default function SubCategoryPage() {
     if (text) navigator.clipboard.writeText(text);
   };
 
-  const handleProductClick = (shopId: number, shopProductId: number) => {
+  const handleProductClick = (
+    subId: number,
+    shopId: string | undefined,
+    shopProductId: number
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("shopId", shopId.toString());
+    if (shopId) {
+      params.set("shopId", shopId);
+    } else {
+      params.delete("shopId");
+    }
     router.push(
-      `${window.location.pathname}/subCategory/*/product/${shopProductId}?${params.toString()}`
+      `${pathname}/subCategory/${subId}/product/${shopProductId}?${params.toString()}`
     );
+  };
+
+  const handleArchiveSelected = async () => {
+    if (selectedUniqueKeys.length === 0) return;
+
+    const subCategoryIdsToArchive: number[] = [];
+    const individualProductKeysToArchive: string[] = [];
+
+    filteredSubCategories.forEach((sub) => {
+      const allKeys = sub.products?.map((p: any) => p.uniqueKey) || [];
+      const selectedInSub = allKeys.filter((key) =>
+        selectedUniqueKeys.includes(key)
+      );
+
+      if (allKeys.length > 0 && allKeys.length === selectedInSub.length) {
+        subCategoryIdsToArchive.push(sub.id);
+      } else {
+        individualProductKeysToArchive.push(...selectedInSub);
+      }
+    });
+
+    try {
+      const promises = [
+        ...subCategoryIdsToArchive.map((id) =>
+          mutate(`subCategory/archive/${id}`, { method: "PATCH" })
+        ),
+        ...individualProductKeysToArchive.map((id) =>
+          mutate(`shop/shopProduct/${id}/archive`, { method: "POST" })
+        ),
+      ];
+
+      await Promise.all(promises);
+      if (refetch) await refetch();
+      alert("Архивация успешно выполнена");
+    } catch (e: any) {
+      alert("Ошибка при архивации: " + e.message);
+    }
+  };
+
+  const handleUnarchiveSelected = async () => {
+    if (selectedUniqueKeys.length === 0) return;
+
+    const subCategoryIdsToUnarchive: number[] = [];
+    const individualProductKeysToUnarchive: string[] = [];
+
+    filteredSubCategories.forEach((sub) => {
+      const allKeys = sub.products?.map((p: any) => p.uniqueKey) || [];
+      const selectedInSub = allKeys.filter((key) =>
+        selectedUniqueKeys.includes(key)
+      );
+
+      if (allKeys.length > 0 && allKeys.length === selectedInSub.length) {
+        subCategoryIdsToUnarchive.push(sub.id);
+      } else {
+        individualProductKeysToUnarchive.push(...selectedInSub);
+      }
+    });
+
+    try {
+      const promises = [
+        ...subCategoryIdsToUnarchive.map((id) =>
+          mutate(`subCategory/unarchive/${id}`, { method: "PATCH" })
+        ),
+        ...individualProductKeysToUnarchive.map((id) =>
+          mutate(`shop/shopProduct/${id}/unArchive`, { method: "PATCH" })
+        ),
+      ];
+
+      await Promise.all(promises);
+      if (refetch) await refetch();
+      alert("Восстановление успешно выполнено");
+    } catch (e: any) {
+      alert("Ошибка при восстановлении: " + e.message);
+    }
   };
 
   if (loading)
     return (
       <div className="p-10 text-center animate-pulse text-gray-400">
-        Загрузка...
+        Загрузка данных...
       </div>
     );
 
   return (
     <div>
-      <CategoryHeader />
+      <CategoryHeader activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="min-h-screen bg-white rounded-4xl">
         <div className="p-8 flex items-end flex-col gap-4">
           <div className="flex items-center justify-between w-full">
@@ -87,7 +218,7 @@ export default function SubCategoryPage() {
                 value={searchQuery}
                 onChange={setSearchQuery}
                 variant="minimal"
-                placeholder="Поиск"
+                placeholder="Поиск по подкатегориям"
                 className="w-full max-w-[260px] ml-2"
               />
             </div>
@@ -95,7 +226,7 @@ export default function SubCategoryPage() {
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium",
+                  "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium transition-all",
                   viewMode === "list"
                     ? "bg-white shadow-sm text-primary-main"
                     : "text-gray-500"
@@ -106,7 +237,7 @@ export default function SubCategoryPage() {
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium",
+                  "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium transition-all",
                   viewMode === "grid"
                     ? "bg-white shadow-sm text-primary-main"
                     : "text-gray-500"
@@ -120,54 +251,68 @@ export default function SubCategoryPage() {
             selectedCount={selectedUniqueKeys.length}
             onEditMenu={() => setIsEditMenuOpen(true)}
             onExport={() => {}}
-            onArchive={() => {}}
+            activeTab={activeTab}
+            modal="singleCategory"
+            onArchive={
+              activeTab === "active"
+                ? handleArchiveSelected
+                : handleUnarchiveSelected
+            }
           />
         </div>
 
         <div className="px-8 pb-8">
           <button
             onClick={toggleAll}
-            className="flex items-center gap-2 text-sm font-medium mb-10"
+            className="flex items-center gap-2 text-sm font-medium mb-10 transition-colors hover:text-primary-main"
           >
             <CheckCircle2
               className={cn(
-                "w-5 h-5",
+                "w-5 h-5 transition-colors",
                 isAllSelected ? "text-[#55CB00]" : "text-gray-300"
               )}
             />
             {isAllSelected
-              ? `Выбрано: ${selectedUniqueKeys.length}`
-              : "Выбрать все товары"}
+              ? `Выбрано товаров: ${selectedUniqueKeys.length}`
+              : "Выбрать все товары на странице"}
           </button>
 
-          {subCategories.map((sub) => {
-            const isOpen = openSubCategoryIds.includes(sub.id);
-            const subKeys = sub.products.map((p) => p.uniqueKey);
-            const isPartially = subKeys.some((k) =>
-              selectedUniqueKeys.includes(k)
-            );
-            const isFully =
-              subKeys.length > 0 &&
-              subKeys.every((k) => selectedUniqueKeys.includes(k));
+          {filteredSubCategories.length > 0 ? (
+            filteredSubCategories.map((sub) => {
+              const isOpen = openSubCategoryIds.includes(sub.id);
+              const subKeys = sub.products?.map((p: any) => p.uniqueKey) || [];
+              const isPartially = subKeys.some((k: any) =>
+                selectedUniqueKeys.includes(k)
+              );
+              const isFully =
+                subKeys.length > 0 &&
+                subKeys.every((k: any) => selectedUniqueKeys.includes(k));
 
-            return (
-              <SubCategorySection
-                key={sub.id}
-                sub={sub}
-                isOpen={isOpen}
-                selectedUniqueKeys={selectedUniqueKeys}
-                shopId={shopId}
-                viewMode={viewMode}
-                isPartiallySelected={isPartially}
-                isFullySelected={isFully}
-                onToggleProducts={toggleSubCategoryProducts}
-                onToggleOpen={() => toggleSubCategory(sub.id)}
-                onProductToggle={toggleProduct}
-                onProductClick={handleProductClick}
-                onCopyArticle={copyToClipboard}
-              />
-            );
-          })}
+              return (
+                <SubCategorySection
+                  key={sub.id}
+                  sub={sub}
+                  isOpen={isOpen}
+                  selectedUniqueKeys={selectedUniqueKeys}
+                  shopId={shopId}
+                  viewMode={viewMode}
+                  isPartiallySelected={isPartially}
+                  isFullySelected={isFully}
+                  onToggleProducts={toggleSubCategoryProducts}
+                  onToggleOpen={() => toggleSubCategory(sub.id)}
+                  onProductToggle={toggleProduct}
+                  onProductClick={handleProductClick}
+                  onCopyArticle={copyToClipboard}
+                />
+              );
+            })
+          ) : (
+            <div className="py-20 text-center text-gray-400">
+              {activeTab === "active"
+                ? "Нет активных подкатегорий"
+                : "Архив пуст"}
+            </div>
+          )}
         </div>
       </div>
       <EditMenu

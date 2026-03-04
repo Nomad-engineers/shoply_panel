@@ -2,20 +2,27 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Archive, Plus, Barcode, X, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Archive,
+  Plus,
+  Barcode,
+  X,
+  Trash2,
+  RefreshCcw,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApiData } from "@/components/hooks/useApiData";
 import {
-  Product,
   SubCategory,
   ProductMeasure,
   measureLabels,
   ShopProduct,
 } from "@/types/category.types";
-import Image from "next/image";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";
 import { useProductForm } from "@/components/hooks/category/useEditProduct";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useApiMutation } from "@/components/hooks/useApiMutation";
 
 export default function EditProductPage() {
   const { shopProductId, categoryId, subCategoryId } = useParams();
@@ -27,21 +34,25 @@ export default function EditProductPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { refreshSession, fetchWithSession } = useAuthContext();
+  const { mutate } = useApiMutation();
+
   const {
-    singleItem: shopProduct,  
+    singleItem: shopProduct,
     loading,
     refetch,
-  } = useApiData<ShopProduct>(`products/shopProduct/${shopProductId}`, {  
-    searchParams:{ search: JSON.stringify({ shop: { id: shopId } })} ,
+  } = useApiData<ShopProduct>(`products/shopProduct/${shopProductId}`, {
+    searchParams: { search: JSON.stringify({ shop: { id: shopId } }) },
     relations: ["product.photos.file", "shop"],
   });
+
+  // Определяем, находится ли товар в архиве
+  const isArchived = !!shopProduct?.archivedAt;
 
   const { data: subcategories = [] } = useApiData<SubCategory>(`subcategory`, {
     searchParams: {
       search: JSON.stringify({ category: { id: Number(categoryId) } }),
     },
   });
-
   const {
     formData,
     setFormData,
@@ -75,18 +86,22 @@ export default function EditProductPage() {
     [subcategories]
   );
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  const handleArchiveToggle = async () => {
+    const endpoint = isArchived
+      ? `shop/shopProduct/${shopProductId}/unArchive`
+      : `shop/shopProduct/${shopProductId}/archive`;
+
+    try {
+      await mutate(endpoint, { method: "PATCH" });
+      await refetch();
+      alert(isArchived ? "Товар восстановлен" : "Товар перемещен в архив");
+    } catch (e: any) {
+      alert("Ошибка: " + e.message);
+    }
+  };
 
   const handleSave = async () => {
+    if (isArchived) return;
     try {
       const token =
         typeof window !== "undefined"
@@ -95,7 +110,6 @@ export default function EditProductPage() {
       if (!token) return alert("Ошибка авторизации");
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
-
       const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(
         (b) => b.trim() !== ""
       );
@@ -120,15 +134,11 @@ export default function EditProductPage() {
           refreshSession,
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updatePayload),
           }
         )
       );
-
-      const baseProductId = shopProduct?.id;
 
       if (shopProduct.product?.photos) {
         const currentPhotoIds = photos.map((p) => p.id).filter(Boolean);
@@ -151,49 +161,53 @@ export default function EditProductPage() {
       }
 
       const newFiles = photos.filter((p) => p.file).map((p) => p.file as File);
-      if (newFiles.length > 0 && baseProductId) {
-        const photoFormData = new FormData();
-        photoFormData.append("productId", String(baseProductId));
-        newFiles.forEach((file) => photoFormData.append("photos", file));
 
-        tasks.push(
-          fetchWithSession(
-            `${apiBase}/shop/product/photos`,
-            () => token,
-            refreshSession,
-            {
-              method: "POST",
-              body: photoFormData,
-            }
-          )
-        );
+      if (newFiles.length > 0) {
+        const realProductId = shopProduct.product?.id;
+
+        if (realProductId) {
+          const photoFormData = new FormData();
+          photoFormData.append("productId", String(realProductId));
+
+          newFiles.forEach((file) => {
+            photoFormData.append("photos", file);
+          });
+
+          tasks.push(
+            fetchWithSession(
+              `${apiBase}/shop/product/photos`,
+              () => token,
+              refreshSession,
+              {
+                method: "POST",
+                body: photoFormData,
+              }
+            )
+          );
+        }
       }
-
       const responses = await Promise.all(tasks);
-      const hasError = responses.some((res) => !res.ok);
-
-      if (!hasError) {
+      if (responses.every((res) => res.ok)) {
         await refetch();
-        window.location.reload();
         alert("Изменения сохранены успешно");
-        router.refresh();
-      } else {
-        alert("Некоторые данные не удалось сохранить. Проверьте консоль.");
       }
     } catch (error) {
-      console.error("Save error:", error);
-      alert("Произошла критическая ошибка при сохранении");
+      alert("Произошла ошибка при сохранении");
     }
   };
+
+  const sellingPrice = useMemo(() => {
+    const purchase = Number(formData.purchasePrice) || 0;
+    const markup = Number(formData.markup) || 0;
+    const result = purchase + (purchase * markup) / 100;
+    return result > 0 ? result.toLocaleString() : "0";
+  }, [formData.purchasePrice, formData.markup]);
 
   if (loading || !shopProduct) return null;
 
   const inputBase =
-    "w-full h-[54px] px-4 bg-[#F1F2F6] rounded-xl border-none outline-none font-medium text-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+    "w-full h-[54px] px-4 bg-[#F1F2F6] rounded-xl border-none outline-none font-medium text-gray-800 disabled:opacity-70 disabled:cursor-not-allowed";
   const labelBase = "text-xs font-bold text-gray-400 uppercase ml-1";
-  const blockInvalidChars = (e: React.KeyboardEvent) => {
-    if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
-  };
 
   return (
     <div className="min-h-screen rounded-4xl bg-white px-8 py-4">
@@ -201,18 +215,38 @@ export default function EditProductPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full"
           >
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-bold">Редактирование товара</h1>
+          <h1 className="text-xl font-bold">
+            {isArchived ? "Просмотр архивного товара" : "Редактирование товара"}
+          </h1>
         </div>
-        <button className="flex items-center gap-2 px-6 py-2.5 bg-[#F1F2F6] font-semibold rounded-xl hover:bg-gray-200">
-          <Archive size={18} /> Архивировать
+
+        <button
+          onClick={handleArchiveToggle}
+          className={cn(
+            "flex items-center gap-2 px-6 py-2.5 font-semibold rounded-xl transition-colors",
+            isArchived
+              ? "bg-orange-100 text-orange-600 hover:bg-orange-200"
+              : "bg-[#F1F2F6] hover:bg-gray-200"
+          )}
+        >
+          {isArchived ? (
+            <>
+              <RefreshCcw size={18} /> Вернуть из архива
+            </>
+          ) : (
+            <>
+              <Archive size={18} /> Архивировать
+            </>
+          )}
         </button>
       </div>
 
       <div className="max-w-4xl space-y-8">
+        {/* Фотографии */}
         <div className="flex gap-4 flex-wrap">
           {photos.map((p, i) => (
             <div
@@ -223,49 +257,50 @@ export default function EditProductPage() {
                 style={{
                   backgroundImage: `url("${p.url}")`,
                   backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                  position: "absolute",
-                  inset: 0,
                 }}
-                className="rounded-xl object-cover transition-all"
-                aria-label="product"
+                className="absolute inset-0 rounded-xl"
               />
-              <button
-                type="button"
-                onClick={() => handleDeletePhoto(i)}
-                className="absolute top-2 left-2 p-1.5 bg-white/90 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
-              >
-                <Trash2 size={16} />
-              </button>
+              {!isArchived && (
+                <button
+                  type="button"
+                  onClick={() => handleDeletePhoto(i)}
+                  className="absolute top-2 left-2 p-1.5 bg-white/90 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           ))}
 
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-          />
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-38 h-38 border-2 border-dashed border-blue-200 rounded-2xl flex flex-col items-center justify-center text-blue-500 hover:bg-blue-50"
-          >
-            <Plus size={24} />
-            <span className="font-bold text-[10px] uppercase">
-              Добавить фото
-            </span>
-          </button>
+          {!isArchived && (
+            <>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-38 h-38 border-2 border-dashed border-blue-200 rounded-2xl flex flex-col items-center justify-center text-blue-500 hover:bg-blue-50"
+              >
+                <Plus size={24} />
+                <span className="font-bold text-[10px] uppercase">
+                  Добавить фото
+                </span>
+              </button>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-6 items-end">
           <div className="space-y-1.5">
             <label className={labelBase}>Название*</label>
             <input
+              disabled={isArchived}
               className={inputBase}
               value={formData.name}
               onChange={(e) =>
@@ -276,10 +311,13 @@ export default function EditProductPage() {
 
           <CategoryBaseDropdown
             label="Подкатегория"
+            disabled={isArchived}
             value={formData.subCategoryId}
             options={subCategoryOptions}
-            isOpen={isSubCategoryOpen}
-            onToggle={() => setIsSubCategoryOpen(!isSubCategoryOpen)}
+            isOpen={isSubCategoryOpen && !isArchived}
+            onToggle={() =>
+              !isArchived && setIsSubCategoryOpen(!isSubCategoryOpen)
+            }
             onSelect={(val) => {
               setFormData({ ...formData, subCategoryId: val });
               setIsSubCategoryOpen(false);
@@ -289,16 +327,19 @@ export default function EditProductPage() {
           <div className="space-y-1.5">
             <div className="flex justify-between items-center pr-1">
               <label className={labelBase}>Штрихкод*</label>
-              <button
-                type="button"
-                onClick={handleGenerateMainBarcode}
-                className="text-[10px] text-blue-500 font-bold uppercase hover:underline"
-              >
-                Сгенерировать
-              </button>
+              {!isArchived && (
+                <button
+                  type="button"
+                  onClick={handleGenerateMainBarcode}
+                  className="text-[10px] text-blue-500 font-bold uppercase"
+                >
+                  Сгенерировать
+                </button>
+              )}
             </div>
             <div className="relative">
               <input
+                disabled={isArchived}
                 className={inputBase}
                 value={formData.mainBarcode}
                 onChange={(e) =>
@@ -312,13 +353,17 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddExtraBarcode}
-            className="w-full h-[54px] border-2 border-blue-200 rounded-xl text-blue-500 font-bold flex items-center justify-between px-4 hover:bg-blue-50 transition-colors"
-          >
-            <span>Доп. штрих код</span> <Plus size={20} />
-          </button>
+          {!isArchived ? (
+            <button
+              type="button"
+              onClick={handleAddExtraBarcode}
+              className="w-full h-[54px] border-2 border-blue-200 rounded-xl text-blue-500 font-bold flex items-center justify-between px-4 hover:bg-blue-50"
+            >
+              <span>Доп. штрих код</span> <Plus size={20} />
+            </button>
+          ) : (
+            <div />
+          )}
 
           {formData.extraBarcodes.map((bc, i) => (
             <div key={i} className="space-y-1.5 relative">
@@ -326,6 +371,7 @@ export default function EditProductPage() {
                 Доп. штрихкод {i + 1}
               </label>
               <input
+                disabled={isArchived}
                 className={inputBase}
                 value={bc}
                 onChange={(e) => {
@@ -334,51 +380,84 @@ export default function EditProductPage() {
                   setFormData({ ...formData, extraBarcodes: bcs });
                 }}
               />
-              <X
-                className="absolute right-4 top-11 bottom-4 text-gray-300 cursor-pointer hover:text-red-500"
-                size={18}
-                onClick={() =>
-                  setFormData((p) => ({
-                    ...p,
-                    extraBarcodes: p.extraBarcodes.filter(
-                      (_, idx) => idx !== i
-                    ),
-                  }))
-                }
-              />
-            </div>
-          ))}
-
-          {[
-            { label: "Цена*", field: "purchasePrice", unit: "Руб" },
-            { label: "Накрутка*", field: "markup", unit: "%" },
-          ].map((f) => (
-            <div key={f.field} className="space-y-1.5">
-              <label className={labelBase}>{f.label}</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className={inputBase}
-                  value={formData[f.field as "purchasePrice" | "markup"]}
-                  onKeyDown={blockInvalidChars}
-                  onChange={(e) =>
-                    handleFinanceChange(f.field as any, e.target.value)
+              {!isArchived && (
+                <X
+                  className="absolute right-4 top-11 text-gray-300 cursor-pointer hover:text-red-500"
+                  size={18}
+                  onClick={() =>
+                    setFormData((p) => ({
+                      ...p,
+                      extraBarcodes: p.extraBarcodes.filter(
+                        (_, idx) => idx !== i
+                      ),
+                    }))
                   }
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                  {f.unit}
-                </span>
-              </div>
+              )}
             </div>
           ))}
 
           <div className="space-y-1.5">
+            <label className={labelBase}>Цена*</label>
+            <div className="relative">
+              <input
+                disabled={isArchived}
+                type="number"
+                className={inputBase}
+                value={formData.purchasePrice}
+                onChange={(e) =>
+                  handleFinanceChange("purchasePrice", e.target.value)
+                }
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                Руб
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelBase}>Накрутка*</label>
+            <div className="relative">
+              <input
+                disabled={isArchived}
+                type="number"
+                className={inputBase}
+                value={formData.markup}
+                onChange={(e) => handleFinanceChange("markup", e.target.value)}
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                %
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 opacity-80">
+            <label className={cn(labelBase, "text-blue-600")}>
+              Итоговая цена продажи (авто)
+            </label>
+            <div className="relative">
+              <input
+                readOnly
+                type="text"
+                className={cn(
+                  inputBase,
+                  "bg-blue-50/50 border border-blue-100 text-blue-700 cursor-default"
+                )}
+                value={sellingPrice}
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 text-sm font-bold">
+                Руб
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
             <label className={labelBase}>Объем \ вес*</label>
             <input
+              disabled={isArchived}
               type="number"
               className={inputBase}
               value={formData.weight}
-              onKeyDown={blockInvalidChars}
               onChange={(e) =>
                 setFormData({ ...formData, weight: sanitize(e.target.value) })
               }
@@ -387,11 +466,11 @@ export default function EditProductPage() {
 
           <CategoryBaseDropdown
             label="Единица измерения"
-            placeholder="Выберите ед. изм."
+            disabled={isArchived}
             value={formData.measure}
             options={measureOptions}
-            isOpen={isMeasureOpen}
-            onToggle={() => setIsMeasureOpen(!isMeasureOpen)}
+            isOpen={isMeasureOpen && !isArchived}
+            onToggle={() => !isArchived && setIsMeasureOpen(!isMeasureOpen)}
             onSelect={(val) => {
               setFormData({ ...formData, measure: val as ProductMeasure });
               setIsMeasureOpen(false);
@@ -401,18 +480,20 @@ export default function EditProductPage() {
 
         <div className="flex items-center gap-4 py-4 border-t">
           <button
+            disabled={isArchived}
             type="button"
             onClick={() =>
               setFormData({ ...formData, inStock: !formData.inStock })
             }
             className={cn(
               "w-12 h-6 rounded-full relative transition-colors",
-              formData.inStock ? "bg-[#55CB00]" : "bg-gray-300"
+              formData.inStock ? "bg-[#55CB00]" : "bg-gray-300",
+              isArchived && "opacity-50"
             )}
           >
             <div
               className={cn(
-                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
                 formData.inStock ? "left-7" : "left-1"
               )}
             />
@@ -422,29 +503,30 @@ export default function EditProductPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-4 mt-8">
-          <button
-            onClick={handleSave}
-            disabled={!isDirty}
-            className={cn(
-              "px-12 py-4 text-white font-bold rounded-2xl shadow-lg transition-all",
-              isDirty
-                ? "bg-[#55CB00] hover:brightness-95"
-                : "bg-gray-300 cursor-not-allowed"
-            )}
-          >
-            Сохранить изменения
-          </button>
-
-          {isDirty && (
+        {!isArchived && (
+          <div className="flex items-center gap-4 mt-8">
             <button
-              onClick={handleReset}
-              className="px-8 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+              onClick={handleSave}
+              disabled={!isDirty}
+              className={cn(
+                "px-12 py-4 text-white font-bold rounded-2xl shadow-lg transition-all",
+                isDirty
+                  ? "bg-[#55CB00] hover:brightness-95"
+                  : "bg-gray-300 cursor-not-allowed"
+              )}
             >
-              Отменить изменения
+              Сохранить изменения
             </button>
-          )}
-        </div>
+            {isDirty && (
+              <button
+                onClick={handleReset}
+                className="px-8 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-200"
+              >
+                Отменить изменения
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

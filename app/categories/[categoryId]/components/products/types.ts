@@ -7,10 +7,12 @@ export interface FlattenedProduct {
   weight: number;
   measure: ProductMeasure | null | undefined;
   photos?: Array<{ file?: { url?: string } }>;
+  subCategoryId: number;
   activeShopProduct: {
     id: number;
     price: number;
     inStock: boolean;
+    archivedAt: string;
     shop: {
       id: number;
       name: string;
@@ -23,4 +25,5 @@ export interface SubCategoryWithFlattened {
   name: string;
   products: FlattenedProduct[];
   displayCount: number;
+  isArchived: boolean;
 }

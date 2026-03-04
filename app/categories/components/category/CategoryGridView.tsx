@@ -17,11 +17,11 @@ export function CategoryGridView({
 }: CategoryGridViewProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-      {categories.map((cat: Category) => {
+      {categories.map((cat: Category, index) => {
         const isSelected = selectedIds.includes(cat.id);
         return (
           <CategoryCard
-            key={cat.id}
+            key={`${cat.id}-${index}`}
             category={cat}
             isSelected={isSelected}
             onToggle={onToggle}

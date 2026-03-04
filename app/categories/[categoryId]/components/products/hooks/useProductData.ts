@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useApiData } from "@/components/hooks/useApiData";
-import { SubCategory, Product } from "@/types/category.types";
+import { SubCategory } from "@/types/category.types";
 import Cookies from "js-cookie";
 import { ROLES } from "@/middleware";
 import { FlattenedProduct, SubCategoryWithFlattened } from "../types";
@@ -8,97 +8,81 @@ import { FlattenedProduct, SubCategoryWithFlattened } from "../types";
 interface UseProductDataParams {
   categoryId: string | undefined;
   searchQuery: string;
-}
-
-interface UseProductDataReturn {
-  subCategories: SubCategoryWithFlattened[];
-  loading: boolean;
+  tab: "active" | "archived";
 }
 
 export function useProductData({
   categoryId,
   searchQuery,
-}: UseProductDataParams): UseProductDataReturn {
+  tab,
+}: UseProductDataParams) {
   const role = Cookies.get("user_role");
   const shopId = Cookies.get("user_shop_id");
 
-  const { data: productsData } = useApiData<Product>("products", {
-    relations: ["photos.file", "shopProduct.shop", "subCategory"],
-    searchParams: {
-      search: JSON.stringify({
-        subCategory: { category: { id: categoryId } },
-      }),
-    },
+  const params = useMemo(() => {
+    const filters: any = {};
+
+    if (role === ROLES.SHOP_OWNER && shopId) {
+      filters["shop.id"] = shopId;
+    }
+
+    return {
+      search: JSON.stringify(filters),
+    };
+  }, [role, categoryId, shopId]);
+
+  const {
+    data: subCategoriesData,
+    loading,
+    refetch,
+  } = useApiData<any>(`subCategory/archived/${categoryId}`, {
+    searchParams: params,
   });
 
-  const { data: subCategoriesData, loading } = useApiData<SubCategory>(
-    "subCategory",
-    {
-      searchParams: {
-        search: JSON.stringify({
-          category: { id: categoryId },
-        }),
-      },
-    }
-  );
-
   const subCategories = useMemo((): SubCategoryWithFlattened[] => {
-    if (!subCategoriesData) return [];
+    const responseData = subCategoriesData[0];
+    const actualRecords = responseData?.records || [];
+
+    if (!actualRecords.length) return [];
+
     const query = searchQuery.toLowerCase().trim();
 
-    return subCategoriesData
-      .map((sub) => {
+    return actualRecords
+      .map((sub: any) => {
         const flattened: FlattenedProduct[] = [];
 
-        productsData?.forEach((p) => {
-          if (p.subCategory?.id !== sub.id) return;
+        sub.products?.forEach((p: any) => {
+          p.shopProduct?.forEach((sp: any) => {
+            const matchesSearch =
+              p.name.toLowerCase().includes(query) ||
+              p.article?.toLowerCase().includes(query) ||
+              sp.shop?.name?.toLowerCase().includes(query);
 
-          if (role === ROLES.ADMIN) {
-            p.shopProduct?.forEach((sp) => {
-              const matchesSearch =
-                p.name.toLowerCase().includes(query) ||
-                p.article?.toLowerCase().includes(query) ||
-                sp.shop?.name.toLowerCase().includes(query);
+            if (query && !matchesSearch) return;
 
-              if (query && !matchesSearch) return;
-
-              flattened.push({
-                ...p,
-                activeShopProduct: sp,
-                uniqueKey: String(sp.id),
-              });
+            flattened.push({
+              ...p,
+              activeShopProduct: sp,
+              subCategoryId: sub.id,
+              uniqueKey: String(sp.id),
             });
-          } else {
-            const sp = p.shopProduct?.find(
-              (item) => String(item.shop?.id) === String(shopId)
-            );
-            if (sp) {
-              const matchesSearch =
-                p.name.toLowerCase().includes(query) ||
-                p.article?.toLowerCase().includes(query);
-
-              if (query && !matchesSearch) return;
-
-              flattened.push({
-                ...p,
-                activeShopProduct: sp,
-                uniqueKey: String(sp.id),
-              });
-            }
-          }
+          });
         });
 
         return {
           ...sub,
+          isArchived: sub.isArchived ?? false,
+          subCategoryId: sub.id,
           products: flattened,
           displayCount: flattened.length,
-        };
+        } as SubCategoryWithFlattened;
       })
-      .filter((sub) => sub.products.length > 0 || !query);
-  }, [subCategoriesData, productsData, role, shopId, searchQuery]);
+      .filter((sub: any) => sub.products.length > 0 || !query);
+  }, [subCategoriesData, searchQuery]);
 
   return {
     subCategories,
     loading,
+    refetch,
   };
 }
