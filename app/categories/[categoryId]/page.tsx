@@ -218,7 +218,7 @@ export default function SubCategoryPage() {
                 value={searchQuery}
                 onChange={setSearchQuery}
                 variant="minimal"
-                placeholder="Поиск по подкатегориям"
+                placeholder="Поиск по товарам"
                 className="w-full max-w-[260px] ml-2"
               />
             </div>
