@@ -1,15 +1,19 @@
 import React from "react";
 import { Hash } from "lucide-react";
-import { SearchableDropdown } from "@/components/category/searchableDropdown";
+import { CategorySubcategorySelector } from "@/components/category/categorySubcategorySelector";
+import { Category } from "@/types/category.types";
 
 interface ProductBasicInfoProps {
   formData: {
+    categoryId: number;
     name: string;
     article: string;
     subCategoryId: number;
   };
   setFormData: (data: any) => void;
-  subCategoryOptions: Array<{ label: string; value: number; subLabel?: string }>;
+  categories: Category[];
+  onCategoryChange: (categoryId: number) => void;
+  onSubCategoryChange: (subCategoryId: number) => void;
   onGenerateArticle: () => void;
   inputClasses: string;
   labelClasses: string;
@@ -19,18 +23,14 @@ interface ProductBasicInfoProps {
 export function ProductBasicInfo({
   formData,
   setFormData,
-  subCategoryOptions,
+  categories,
+  onCategoryChange,
+  onSubCategoryChange,
   onGenerateArticle,
   inputClasses,
   labelClasses,
   articleError,
 }: ProductBasicInfoProps) {
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      [field]: value
-    }));
-  };
   return (
     <>
       <div className="space-y-1.5">
@@ -71,11 +71,12 @@ export function ProductBasicInfo({
         )}
       </div>
 
-      <SearchableDropdown
-        label="Подкатегория"
-        value={formData.subCategoryId}
-        options={subCategoryOptions}
-        onSelect={(val: number) => setFormData({ ...formData, subCategoryId: val })}
+      <CategorySubcategorySelector
+        categories={categories}
+        categoryId={formData.categoryId}
+        subCategoryId={formData.subCategoryId}
+        onCategorySelect={onCategoryChange}
+        onSubCategorySelect={onSubCategoryChange}
       />
     </>
   );

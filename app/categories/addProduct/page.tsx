@@ -16,7 +16,7 @@ import { ProductFinanceInfo } from "./components/ProductFinanceInfo";
 import { ProductAttributes } from "./components/ProductAttributes";
 import { StockToggle } from "./components/StockToggle";
 
-import { SubCategory, measureLabels } from "@/types/category.types";
+import { Category, measureLabels } from "@/types/category.types";
 import { Shop } from "@/types/shop";
 import { ROLES } from "@/middleware";
 
@@ -31,18 +31,18 @@ export default function AddProductPage() {
 
   const { data: shops = [] } = useApiData<Shop>("shops");
 
-  const params = useMemo(() => {
-    let searchParams = {};
+  const params = useMemo<Record<string, string> | undefined>(() => {
     if (userRole === ROLES.SHOP_OWNER) {
       const shopId = Cookies.get("user_shop_id");
-      searchParams = {
-        search: JSON.stringify({ category: { shop: { id: shopId } } }),
+      return {
+        search: JSON.stringify({ "shop.id": shopId }),
       };
     }
-    return searchParams;
+    return undefined;
   }, [userRole]);
 
-  const { data: subcategories = [] } = useApiData<SubCategory>(`subcategory`, {
+  const { data: categories = [] } = useApiData<Category>("category", {
+    relations: ["subCategory"],
     searchParams: params,
   });
 
@@ -77,16 +77,6 @@ export default function AddProductPage() {
         value: value,
       })),
     []
-  );
-
-  const subCategoryOptions = useMemo(
-    () =>
-      subcategories.map((sub) => ({
-        label: sub.name,
-        value: sub.id,
-        subLabel: sub.category?.name,
-      })),
-    [subcategories]
   );
 
   const shopOptions = useMemo(
@@ -221,7 +211,21 @@ export default function AddProductPage() {
           <ProductBasicInfo
             formData={formData}
             setFormData={setFormData} // Внутри компонента используй setFormData(prev => ...)
-            subCategoryOptions={subCategoryOptions}
+            categories={categories}
+            onCategoryChange={(categoryId) =>
+              setFormData((prev: any) => ({
+                ...prev,
+                categoryId,
+                subCategoryId:
+                  prev.categoryId === categoryId ? prev.subCategoryId : 0,
+              }))
+            }
+            onSubCategoryChange={(subCategoryId) =>
+              setFormData((prev: any) => ({
+                ...prev,
+                subCategoryId,
+              }))
+            }
             onGenerateArticle={handleGenerateArticle}
             inputClasses={inputClasses}
             labelClasses={labelClasses}
