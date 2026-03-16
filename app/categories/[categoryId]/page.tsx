@@ -19,8 +19,15 @@ import { useProductSelection } from "./components/products/hooks/useProductSelec
 import { useSubCategoryExpansion } from "./components/products/hooks/useSubCategoryExpansion";
 import { SubCategorySection } from "./components/products/SubCategorySection";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
+import { parseJwt } from "@/lib/jwt";
+import { ROLES } from "@/middleware";
 
 export default function SubCategoryPage() {
+  const token =
+    (typeof window !== "undefined"
+      ? localStorage.getItem("access_token")
+      : null) || "";
+  const userRole = parseJwt(token)?.role;
   const router = useRouter();
   const { categoryId } = useParams();
   const searchParams = useSearchParams();
@@ -139,10 +146,16 @@ export default function SubCategoryPage() {
     try {
       const promises = [
         ...subCategoryIdsToArchive.map((id) =>
-          mutate(`subCategory/archive/${id}`, { method: "PATCH" })
+          mutate(`subCategory/archive/${id}`, {
+            method: "PATCH",
+            body: { shopId },
+          })
         ),
         ...individualProductKeysToArchive.map((id) =>
-          mutate(`shop/shopProduct/${id}/archive`, { method: "POST" })
+          mutate(`shop/shopProduct/${id}/archive`, {
+            method: "POST",
+            body: { shopId },
+          })
         ),
       ];
 
@@ -176,10 +189,16 @@ export default function SubCategoryPage() {
     try {
       const promises = [
         ...subCategoryIdsToUnarchive.map((id) =>
-          mutate(`subCategory/unarchive/${id}`, { method: "PATCH" })
+          mutate(`subCategory/unarchive/${id}`, {
+            method: "PATCH",
+            body: { shopId },
+          })
         ),
         ...individualProductKeysToUnarchive.map((id) =>
-          mutate(`shop/shopProduct/${id}/unArchive`, { method: "PATCH" })
+          mutate(`shop/shopProduct/${id}/unArchive`, {
+            method: "PATCH",
+            body: { shopId },
+          })
         ),
       ];
 

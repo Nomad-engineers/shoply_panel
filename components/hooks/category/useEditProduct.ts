@@ -15,6 +15,7 @@ export function useProductForm(
 ) {
   const [photos, setPhotos] = useState<PhotoState[]>([]);
   const [formData, setFormData] = useState({
+    categoryId: 0,
     subCategoryId: initialSubCategoryId,
     name: "",
     article: "",
@@ -43,6 +44,7 @@ export function useProductForm(
       );
 
       setFormData({
+        categoryId: baseProduct?.subCategory?.category?.id || 0,
         subCategoryId:
           baseProduct?.subCategory?.id || Number(initialSubCategoryId),
         name: baseProduct?.name || "",
@@ -189,6 +191,7 @@ export function useProductForm(
     );
 
     setFormData({
+      categoryId: baseProduct?.subCategory?.category?.id || 0,
       subCategoryId: baseProduct?.subCategory?.id || initialSubCategoryId,
       name: baseProduct?.name || "",
       mainBarcode: (baseProduct?.barcodes || [])[0] || "",

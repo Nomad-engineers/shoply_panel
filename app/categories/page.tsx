@@ -38,11 +38,11 @@ function CategoryPageContent() {
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`);
   };
+  const shopId = Cookies.get("current_shop_id");
 
   const params = useMemo(() => {
     let searchParams = {};
     if (userRole === ROLES.SHOP_OWNER) {
-      const shopId = Cookies.get("current_shop_id");
       searchParams = { search: JSON.stringify({ "shop.id": shopId }) };
     }
     return searchParams;
@@ -82,7 +82,10 @@ function CategoryPageContent() {
     try {
       await Promise.all(
         selectedIds.map((id) =>
-          mutate(`category/archive/${id}`, { method: "PATCH" })
+          mutate(`category/archive/${id}`, {
+            method: "PATCH",
+            body: { shopId },
+          })
         )
       );
       await refetch();
@@ -101,7 +104,10 @@ function CategoryPageContent() {
     try {
       await Promise.all(
         selectedIds.map((id) =>
-          mutate(`category/unArchive/${id}`, { method: "PATCH" })
+          mutate(`category/unArchive/${id}`, {
+            method: "PATCH",
+            body: { shopId },
+          })
         )
       );
       await refetch();

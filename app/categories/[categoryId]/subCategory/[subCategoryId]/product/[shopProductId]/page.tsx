@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Cookies from "js-cookie";
 import {
   ChevronLeft,
   Archive,
@@ -14,22 +15,24 @@ import {
 import { cn } from "@/lib/utils";
 import { useApiData } from "@/components/hooks/useApiData";
 import {
-  SubCategory,
+  Category,
   ProductMeasure,
   measureLabels,
   ShopProduct,
 } from "@/types/category.types";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";
+import { CategorySubcategorySelector } from "@/components/category/categorySubcategorySelector";
 import { useProductForm } from "@/components/hooks/category/useEditProduct";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
+import { ROLES } from "@/middleware";
 
 export default function EditProductPage() {
   const { shopProductId, categoryId, subCategoryId } = useParams();
   const searchParams = useSearchParams();
   const shopId = searchParams.get("shopId");
-  const [isSubCategoryOpen, setIsSubCategoryOpen] = useState(false);
   const [isMeasureOpen, setIsMeasureOpen] = useState(false);
+  const userRole = Cookies.get("user_role");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -42,17 +45,28 @@ export default function EditProductPage() {
     refetch,
   } = useApiData<ShopProduct>(`products/shopProduct/${shopProductId}`, {
     searchParams: { search: JSON.stringify({ shop: { id: shopId } }) },
-    relations: ["product.photos.file", "shop"],
+    relations: ["product.photos.file", "product.subCategory.category", "shop"],
   });
 
   // Определяем, находится ли товар в архиве
   const isArchived = !!shopProduct?.archivedAt;
+  const userShopId = Cookies.get("current_shop_id");
 
-  const { data: subcategories = [] } = useApiData<SubCategory>(`subcategory`, {
-    searchParams: {
-      search: JSON.stringify({ category: { id: Number(categoryId) } }),
-    },
+  const categorySearchParams = useMemo<
+    Record<string, string> | undefined
+  >(() => {
+    if (userRole !== ROLES.SHOP_OWNER) return undefined;
+
+    return {
+      search: JSON.stringify({ "shop.id": userShopId }),
+    };
+  }, [userRole]);
+
+  const { data: categories = [] } = useApiData<Category>("category", {
+    relations: ["subCategory"],
+    searchParams: categorySearchParams,
   });
+
   const {
     formData,
     setFormData,
@@ -76,23 +90,13 @@ export default function EditProductPage() {
     []
   );
 
-  const subCategoryOptions = useMemo(
-    () =>
-      subcategories.map((sub) => ({
-        label: sub.name,
-        value: sub.id,
-        subLabel: sub.category?.name,
-      })),
-    [subcategories]
-  );
-
   const handleArchiveToggle = async () => {
     const endpoint = isArchived
       ? `shop/shopProduct/${shopProductId}/unArchive`
       : `shop/shopProduct/${shopProductId}/archive`;
 
     try {
-      await mutate(endpoint, { method: "PATCH" });
+      await mutate(endpoint, { method: "PATCH", body: { shopId: userShopId } });
       await refetch();
       alert(isArchived ? "Товар восстановлен" : "Товар перемещен в архив");
     } catch (e: any) {
@@ -108,6 +112,7 @@ export default function EditProductPage() {
           ? localStorage.getItem("access_token")
           : null;
       if (!token) return alert("Ошибка авторизации");
+      if (!formData.subCategoryId) return alert("Выберите подкатегорию");
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
       const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(
@@ -191,6 +196,17 @@ export default function EditProductPage() {
       const responses = await Promise.all(tasks);
       if (responses.every((res) => res.ok)) {
         await refetch();
+
+        if (
+          Number(categoryId) !== formData.categoryId ||
+          Number(subCategoryId) !== Number(formData.subCategoryId)
+        ) {
+          const params = new URLSearchParams(searchParams.toString());
+          const nextUrl = `/categories/${formData.categoryId}/subCategory/${formData.subCategoryId}/product/${shopProductId}${params.toString() ? `?${params.toString()}` : ""}`;
+
+          router.replace(nextUrl);
+        }
+
         alert("Изменения сохранены успешно");
       }
     } catch (error) {
@@ -311,19 +327,25 @@ export default function EditProductPage() {
             />
           </div>
 
-          <CategoryBaseDropdown
-            label="Подкатегория"
+          <CategorySubcategorySelector
+            categories={categories}
+            categoryId={formData.categoryId}
+            subCategoryId={formData.subCategoryId}
             disabled={isArchived}
-            value={formData.subCategoryId}
-            options={subCategoryOptions}
-            isOpen={isSubCategoryOpen && !isArchived}
-            onToggle={() =>
-              !isArchived && setIsSubCategoryOpen(!isSubCategoryOpen)
+            onCategorySelect={(nextCategoryId) =>
+              setFormData((prev) => ({
+                ...prev,
+                categoryId: nextCategoryId,
+                subCategoryId:
+                  prev.categoryId === nextCategoryId ? prev.subCategoryId : 0,
+              }))
             }
-            onSelect={(val) => {
-              setFormData({ ...formData, subCategoryId: val });
-              setIsSubCategoryOpen(false);
-            }}
+            onSubCategorySelect={(nextSubCategoryId) =>
+              setFormData((prev) => ({
+                ...prev,
+                subCategoryId: nextSubCategoryId,
+              }))
+            }
           />
 
           <div className="space-y-1.5">

@@ -17,7 +17,6 @@ export function useApiMutation() {
 
     const method = options?.method || "POST";
     const token = Cookies.get("auth_token"); 
-
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${url}`, {
         method,
