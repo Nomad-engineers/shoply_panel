@@ -14,7 +14,7 @@ export default function ReportsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { adminData, loading } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+  const { adminData, loading } = useAuth();
 
   const tabs = [
     {

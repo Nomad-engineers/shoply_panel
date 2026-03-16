@@ -13,9 +13,7 @@ interface FetchShopOrdersParams {
 }
 
 export const useShopOrders = (initialParams: FetchShopOrdersParams) => {
-    const { refreshSession, fetchWithSession } = useAuth(
-        process.env.NEXT_PUBLIC_DIRECTUS_URL
-    );
+    const { refreshSession, fetchWithSession } = useAuth();
     const [data, setData] = useState<ShopOrdersResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

@@ -16,9 +16,7 @@ interface PayoutsData {
 }
 
 export const usePayouts = () => {
-  const { refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const { refreshSession, fetchWithSession } = useAuth();
   const [payouts, setPayouts] = useState<PayoutsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

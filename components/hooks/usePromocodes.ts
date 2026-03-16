@@ -13,9 +13,7 @@ export interface FetchPromocodesParams {
 }
 
 export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
-  const { refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const { refreshSession, fetchWithSession } = useAuth();
 
   const [data, setData] = useState<PromocodesResponse | null>(null);
   const [loading, setLoading] = useState(false);

@@ -6,8 +6,7 @@ import { Input } from "../ui/input";
 import { useState } from "react";
 
 export const LoginForm = () => {
-  const url = process.env.NEXT_PUBLIC_DIRECTUS_URL;
-  const { login, loading, error } = useAuth(url);
+  const { login, loading, error } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

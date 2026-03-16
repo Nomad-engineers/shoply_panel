@@ -44,9 +44,7 @@ const getContentLabel = (p: Promocode) => {
 
 export default function PromotionsPage() {
   const router = useRouter();
-  const { adminData, loading: authLoading } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const { adminData, loading: authLoading } = useAuth();
 
   const derivedShopId =
     (adminData as any)?.shopId ??
@@ -94,9 +92,7 @@ export default function PromotionsPage() {
     skip: authLoading || (!shopIdForFilter && !(adminData as any)?.isAdmin),
   });
 
-  const { fetchWithSession, refreshSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const { fetchWithSession, refreshSession } = useAuth();
 
   const [allTimeTurnover, setAllTimeTurnover] = useState<number | null>(null);
 

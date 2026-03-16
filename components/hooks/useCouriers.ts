@@ -18,9 +18,7 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
     const [data, setData] = useState<CourierStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { fetchWithSession, refreshSession } = useAuth(
-        process.env.NEXT_PUBLIC_DIRECTUS_URL,
-    );
+    const { fetchWithSession, refreshSession } = useAuth();
     const [meta, setMeta] = useState({ totalCount: 0, totalPages: 0 });
 
     const fetchCouriers = useCallback(

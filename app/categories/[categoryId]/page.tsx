@@ -313,7 +313,7 @@ export default function SubCategoryPage() {
                   sub={sub}
                   isOpen={isOpen}
                   selectedUniqueKeys={selectedUniqueKeys}
-                  shopId={shopId}
+                  shopId={userRole == ROLES.ADMIN ? undefined : shopId}
                   viewMode={viewMode}
                   isPartiallySelected={isPartially}
                   isFullySelected={isFully}

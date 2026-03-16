@@ -176,12 +176,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       Cookies.set("user_role", userData.role || "");
+      if (!userData.isAdmin) {
+        const existingCookie = Cookies.get("current_shop_id");
 
-      const existingCookie = Cookies.get("current_shop_id");
-
-      if (!existingCookie) {
-        Cookies.set("current_shop_id", String(userShops[0]));
+        if (!existingCookie) {
+          Cookies.set("current_shop_id", String(userShops[0]));
+        }
       }
+      
       setAdminData(userData);
     } catch (err) {
       console.error(err);

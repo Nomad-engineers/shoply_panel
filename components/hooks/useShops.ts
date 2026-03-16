@@ -15,9 +15,7 @@ interface FetchShopsParams {
 }
 
 export const useShops = (initialParams?: FetchShopsParams) => {
-  const { refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL
-  );
+  const { refreshSession, fetchWithSession } = useAuth();
   const [params, setParams] = useState<FetchShopsParams | undefined>(
     initialParams
   );

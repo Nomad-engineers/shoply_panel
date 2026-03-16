@@ -32,7 +32,7 @@ export default function ShopDetailsPage() {
     fetchWithSession,
     adminData,
     loading: authLoading,
-  } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
+  } = useAuth();
 
   const searchParams = useSearchParams();
   const urlName = searchParams.get("name");
