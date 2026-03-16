@@ -15,10 +15,15 @@ import { ViewModeToggle } from "./components/category/ViewModeToggle";
 import { CategoryGridView } from "./components/category/CategoryGridView";
 import { CategoryListView } from "./components/category/CategoryListView";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
+import { parseJwt } from "@/lib/jwt";
 
 function CategoryPageContent() {
   const router = useRouter();
-  const userRole = Cookies.get("user_role");
+  const token =
+    (typeof window !== "undefined"
+      ? localStorage.getItem("access_token")
+      : null) || "";
+  const userRole = parseJwt(token)?.role;
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -37,7 +42,7 @@ function CategoryPageContent() {
   const params = useMemo(() => {
     let searchParams = {};
     if (userRole === ROLES.SHOP_OWNER) {
-      const shopId = Cookies.get("user_shop_id");
+      const shopId = Cookies.get("current_shop_id");
       searchParams = { search: JSON.stringify({ "shop.id": shopId }) };
     }
     return searchParams;

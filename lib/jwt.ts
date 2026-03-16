@@ -1,11 +1,11 @@
 export interface JwtPayload {
-    id: string;
-    role: string;
-    app_access: boolean;
-    admin_access: boolean;
-    iss: string;
-    exp: number;
-    iat: number;
+  id: string;
+  role: string;
+  shops: number[];
+  isAdmin: boolean;
+  iss: string;
+  exp: number;
+  iat: number;
 }
 
 export function parseJwt(token: string): JwtPayload | null {

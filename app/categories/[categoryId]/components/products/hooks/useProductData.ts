@@ -17,7 +17,7 @@ export function useProductData({
   tab,
 }: UseProductDataParams) {
   const role = Cookies.get("user_role");
-  const shopId = Cookies.get("user_shop_id");
+  const shopId = Cookies.get("current_shop_id");
 
   const params = useMemo(() => {
     const filters: any = {};

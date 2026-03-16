@@ -1,5 +1,5 @@
 import { useAuthContext } from "../providers/AuthProvider";
 
-export const useAuth = (directusUrl: string | undefined) => {
+export const useAuth = () => {
   return useAuthContext();
 };

@@ -3,16 +3,17 @@ import * as React from "react";
 import { useAuth } from "../hooks/useLogin";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { useState } from "react";
 
 export const LoginForm = () => {
   const url = process.env.NEXT_PUBLIC_DIRECTUS_URL;
   const { login, loading, error } = useAuth(url);
-  const [form, setForm] = React.useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(form);
@@ -34,7 +35,9 @@ export const LoginForm = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Пароль</label>
+        <label className="block text-sm font-medium text-gray-700">
+          Пароль
+        </label>
         <Input
           type="password"
           name="password"
@@ -50,7 +53,7 @@ export const LoginForm = () => {
 
       <Button
         type="submit"
-        variant="success"     
+        variant="success"
         size="default"
         className="w-full"
         disabled={loading}

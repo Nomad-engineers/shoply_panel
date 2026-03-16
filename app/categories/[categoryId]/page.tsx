@@ -26,7 +26,7 @@ export default function SubCategoryPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const categoryName = searchParams.get("name");
-  const shopId = Cookies.get("user_shop_id");
+  const shopId = Cookies.get("current_shop_id");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");

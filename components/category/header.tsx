@@ -18,7 +18,7 @@ export const CategoryHeader = ({
   activeTab,
   setActiveTab,
 }: CategoryHeaderProps) => {
-  const shopId = Cookies.get("user_shop_id");
+  const shopId = Cookies.get("current_shop_id");
 
   const activeParams = useMemo(() => {
     const filter = {

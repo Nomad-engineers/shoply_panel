@@ -34,7 +34,7 @@ export default function AddProductPage() {
   const params = useMemo(() => {
     let searchParams = {};
     if (userRole === ROLES.SHOP_OWNER) {
-      const shopId = Cookies.get("user_shop_id");
+      const shopId = Cookies.get("current_shop_id");
       searchParams = {
         search: JSON.stringify({ category: { shop: { id: shopId } } }),
       };
@@ -47,7 +47,7 @@ export default function AddProductPage() {
   });
 
   useEffect(() => {
-    const shopIdFromCookie = Cookies.get("user_shop_id");
+    const shopIdFromCookie = Cookies.get("current_shop_id");
     if (shopIdFromCookie) setSelectedShopId(shopIdFromCookie);
     setIsMounted(true);
   }, []);
@@ -64,11 +64,6 @@ export default function AddProductPage() {
     sanitize,
     handleGenerateArticle,
   } = useProductForm(undefined, 0, selectedShopId);
-
-  // Лог для проверки: теперь ты увидишь, как объект наполняется
-  useEffect(() => {
-    console.log("Текущий formData:", formData);
-  }, [formData]);
 
   const measureOptions = useMemo(
     () =>
@@ -206,7 +201,7 @@ export default function AddProductPage() {
         />
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-6 items-end">
-          {!Cookies.get("user_shop_id") && (
+          {!Cookies.get("current_shop_id") && (
             <div className="col-span-2">
               <SearchableDropdown
                 label="Магазин"

@@ -75,7 +75,7 @@ export const authStorage = {
     localStorage.removeItem("refresh_token");
     Cookies.remove("auth_token");
     Cookies.remove("user_role");
-    Cookies.remove("user_shop_id");
+    Cookies.remove("current_shop_id");
   },
 };
 
