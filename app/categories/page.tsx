@@ -16,6 +16,7 @@ import { CategoryGridView } from "./components/category/CategoryGridView";
 import { CategoryListView } from "./components/category/CategoryListView";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
 import { parseJwt } from "@/lib/jwt";
+import { useViewMode } from "@/hooks/use-view-mode";
 
 function CategoryPageContent() {
   const router = useRouter();
@@ -26,7 +27,7 @@ function CategoryPageContent() {
   const userRole = parseJwt(token)?.role;
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useViewMode('CATEGORIES', 'grid');
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
   const { mutate, isLoading: isArchiving } = useApiMutation();
 

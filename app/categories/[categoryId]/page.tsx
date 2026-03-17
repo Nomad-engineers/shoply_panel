@@ -21,6 +21,7 @@ import { SubCategorySection } from "./components/products/SubCategorySection";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
 import { parseJwt } from "@/lib/jwt";
 import { ROLES } from "@/middleware";
+import { useViewMode } from "@/hooks/use-view-mode";
 
 export default function SubCategoryPage() {
   const token =
@@ -36,7 +37,7 @@ export default function SubCategoryPage() {
   const shopId = Cookies.get("current_shop_id");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useViewMode('SUBCATEGORIES', 'list');
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
 
   const { mutate } = useApiMutation();
