@@ -28,9 +28,7 @@ const generateCode = () => {
 export default function PromotionsCreateIndexPage() {
   const router = useRouter();
 
-  const { adminData, refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL,
-  );
+  const { adminData, refreshSession, fetchWithSession } = useAuth();
 
   const derivedShopId =
     (adminData as any)?.shopId ??

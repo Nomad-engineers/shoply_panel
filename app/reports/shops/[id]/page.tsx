@@ -32,18 +32,7 @@ export default function ShopDetailsPage() {
     fetchWithSession,
     adminData,
     loading: authLoading,
-  } = useAuth(process.env.NEXT_PUBLIC_DIRECTUS_URL);
-
-  useEffect(() => {
-    if (authLoading || !adminData) return;
-
-    const userShopId =
-      adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
-
-    if (userShopId && Number(userShopId) !== shopId && !adminData.isAdmin) {
-      router.replace(`/reports/shops/${userShopId}`);
-    }
-  }, [adminData, authLoading, shopId, router]);
+  } = useAuth();
 
   const searchParams = useSearchParams();
   const urlName = searchParams.get("name");

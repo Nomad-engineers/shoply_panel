@@ -26,22 +26,6 @@ export default function ShopsPage() {
     dateFrom: new Date().toISOString().split("T")[0],
   });
 
-  const { adminData, loading: authLoading } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL,
-  );
-
-  useEffect(() => {
-    if (authLoading || !adminData) return;
-
-    // Check if user has a shop ID (shop_owner or shop_member)
-    // AND is NOT an admin (just in case an admin also has a shop attached somehow)
-    const userShopId =
-      adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
-
-    if (userShopId && !adminData.isAdmin) {
-      router.replace(`/reports/shops/${userShopId}`);
-    }
-  }, [adminData, authLoading, router]);
   const periods: { value: PeriodType; label: string }[] = [
     { value: "day", label: "Сегодня" },
     { value: "week", label: "Неделя" },
@@ -113,7 +97,7 @@ export default function ShopsPage() {
         revenue: acc.revenue + shop.revenue,
         serviceIncome: acc.serviceIncome + shop.serviceIncome,
       }),
-      { orderCount: 0, revenue: 0, serviceIncome: 0 },
+      { orderCount: 0, revenue: 0, serviceIncome: 0 }
     );
   }, [shopsStats]);
 
@@ -271,7 +255,7 @@ export default function ShopsPage() {
                 key={shop.id}
                 onClick={() =>
                   router.push(
-                    `/reports/shops/${shop.id}?periodType=${activePeriod}&name=${encodeURIComponent(shop.name)}`,
+                    `/reports/shops/${shop.id}?periodType=${activePeriod}&name=${encodeURIComponent(shop.name)}`
                   )
                 }
                 className="border-b hover:bg-gray-50 cursor-pointer transition-colors"

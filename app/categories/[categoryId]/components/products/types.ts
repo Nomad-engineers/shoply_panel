@@ -1,0 +1,29 @@
+import { ProductMeasure, measureLabels } from "@/types/category.types";
+
+export interface FlattenedProduct {
+  uniqueKey: string;
+  name: string;
+  article: string | null | undefined;
+  weight: number;
+  measure: ProductMeasure | null | undefined;
+  photos?: Array<{ file?: { url?: string } }>;
+  subCategoryId: number;
+  activeShopProduct: {
+    id: number;
+    price: number;
+    inStock: boolean;
+    archivedAt: string;
+    shop: {
+      id: number;
+      name: string;
+    };
+  };
+}
+
+export interface SubCategoryWithFlattened {
+  id: number;
+  name: string;
+  products: FlattenedProduct[];
+  displayCount: number;
+  isArchived: boolean;
+}
