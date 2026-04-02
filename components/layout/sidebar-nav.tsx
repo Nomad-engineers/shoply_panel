@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Plus, ChevronDown, Store } from "lucide-react"; // Добавили иконки
+import { LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
@@ -17,13 +17,12 @@ import {
 } from "./icons";
 import { useMemo } from "react";
 import { Shop } from "@/types/shop";
-import { getImageUrl } from "@/lib/utils";
 import { useApiData } from "../hooks/useApiData";
 import { parseJwt } from "@/lib/jwt";
 import { ShopSwitcher } from "../ui/shops.dropdown";
 
 interface NavItemProps {
-  href: string;
+  href?: string;
   icon: React.ElementType;
   children: React.ReactNode;
   className?: string;
@@ -34,15 +33,20 @@ interface NavItemProps {
 export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
   ({ href, icon: Icon, children, className, isCollapsed, disabled }, ref) => {
     const pathname = usePathname();
+    const isDisabled = disabled || !href;
     const isActive =
-      !disabled && (pathname === href || pathname.startsWith(href + "/"));
+      !!href && !isDisabled && (pathname === href || pathname.startsWith(href + "/"));
 
     const content = (
       <>
         <Icon
           className={cn(
             "shrink-0",
-            isActive ? "text-primary-main" : "text-text-secondary"
+            isDisabled
+              ? "text-text-secondary/50"
+              : isActive
+                ? "text-primary-main"
+                : "text-text-secondary"
           )}
         />
         <span
@@ -59,18 +63,21 @@ export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
 
     const commonClassName = cn(
       "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mb-1 rounded-lg",
-      isActive
-        ? "bg-surface-light text-text-primary font-semibold"
-        : "text-text-secondary hover:bg-surface-light hover:text-text-primary",
+      isDisabled
+        ? "cursor-not-allowed text-text-secondary/50 opacity-60"
+        : isActive
+          ? "bg-surface-light text-text-primary font-semibold"
+          : "text-text-secondary hover:bg-surface-light hover:text-text-primary",
       isCollapsed &&
         "flex-col justify-center items-center px-2 py-2 gap-1 text-xs",
       className
     );
 
-    if (disabled) {
+    if (isDisabled) {
       return (
         <div
           className={commonClassName}
+          aria-disabled="true"
           title={isCollapsed ? children?.toString() : undefined}
         >
           {content}
@@ -98,7 +105,7 @@ interface SidebarNavProps {
 }
 
 export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
-  ({ className, isCollapsed: externalIsCollapsed, onToggleCollapse }, ref) => {
+  ({ className, isCollapsed: externalIsCollapsed }, ref) => {
     const token =
       (typeof window !== "undefined"
         ? localStorage.getItem("access_token")
@@ -121,7 +128,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     }, [allowedShops]);
 
     const { adminData, logout } = useAuth();
-    const { data: allShops, loading: isShopLoading } = useApiData<Shop>(
+    const { data: allShops } = useApiData<Shop>(
       activeShopId && adminData?.email ? `shops` : null,
       {
         relations: ["photo"],
@@ -139,8 +146,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       return allShops.find((s) => s.id === activeShopId) || null;
     }, [allShops, activeShopId]);
 
-    const [internalIsCollapsed, setInternalIsCollapsed] = React.useState(false);
-    const isCollapsed = externalIsCollapsed ?? internalIsCollapsed;
+    const isCollapsed = externalIsCollapsed ?? false;
     const isLoggedIn = !!adminData;
 
     const handleShopChange = (shopId: number) => {
@@ -154,7 +160,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         href: "/categories",
         icon: ProductIcon,
       },
-      { title: "Заказы", href: "/orders", icon: OrderIcon, disabled: true },
+      { title: "Заказы", icon: OrderIcon },
     ];
 
     if (adminData?.isAdmin) {
@@ -164,7 +170,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           href: "/promotions",
           icon: PromotionIcon,
         },
-        { title: "Магазины", href: "/shops", icon: ShopIcon, disabled: true },
+        { title: "Магазины", icon: ShopIcon },
         {
           title: "Отчеты",
           href: "/reports/couriers",
@@ -172,9 +178,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         },
         {
           title: "Пользователи",
-          href: "/users",
           icon: UserIcon,
-          disabled: true,
         }
       );
     }
@@ -208,11 +212,10 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         <nav className="flex-1 min-h-0 overflow-auto pt-4">
           {navigationItems.map((item) => (
             <NavItem
-              key={item.href}
+              key={item.href ?? item.title}
               href={item.href}
               icon={item.icon}
               isCollapsed={isCollapsed}
-              disabled={(item as any).disabled}
             >
               {item.title}
             </NavItem>
