@@ -1,27 +1,23 @@
 "use client";
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
 import Cookies from "js-cookie";
-import {
-  OrderIcon,
-  UserIcon,
-  ShopIcon,
-  PromotionIcon,
-  ReportIcon,
-  ProductIcon,
-} from "./icons";
+import { OrderIcon, ProductIcon } from "./icons";
 import { useMemo } from "react";
 import { ShopSwitcher } from "../ui/shops.dropdown";
 import type { AuthProfileBusiness } from "@/types/auth";
 
+type NavIcon = React.ElementType | string;
+
 interface NavItemProps {
   href?: string;
-  icon: React.ElementType;
+  icon: NavIcon;
   children: React.ReactNode;
   className?: string;
   isCollapsed?: boolean;
@@ -37,21 +33,36 @@ export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
 
     const content = (
       <>
-        <Icon
-          className={cn(
-            "shrink-0",
-            isDisabled
-              ? "text-text-secondary/50"
-              : isActive
-                ? "text-primary-main"
-                : "text-text-secondary"
-          )}
-        />
+        {typeof Icon === "string" ? (
+          <Image
+            src={Icon}
+            alt=""
+            aria-hidden="true"
+            width={24}
+            height={24}
+            className={cn(
+              "shrink-0",
+              isDisabled && "opacity-50",
+              !isDisabled && !isActive && "opacity-90"
+            )}
+          />
+        ) : (
+          <Icon
+            className={cn(
+              "shrink-0",
+              isDisabled
+                ? "text-text-secondary/50"
+                : isActive
+                  ? "text-primary"
+                  : "text-text-secondary"
+            )}
+          />
+        )}
         <span
           className={cn(
             "whitespace-nowrap",
             isCollapsed &&
-              "text-center text-[10px] leading-tight max-w-[70px] truncate"
+              "max-w-[70px] truncate text-center text-[10px] leading-tight"
           )}
         >
           {children}
@@ -60,14 +71,14 @@ export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
     );
 
     const commonClassName = cn(
-      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mb-1 rounded-lg",
+      "mb-0.5 flex items-center gap-3 rounded-xl px-[18px] py-3 text-[14px] font-semibold tracking-[-0.02em] transition-all duration-150",
       isDisabled
         ? "cursor-not-allowed text-text-secondary/50 opacity-60"
         : isActive
-          ? "bg-surface-light text-text-primary font-semibold"
-          : "text-text-secondary hover:bg-surface-light hover:text-text-primary",
+          ? "bg-[#eeeef4] text-text-primary"
+          : "text-text-primary hover:bg-[#f7f7fa]",
       isCollapsed &&
-        "flex-col justify-center items-center px-2 py-2 gap-1 text-xs",
+        "flex-col items-center justify-center gap-1 px-2 py-2 text-[11px]",
       className
     );
 
@@ -105,6 +116,7 @@ interface SidebarNavProps {
 export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
   ({ className, isCollapsed: externalIsCollapsed }, ref) => {
     const { adminData, logout } = useAuth();
+    const pathname = usePathname();
 
     const allShops = useMemo(
       () =>
@@ -139,48 +151,49 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
 
     const isCollapsed = externalIsCollapsed ?? false;
     const isLoggedIn = !!adminData;
+    const isAdminArea =
+      adminData?.isAdmin ||
+      pathname.startsWith("/partners") ||
+      pathname.startsWith("/reports");
 
     const handleShopChange = (shopId: number) => {
       Cookies.set("current_shop_id", String(shopId));
       window.location.reload();
     };
 
-    const navigationItems = [
-      {
-        title: "Товары",
-        href: "/categories",
-        icon: ProductIcon,
-      },
-      { title: "Заказы", icon: OrderIcon },
-    ];
-
-    if (adminData?.isAdmin) {
-      navigationItems.push(
-        {
-          title: "Акции и промокоды",
-          href: "/promotions",
-          icon: PromotionIcon,
-        },
-        { title: "Магазины", icon: ShopIcon },
-        {
-          title: "Отчеты",
-          href: "/reports/couriers",
-          icon: ReportIcon,
-        },
-        {
-          title: "Пользователи",
-          icon: UserIcon,
-        }
-      );
-    }
+    const navigationItems = isAdminArea
+      ? [
+          { title: "Заказы", icon: "/panel-icons/nav-orders.png" },
+          { title: "Пользователи", icon: "/panel-icons/nav-users.png" },
+          {
+            title: "Магазины",
+            href: "/partners",
+            icon: "/panel-icons/nav-partners.png",
+          },
+          {
+            title: "Акции и промокоды",
+            href: "/promotions",
+            icon: "/panel-icons/nav-promotions.png",
+          },
+          {
+            title: "Отчеты",
+            href: "/reports/couriers",
+            icon: "/panel-icons/nav-reports.png",
+          },
+        ]
+      : [
+          {
+            title: "Товары",
+            href: "/categories",
+            icon: ProductIcon,
+          },
+          { title: "Заказы", icon: OrderIcon },
+        ];
 
     return (
       <div
         ref={ref}
-        className={cn(
-          "flex flex-col h-full relative min-h-0 border-t",
-          className
-        )}
+        className={cn("relative flex h-full min-h-0 flex-col", className)}
       >
         {/* Блок выбора магазина с Dropdown */}
         {isLoggedIn && !adminData?.isAdmin && (
@@ -200,7 +213,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           </div>
         )}
 
-        <nav className="flex-1 min-h-0 overflow-auto pt-4">
+        <nav className="min-h-0 flex-1 overflow-auto px-[6px] pt-2">
           {navigationItems.map((item) => (
             <NavItem
               key={item.href ?? item.title}
@@ -215,16 +228,16 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
 
         <div
           className={cn(
-            "px-4 pb-4 pt-4 mt-auto bg-white z-10 border-gray-50",
+            "z-10 mt-auto bg-white px-[18px] pb-[18px] pt-[18px]",
             isCollapsed && "px-2"
           )}
         >
           {isLoggedIn && !isCollapsed && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {adminData?.firstName ?? "Админ"} {adminData?.lastName ?? ""}
+            <div className="mb-[18px] space-y-1">
+              <p className="truncate text-[16px] font-medium leading-[1.125] text-text-primary">
+                {adminData?.firstName ?? "Admin"} {adminData?.lastName ?? ""}
               </p>
-              <p className="text-xs text-gray-500 truncate">
+              <p className="truncate text-[14px] leading-[1.3] text-text-secondary">
                 {adminData?.email ?? ""}
               </p>
             </div>
@@ -236,12 +249,18 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
               variant="destructive"
               size="default"
               className={cn(
-                "w-full justify-start gap-2 rounded-xl",
+                "h-auto w-full justify-start gap-3 rounded-xl border-0 bg-[#ffd9b8] px-3 py-3 text-[#0e0f27] shadow-none hover:bg-[#ffd1aa]",
                 isCollapsed && "justify-center px-2"
               )}
               title={isCollapsed ? "Выйти" : undefined}
             >
-              <LogOut className="w-4 h-4" />
+              <Image
+                src="/panel-icons/action-logout.png"
+                alt=""
+                aria-hidden="true"
+                width={24}
+                height={24}
+              />
               {!isCollapsed && "Выйти"}
             </Button>
           ) : (

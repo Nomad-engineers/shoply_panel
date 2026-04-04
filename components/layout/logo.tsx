@@ -1,11 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import React, { forwardRef } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/theme";
-import { Badge } from "../ui";
 
 interface LogoProps {
   className?: string;
@@ -24,36 +23,38 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
     };
 
     return (
-      <div className="relative flex items-center justify-between px-6 pb-4 mb-4">
+      <div className="relative mb-1 flex items-center justify-between border-b border-[#dcdce6] px-[18px] py-[14px]">
         <Link
           ref={ref}
-          href="reports/couriers"
+          href="/partners"
           onClick={handleClick}
           className={cn(
-            "flex items-center gap-3 text-xl font-bold text-text-primary transition-all",
-            isCollapsed && "justify-center w-full",
+            "flex items-center gap-1 text-text-primary transition-all",
+            isCollapsed && "w-full justify-center",
             className,
           )}
         >
           {isCollapsed ? (
-            <Menu
-              size={24}
-              className="flex-shrink-0 cursor-pointer"
+            <Image
+              src="/panel-icons/sidebar-toggle.png"
+              alt="Toggle sidebar"
+              width={20}
+              height={20}
+              className="shrink-0 cursor-pointer"
               onClick={onToggleCollapse}
               aria-label={isCollapsed ? "Развернуть меню" : "Свернуть меню"}
             />
           ) : (
             <>
-              <span className="tracking-wide font-extrabold text-2xl">
+              <span className="text-[18px] font-extrabold leading-none tracking-[-0.04em]">
                 SHOPLY
               </span>
               {showBadge && (
-                <Badge
-                  variant="custom-purple"
-                  className="px-3 py-1 text-sm rounded-md"
+                <span
+                  className="inline-flex items-center justify-center rounded-md bg-[#9747ff] px-2 py-1 text-[10px] font-semibold leading-none text-white"
                 >
                   Panel
-                </Badge>
+                </span>
               )}
             </>
           )}
@@ -62,10 +63,15 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
         {onToggleCollapse && !isCollapsed && (
           <button
             onClick={onToggleCollapse}
-            className="flex-shrink-0 hover:opacity-70 transition-opacity"
+            className="shrink-0 text-text-primary transition-opacity hover:opacity-70"
             aria-label="Свернуть меню"
           >
-            <ChevronLeft size={24} />
+            <Image
+              src="/panel-icons/sidebar-toggle.png"
+              alt="Collapse sidebar"
+              width={20}
+              height={20}
+            />
           </button>
         )}
       </div>

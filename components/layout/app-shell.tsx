@@ -36,8 +36,8 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative bg-background-surface border-r border-border pt-8 z-10 bg-white transition-all duration-300 ease-in-out flex flex-col h-full",
-          isCollapsed ? "w-[90px]" : "w-[280px]",
+          "relative z-10 flex h-full flex-col bg-white transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-[88px]" : "w-[240px]",
           className,
         )}
       >

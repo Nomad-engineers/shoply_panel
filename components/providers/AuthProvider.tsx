@@ -45,14 +45,55 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_PROFILE_STORAGE_KEY = "auth_profile_cache_v1";
+
+function readCachedProfile(): AuthProfile | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const hasAccessToken = Boolean(localStorage.getItem("access_token"));
+  if (!hasAccessToken) {
+    return null;
+  }
+
+  try {
+    const rawValue = localStorage.getItem(AUTH_PROFILE_STORAGE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsedProfile = JSON.parse(rawValue) as Partial<AuthProfile>;
+    if (
+      typeof parsedProfile.role !== "string" ||
+      !Array.isArray(parsedProfile.businesses)
+    ) {
+      return null;
+    }
+
+    return parsedProfile as AuthProfile;
+  } catch (error) {
+    console.warn(`Failed to read cached auth profile: ${error}`);
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  const [loading, setLoading] = useState(true); // Start as loading to prevent flickering
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    const hasAccessToken = Boolean(localStorage.getItem("access_token"));
+    return hasAccessToken && !readCachedProfile();
+  });
   const [error, setError] = useState("");
-  const [adminData, setAdminData] = useState<AuthProfile | null>(null);
+  const [adminData, setAdminData] = useState<AuthProfile | null>(() =>
+    readCachedProfile()
+  );
 
   const resolveShopId = useCallback(
     (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
@@ -100,6 +141,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Cookies.set("current_shop_id", String(profile.shopId));
   }, []);
 
+  const cacheProfile = useCallback((profile: AuthProfile) => {
+    try {
+      localStorage.setItem(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    } catch (error) {
+      console.warn(`Failed to save auth profile cache: ${error}`);
+    }
+  }, []);
+
+  const clearCachedProfile = useCallback(() => {
+    try {
+      localStorage.removeItem(AUTH_PROFILE_STORAGE_KEY);
+    } catch (error) {
+      console.warn(`Failed to clear auth profile cache: ${error}`);
+    }
+  }, []);
+
   const fetchWithSession: fetchSessionFn = useCallback(
     async (url, getAccessToken, refreshSessionFn, options) => {
       let token = getAccessToken();
@@ -130,13 +187,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    clearCachedProfile();
     try {
       authStorage.clear();
     } catch {}
 
     setAdminData(null);
     router.push("/login");
-  }, [router]);
+  }, [clearCachedProfile, router]);
 
   const refreshPromise = useRef<Promise<string> | null>(null);
 
@@ -211,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = buildProfile((result.data ?? result) as V2ProfileResponse);
 
       if (!userData.firstName) {
+        clearCachedProfile();
         authStorage.clear();
         router.push("/login");
         alert("Установите свой профиль в панели Directus");
@@ -218,6 +277,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!userData.isAdmin && userData.businesses.length === 0) {
+        clearCachedProfile();
         authStorage.clear();
         router.push("/login");
         alert("У вас нет связанного магазина.");
@@ -225,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       syncProfileCookies(userData);
+      cacheProfile(userData);
       setAdminData(userData);
       return userData;
     } catch (err) {
@@ -233,7 +294,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, buildProfile, fetchWithSession, refreshSession, router, syncProfileCookies]);
+  }, [
+    apiUrl,
+    buildProfile,
+    cacheProfile,
+    clearCachedProfile,
+    fetchWithSession,
+    refreshSession,
+    router,
+    syncProfileCookies,
+  ]);
 
   const login = async (form: LoginFormValues, redirectTo: string = "/") => {
     setLoading(true);
@@ -268,13 +338,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    if (adminData) {
+      syncProfileCookies(adminData);
+    }
+  }, [adminData, syncProfileCookies]);
+
+  useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (token && !adminData) {
+
+    if (token) {
       refreshProfile();
     } else if (!token) {
+      clearCachedProfile();
       setLoading(false);
+      setAdminData(null);
     }
-  }, [adminData, refreshProfile]);
+  }, [clearCachedProfile, refreshProfile]);
 
   const value = useMemo(
     () => ({
