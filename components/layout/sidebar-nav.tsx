@@ -16,10 +16,8 @@ import {
   ProductIcon,
 } from "./icons";
 import { useMemo } from "react";
-import { Shop } from "@/types/shop";
-import { useApiData } from "../hooks/useApiData";
-import { parseJwt } from "@/lib/jwt";
 import { ShopSwitcher } from "../ui/shops.dropdown";
+import type { AuthProfileBusiness } from "@/types/auth";
 
 interface NavItemProps {
   href?: string;
@@ -106,41 +104,34 @@ interface SidebarNavProps {
 
 export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
   ({ className, isCollapsed: externalIsCollapsed }, ref) => {
-    const token =
-      (typeof window !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null) || "";
-    const userData = useMemo(() => parseJwt(token), [token]);
-    const allowedShops = userData?.shops || [];
+    const { adminData, logout } = useAuth();
+
+    const allShops = useMemo(
+      () =>
+        (adminData?.businesses || []).map((business: AuthProfileBusiness) => ({
+          id: business.id,
+          name: business.name,
+          photo: business.photoId ? { id: business.photoId } : null,
+          type: business.type,
+        })),
+      [adminData?.businesses]
+    );
 
     const activeShopId = useMemo(() => {
       const cookieId = Number(Cookies.get("current_shop_id"));
+      const allowedShops = allShops.map((shop) => shop.id);
 
       if (cookieId && allowedShops.includes(cookieId)) {
         return cookieId;
       }
 
-      const fallbackId = allowedShops[0];
+      const fallbackId = adminData?.shopId ?? allowedShops[0];
       if (fallbackId) {
         Cookies.set("current_shop_id", String(fallbackId));
       }
       return fallbackId;
-    }, [allowedShops]);
+    }, [adminData?.shopId, allShops]);
 
-    const { adminData, logout } = useAuth();
-    const { data: allShops } = useApiData<Shop>(
-      activeShopId && adminData?.email ? `shops` : null,
-      {
-        relations: ["photo"],
-        searchParams: {
-          search: adminData?.email
-            ? JSON.stringify({
-                serviceMembers: { member: { email: adminData.email } },
-              })
-            : "",
-        },
-      }
-    );
     const currentShop = useMemo(() => {
       if (!allShops || !Array.isArray(allShops)) return null;
       return allShops.find((s) => s.id === activeShopId) || null;

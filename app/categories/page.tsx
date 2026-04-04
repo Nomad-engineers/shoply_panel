@@ -15,16 +15,11 @@ import { ViewModeToggle } from "./components/category/ViewModeToggle";
 import { CategoryGridView } from "./components/category/CategoryGridView";
 import { CategoryListView } from "./components/category/CategoryListView";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
-import { parseJwt } from "@/lib/jwt";
 import { useViewMode } from "@/hooks/use-view-mode";
 
 function CategoryPageContent() {
   const router = useRouter();
-  const token =
-    (typeof window !== "undefined"
-      ? localStorage.getItem("access_token")
-      : null) || "";
-  const userRole = parseJwt(token)?.role;
+  const userRole = Cookies.get("user_role");
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [viewMode, setViewMode] = useViewMode('CATEGORIES', 'grid');

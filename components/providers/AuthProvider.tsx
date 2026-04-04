@@ -10,11 +10,15 @@ import React, {
   useRef,
 } from "react";
 import { useRouter } from "next/navigation";
-import { parseJwt } from "@/lib/jwt";
 import Cookies from "js-cookie";
 import { authStorage } from "@/lib/utils";
 import { SWRConfig } from "swr";
 import { ROLES } from "@/middleware";
+import type {
+  AuthProfile,
+  AuthProfileBusiness,
+  V2ProfileResponse,
+} from "@/types/auth";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -32,10 +36,10 @@ interface fetchSessionFn {
 interface AuthContextType {
   loading: boolean;
   error: string;
-  adminData: any;
+  adminData: AuthProfile | null;
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
   fetchWithSession: fetchSessionFn;
 }
@@ -48,7 +52,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [loading, setLoading] = useState(true); // Start as loading to prevent flickering
   const [error, setError] = useState("");
-  const [adminData, setAdminData] = useState<any>(null);
+  const [adminData, setAdminData] = useState<AuthProfile | null>(null);
+
+  const resolveShopId = useCallback(
+    (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
+      if (isAdmin || businesses.length === 0) {
+        return null;
+      }
+
+      const allowedIds = businesses.map((business) => business.id);
+      const cookieId = Number(Cookies.get("current_shop_id"));
+
+      if (cookieId && allowedIds.includes(cookieId)) {
+        return cookieId;
+      }
+
+      return allowedIds[0] ?? null;
+    },
+    []
+  );
+
+  const buildProfile = useCallback(
+    (rawProfile: V2ProfileResponse): AuthProfile => {
+      const businesses = Array.isArray(rawProfile.businesses)
+        ? rawProfile.businesses
+        : [];
+      const isAdmin = rawProfile.role === ROLES.ADMIN;
+
+      return {
+        ...rawProfile,
+        businesses,
+        isAdmin,
+        shopId: resolveShopId(businesses, isAdmin),
+      };
+    },
+    [resolveShopId]
+  );
+
+  const syncProfileCookies = useCallback((profile: AuthProfile) => {
+    Cookies.set("user_role", profile.role || "");
+
+    if (profile.isAdmin || !profile.shopId) {
+      Cookies.remove("current_shop_id");
+      return;
+    }
+
+    Cookies.set("current_shop_id", String(profile.shopId));
+  }, []);
 
   const fetchWithSession: fetchSessionFn = useCallback(
     async (url, getAccessToken, refreshSessionFn, options) => {
@@ -134,21 +184,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return refreshPromise.current;
   }, [apiUrl, logout]);
 
-  const refreshProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async (): Promise<AuthProfile | null> => {
     if (!apiUrl) {
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
         setLoading(false);
-        return;
+        return null;
       }
 
       const res = await fetchWithSession(
-        `${apiUrl}/auth/profile`,
+        `${apiUrl}/v2/profile`,
         () => token,
         refreshSession
       );
@@ -158,39 +208,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await res.json();
-      let userData = result.data ?? result;
+      const userData = buildProfile((result.data ?? result) as V2ProfileResponse);
+
       if (!userData.firstName) {
         authStorage.clear();
         router.push("/login");
         alert("Установите свой профиль в панели Directus");
-        return;
+        return null;
       }
 
-      const payload = parseJwt(token);
-      const userShops = payload?.shops || [];
-      userData.isAdmin = payload?.isAdmin;
-      if (!userData.isAdmin && userShops.length == 0) {
+      if (!userData.isAdmin && userData.businesses.length === 0) {
         authStorage.clear();
         router.push("/login");
         alert("У вас нет связанного магазина.");
-        return;
+        return null;
       }
-      Cookies.set("user_role", userData.role || "");
-      if (!userData.isAdmin) {
-        const existingCookie = Cookies.get("current_shop_id");
 
-        if (!existingCookie) {
-          Cookies.set("current_shop_id", String(userShops[0]));
-        }
-      }
-      
+      syncProfileCookies(userData);
       setAdminData(userData);
+      return userData;
     } catch (err) {
       console.error(err);
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, fetchWithSession, refreshSession, router]);
+  }, [apiUrl, buildProfile, fetchWithSession, refreshSession, router, syncProfileCookies]);
 
   const login = async (form: LoginFormValues, redirectTo: string = "/") => {
     setLoading(true);
@@ -214,11 +257,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (tokens.accessToken && tokens.refreshToken) {
         authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
-        await refreshProfile();
-
-        const payload = parseJwt(tokens.accessToken);
-        const isAdmin = payload?.isAdmin;
-        router.push(isAdmin ? "/reports/couriers" : "/categories");
+        const profile = await refreshProfile();
+        router.push(profile?.isAdmin ? "/reports/couriers" : "/categories");
       }
     } catch (err) {
       setError("Ошибка при входе.");

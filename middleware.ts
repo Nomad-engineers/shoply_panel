@@ -40,22 +40,30 @@ export function middleware(request: NextRequest) {
 
   const authToken = request.cookies.get("auth_token")?.value;
   const shopId = request.cookies.get("current_shop_id")?.value;
+  const cookieRole = request.cookies.get("user_role")?.value;
 
   if (!authToken) {
     if (pathname === "/login") return NextResponse.next();
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const userRole = getRoleFromToken(authToken);
+  const userRole = cookieRole || getRoleFromToken(authToken);
 
   if (!userRole && pathname !== "/login") {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete("auth_token");
-    return response;
+    return NextResponse.next();
   }
 
   if (pathname === "/login") {
-    return NextResponse.redirect(new URL("/categories", request.url));
+    if (!userRole) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(
+      new URL(
+        userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",
+        request.url
+      )
+    );
   }
 
   if (userRole === ROLES.ADMIN) {

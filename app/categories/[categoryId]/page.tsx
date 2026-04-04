@@ -19,22 +19,17 @@ import { useProductSelection } from "./components/products/hooks/useProductSelec
 import { useSubCategoryExpansion } from "./components/products/hooks/useSubCategoryExpansion";
 import { SubCategorySection } from "./components/products/SubCategorySection";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
-import { parseJwt } from "@/lib/jwt";
 import { ROLES } from "@/middleware";
 import { useViewMode } from "@/hooks/use-view-mode";
 
 export default function SubCategoryPage() {
-  const token =
-    (typeof window !== "undefined"
-      ? localStorage.getItem("access_token")
-      : null) || "";
-  const userRole = parseJwt(token)?.role;
   const router = useRouter();
   const { categoryId } = useParams();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const categoryName = searchParams.get("name");
   const shopId = Cookies.get("current_shop_id");
+  const userRole = Cookies.get("user_role");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useViewMode('SUBCATEGORIES', 'list');

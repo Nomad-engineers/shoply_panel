@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo } from "react";
+import Cookies from "js-cookie";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { useShops } from "@/components/hooks/useShops";
 import { Button, Spinner } from "@/components/ui";
@@ -32,10 +33,11 @@ export default function ExcelPage() {
 
   const { shopsStats } = useShops();
   const userShopId = useMemo(() => {
-    return adminData?.shop?.id ?? adminData?.shopId ?? adminData?.shop_id;
-  }, [adminData]);
+    const cookieShopId = Number(Cookies.get("current_shop_id"));
+    return adminData?.shopId ?? (Number.isNaN(cookieShopId) ? "" : cookieShopId);
+  }, [adminData?.shopId]);
 
-  const isAdmin = adminData?.isAdmin;
+  const isAdmin = adminData?.isAdmin ?? false;
   const shopId = isAdmin ? selectedShopId : userShopId;
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -64,7 +66,7 @@ export default function ExcelPage() {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("shopId", shopId);
+    formData.append("shopId", String(shopId));
 
     const endpoint =
       mode === "products"

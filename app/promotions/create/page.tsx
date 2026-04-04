@@ -29,11 +29,7 @@ export default function PromotionsCreateIndexPage() {
   const router = useRouter();
 
   const { adminData, refreshSession, fetchWithSession } = useAuth();
-
-  const derivedShopId =
-    (adminData as any)?.shopId ??
-    (adminData as any)?.shop?.id ??
-    (adminData as any)?.shop_id;
+  const derivedShopId = adminData?.shopId;
 
   const isAdmin = !derivedShopId;
 

@@ -31,11 +31,7 @@ export default function CreatePromocodePage() {
   const shopId = Number((params as any)?.shopId);
 
   const { adminData, refreshSession, fetchWithSession } = useAuth();
-
-  const derivedShopId =
-    (adminData as any)?.shopId ??
-    (adminData as any)?.shop?.id ??
-    (adminData as any)?.shop_id;
+  const derivedShopId = adminData?.shopId;
 
   const isAdmin = !derivedShopId;
 

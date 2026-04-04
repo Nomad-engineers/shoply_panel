@@ -2,11 +2,15 @@ import React, { useMemo, useState } from "react";
 import { Plus, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "@/components/ui";
-import { Category, Product } from "@/types/category.types";
 import { useApiData } from "../hooks/useApiData";
 import Cookies from "js-cookie";
-import { ROLES } from "@/middleware";
 import Link from "next/link";
+
+interface ShopProductCountResponse {
+  available: number;
+  notAvailable: number;
+}
+
 interface CategoryHeaderProps {
   onImport?: () => void;
   activeTab: "active" | "archived";
@@ -19,54 +23,46 @@ export const CategoryHeader = ({
   setActiveTab,
 }: CategoryHeaderProps) => {
   const shopId = Cookies.get("current_shop_id");
-
-  const activeParams = useMemo(() => {
-    const filter = {
-      shopProduct: {
-        id: { isNull: false },
-        shop: { id: Number(shopId) },
-        archivedAt: { isNull: true },
-      },
-    };
-
-    return {
-      search: JSON.stringify(filter),
+  const archiveParams = useMemo(
+    () => ({
+      scope: "archive",
       pageSize: "1",
       page: "1",
-    };
-  }, [shopId]);
-
-  const archiveParams = useMemo(() => {
-    const filter = {
-      shopProduct: {
-        id: { isNull: false },
-        shop: { id: Number(shopId) },
-        archivedAt: { isNull: false },
-      },
-    };
-
-    return {
-      search: JSON.stringify(filter),
+    }),
+    []
+  );
+  const inStockParams = useMemo(
+    () => ({
+      scope: "instock",
       pageSize: "1",
       page: "1",
-    };
-  }, [shopId]);
+    }),
+    []
+  );
 
-  const { dataCount: productCount, refetch: refetchActive } =
-    useApiData<Product>("products", {
-      searchParams: activeParams,
-      relations: ["shopProduct"],
-    });
-  const { dataCount: archiveCount, refetch: refetchArchive } =
-    useApiData<Product>("products", {
+  const { singleItem: productCounts, refetch: refetchCounts } =
+    useApiData<ShopProductCountResponse>(
+      shopId ? `v2/shop/${shopId}/product/count` : null
+    );
+  const { dataCount: archiveCount, refetch: refetchArchive } = useApiData(
+    shopId ? `v2/shop/${shopId}/product/archive` : null,
+    {
       searchParams: archiveParams,
-      relations: ["shopProduct"],
+    }
+  );
+  const { dataCount: unavailableCount, refetch: refetchUnavailable } =
+    useApiData(shopId ? `v2/shop/${shopId}/product/archive` : null, {
+      searchParams: inStockParams,
     });
+
+  const productCount =
+    Number(productCounts?.available || 0) + Number(unavailableCount || 0);
 
   React.useEffect(() => {
-    refetchActive();
+    refetchCounts();
     refetchArchive();
-  }, [activeTab, refetchActive, refetchArchive]);
+    refetchUnavailable();
+  }, [activeTab, refetchArchive, refetchCounts, refetchUnavailable]);
 
   return (
     <div className="flex flex-col gap-8 w-full mb-10 px-5">

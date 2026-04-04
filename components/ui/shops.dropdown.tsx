@@ -2,11 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Store, Check } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { getImageUrl } from "@/lib/utils";
-import { Shop } from "@/types/shop";
+
+interface ShopSwitcherItem {
+  id: number;
+  name: string;
+  photo: { id?: string; url?: string | null } | null;
+}
 
 interface ShopSwitcherProps {
-  currentShop: Shop | null;
-  allShops: any[];
+  currentShop: ShopSwitcherItem | null;
+  allShops: ShopSwitcherItem[];
   activeShopId: number | null;
   onShopSelect: (id: number) => void;
   isCollapsed?: boolean;

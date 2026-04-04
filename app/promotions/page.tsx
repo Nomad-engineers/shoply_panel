@@ -10,6 +10,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
 import { FilterButton } from "@/components/ui/filter-button";
@@ -45,11 +46,11 @@ const getContentLabel = (p: Promocode) => {
 export default function PromotionsPage() {
   const router = useRouter();
   const { adminData, loading: authLoading } = useAuth();
-
-  const derivedShopId =
-    (adminData as any)?.shopId ??
-    (adminData as any)?.shop?.id ??
-    (adminData as any)?.shop_id;
+  const isAdmin = adminData?.isAdmin ?? false;
+  const derivedShopId = useMemo(() => {
+    const cookieShopId = Number(Cookies.get("current_shop_id"));
+    return adminData?.shopId ?? (Number.isNaN(cookieShopId) ? undefined : cookieShopId);
+  }, [adminData?.shopId]);
 
   const shopIdForFilter = useMemo(() => {
     if (!derivedShopId) return undefined;
@@ -89,7 +90,7 @@ export default function PromotionsPage() {
     pageSize,
     relations: "promocodeShop.shop,promocodeShop.shop.photo,orders",
     shopId: selectedFilterShopId || shopIdForFilter,
-    skip: authLoading || (!shopIdForFilter && !(adminData as any)?.isAdmin),
+    skip: authLoading || (!shopIdForFilter && !isAdmin),
   });
 
   const { fetchWithSession, refreshSession } = useAuth();
@@ -98,8 +99,7 @@ export default function PromotionsPage() {
 
   useEffect(() => {
     const fetchTotalStats = async () => {
-      const isShopOwnerWithoutId =
-        !shopIdForFilter && !(adminData as any)?.isAdmin;
+      const isShopOwnerWithoutId = !shopIdForFilter && !isAdmin;
       if (isShopOwnerWithoutId) {
         return;
       }
@@ -149,7 +149,7 @@ export default function PromotionsPage() {
     };
 
     fetchTotalStats();
-  }, [shopIdForFilter, refetch, adminData]); // Re-fetch stats when filter changes or main data refetched
+  }, [isAdmin, shopIdForFilter, refetch, adminData]); // Re-fetch stats when filter changes or main data refetched
 
   const total = data?.meta?.total ?? 0;
   const pageCount = data?.meta?.pageCount ?? 1;
@@ -255,7 +255,7 @@ export default function PromotionsPage() {
             <Search className="text-[#111111] ml-2" size={18} />
           </div>
 
-          {(adminData as any)?.isAdmin && (
+          {isAdmin && (
             <FilterButton
               active={filterActive}
               className="px-0 py-0 border-none bg-transparent hover:bg-transparent text-[#8E8E93] hover:text-[#111111] font-normal text-[16px] gap-2"
@@ -282,9 +282,9 @@ export default function PromotionsPage() {
         </Button>
       </div>
 
-      {(adminData as any)?.isAdmin && filterActive && (
+      {isAdmin && filterActive && (
         <div className="mb-6 p-5 bg-[#F9F9FB] border border-[#E5E5EA] rounded-[24px] flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
-          {(adminData as any)?.isAdmin && (
+          {isAdmin && (
             <div className="w-[300px] relative" ref={filterShopDropdownRef}>
               <div className="text-[12px] font-medium text-[#8E8E93] mb-2 ml-1">
                 Магазин
