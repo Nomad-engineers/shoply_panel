@@ -7,7 +7,6 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
-import Cookies from "js-cookie";
 import { OrderIcon, ProductIcon } from "./icons";
 import { useMemo } from "react";
 import { ShopSwitcher } from "../ui/shops.dropdown";
@@ -115,7 +114,7 @@ interface SidebarNavProps {
 
 export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
   ({ className, isCollapsed: externalIsCollapsed }, ref) => {
-    const { adminData, logout } = useAuth();
+    const { adminData, currentShopId, logout, setCurrentShopId } = useAuth();
     const pathname = usePathname();
 
     const allShops = useMemo(
@@ -130,19 +129,20 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     );
 
     const activeShopId = useMemo(() => {
-      const cookieId = Number(Cookies.get("current_shop_id"));
       const allowedShops = allShops.map((shop) => shop.id);
 
-      if (cookieId && allowedShops.includes(cookieId)) {
-        return cookieId;
+      if (currentShopId && allowedShops.includes(currentShopId)) {
+        return currentShopId;
       }
 
-      const fallbackId = adminData?.shopId ?? allowedShops[0];
-      if (fallbackId) {
-        Cookies.set("current_shop_id", String(fallbackId));
+      return adminData?.shopId ?? allowedShops[0] ?? null;
+    }, [adminData?.shopId, allShops, currentShopId]);
+
+    React.useEffect(() => {
+      if (!currentShopId && activeShopId) {
+        setCurrentShopId(activeShopId);
       }
-      return fallbackId;
-    }, [adminData?.shopId, allShops]);
+    }, [activeShopId, currentShopId, setCurrentShopId]);
 
     const currentShop = useMemo(() => {
       if (!allShops || !Array.isArray(allShops)) return null;
@@ -157,8 +157,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       pathname.startsWith("/reports");
 
     const handleShopChange = (shopId: number) => {
-      Cookies.set("current_shop_id", String(shopId));
-      window.location.reload();
+      setCurrentShopId(shopId);
     };
 
     const navigationItems = isAdminArea
@@ -166,7 +165,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           { title: "Заказы", icon: "/panel-icons/nav-orders.png" },
           { title: "Пользователи", icon: "/panel-icons/nav-users.png" },
           {
-            title: "Магазины",
+            title: "Партнеры",
             href: "/partners",
             icon: "/panel-icons/nav-partners.png",
           },

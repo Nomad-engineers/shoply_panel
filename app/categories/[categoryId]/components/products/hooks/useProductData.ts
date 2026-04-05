@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useApiData } from "@/components/hooks/useApiData";
-import { SubCategory } from "@/types/category.types";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 import Cookies from "js-cookie";
 import { ROLES } from "@/middleware";
 import { FlattenedProduct, SubCategoryWithFlattened } from "../types";
@@ -17,7 +17,8 @@ export function useProductData({
   tab,
 }: UseProductDataParams) {
   const role = Cookies.get("user_role");
-  const shopId = Cookies.get("current_shop_id");
+  const { currentShopId } = useAuthContext();
+  const shopId = currentShopId ? String(currentShopId) : undefined;
 
   const params = useMemo(() => {
     const filters: any = {};

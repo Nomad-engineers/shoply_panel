@@ -15,10 +15,13 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   header?: React.ReactNode;
   hideSidebar?: boolean;
+  contentClassName?: string;
+  headerClassName?: string;
+  mainClassName?: string;
 }
 
 const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
-  ({ children, header, hideSidebar }, ref) => {
+  ({ children, header, hideSidebar, contentClassName, headerClassName, mainClassName }, ref) => {
     const [isCollapsed, setIsCollapsed] = React.useState(false);
 
     const toggleCollapse = () => {
@@ -37,9 +40,9 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
             />
           </Sidebar>
         )}
-        <Main>
-          {header && <Header>{header}</Header>}
-          <Content>{children}</Content>
+        <Main className={mainClassName}>
+          {header && <Header className={headerClassName}>{header}</Header>}
+          <Content className={contentClassName}>{children}</Content>
         </Main>
       </AppShell>
     );

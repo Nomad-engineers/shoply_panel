@@ -32,15 +32,20 @@ export default function SubCategoryPage() {
   const userRole = Cookies.get("user_role");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useViewMode('SUBCATEGORIES', 'list');
+  const [viewMode, setViewMode] = useViewMode("SUBCATEGORIES", "list");
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
+  const [productArchiveOverrides, setProductArchiveOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [subCategoryArchiveOverrides, setSubCategoryArchiveOverrides] =
+    useState<Record<number, boolean>>({});
 
   const { mutate } = useApiMutation();
 
   const activeTab =
     (searchParams.get("tab") as "active" | "archived") || "active";
 
-  const { subCategories, loading, refetch } = useProductData({
+  const { subCategories, loading } = useProductData({
     categoryId: categoryId as string,
     searchQuery,
     tab: activeTab,
@@ -55,14 +60,36 @@ export default function SubCategoryPage() {
   const filteredSubCategories = useMemo(() => {
     return subCategories
       .map((sub) => {
-        const filteredProducts =
-          sub.products?.filter((p: any) => {
-            const isArchived = !!p.activeShopProduct?.archivedAt;
-            return activeTab === "archived" ? isArchived : !isArchived;
+        const isSubCategoryArchived =
+          subCategoryArchiveOverrides[sub.id] ?? sub.isArchived;
+
+        const products =
+          sub.products?.map((product: any) => {
+            const isArchived =
+              productArchiveOverrides[product.uniqueKey] ??
+              isSubCategoryArchived ??
+              Boolean(product.activeShopProduct?.archivedAt);
+
+            return {
+              ...product,
+              activeShopProduct: {
+                ...product.activeShopProduct,
+                archivedAt: isArchived
+                  ? product.activeShopProduct?.archivedAt ||
+                    new Date().toISOString()
+                  : "",
+              },
+            };
           }) || [];
+
+        const filteredProducts = products.filter((product: any) => {
+          const isArchived = Boolean(product.activeShopProduct?.archivedAt);
+          return activeTab === "archived" ? isArchived : !isArchived;
+        });
 
         return {
           ...sub,
+          isArchived: isSubCategoryArchived,
           products: filteredProducts,
           hasMatchProducts: filteredProducts.length > 0,
         };
@@ -74,7 +101,12 @@ export default function SubCategoryPage() {
 
         return !sub.isArchived;
       });
-  }, [subCategories, activeTab]);
+  }, [
+    activeTab,
+    productArchiveOverrides,
+    subCategories,
+    subCategoryArchiveOverrides,
+  ]);
 
   const {
     selectedUniqueKeys,
@@ -83,6 +115,7 @@ export default function SubCategoryPage() {
     toggleProduct,
     toggleSubCategoryProducts,
     toggleAll,
+    clearSelection,
   } = useProductSelection({ subCategories: filteredSubCategories });
 
   const { openSubCategoryIds, toggleSubCategory } = useSubCategoryExpansion({
@@ -91,10 +124,8 @@ export default function SubCategoryPage() {
   });
 
   useEffect(() => {
-    if (selectedUniqueKeys.length > 0) {
-      toggleAll();
-    }
-  }, [activeTab]);
+    clearSelection();
+  }, [activeTab, clearSelection]);
 
   const copyToClipboard = (
     text: string | null | undefined,
@@ -156,7 +187,27 @@ export default function SubCategoryPage() {
       ];
 
       await Promise.all(promises);
-      if (refetch) await refetch();
+      setSubCategoryArchiveOverrides((current) => {
+        const next = { ...current };
+        subCategoryIdsToArchive.forEach((id) => {
+          next[id] = true;
+        });
+        return next;
+      });
+      setProductArchiveOverrides((current) => {
+        const next = { ...current };
+        subCategoryIdsToArchive.forEach((subId) => {
+          const subCategory = filteredSubCategories.find((sub) => sub.id === subId);
+          subCategory?.products.forEach((product) => {
+            next[product.uniqueKey] = true;
+          });
+        });
+        individualProductKeysToArchive.forEach((key) => {
+          next[key] = true;
+        });
+        return next;
+      });
+      clearSelection();
       alert("Архивация успешно выполнена");
     } catch (e: any) {
       alert("Ошибка при архивации: " + e.message);
@@ -199,7 +250,27 @@ export default function SubCategoryPage() {
       ];
 
       await Promise.all(promises);
-      if (refetch) await refetch();
+      setSubCategoryArchiveOverrides((current) => {
+        const next = { ...current };
+        subCategoryIdsToUnarchive.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setProductArchiveOverrides((current) => {
+        const next = { ...current };
+        subCategoryIdsToUnarchive.forEach((subId) => {
+          const subCategory = filteredSubCategories.find((sub) => sub.id === subId);
+          subCategory?.products.forEach((product) => {
+            next[product.uniqueKey] = false;
+          });
+        });
+        individualProductKeysToUnarchive.forEach((key) => {
+          next[key] = false;
+        });
+        return next;
+      });
+      clearSelection();
       alert("Восстановление успешно выполнено");
     } catch (e: any) {
       alert("Ошибка при восстановлении: " + e.message);

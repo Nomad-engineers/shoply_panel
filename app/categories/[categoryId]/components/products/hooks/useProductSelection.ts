@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FlattenedProduct, SubCategoryWithFlattened } from "../types";
 
 interface UseProductSelectionParams {
@@ -12,6 +12,7 @@ interface UseProductSelectionReturn {
   toggleProduct: (key: string, e: React.MouseEvent) => void;
   toggleSubCategoryProducts: (subId: number, e: React.MouseEvent) => void;
   toggleAll: () => void;
+  clearSelection: () => void;
 }
 
 export function useProductSelection({
@@ -54,6 +55,7 @@ export function useProductSelection({
   };
 
   const toggleAll = () => setSelectedUniqueKeys(isAllSelected ? [] : allKeys);
+  const clearSelection = useCallback(() => setSelectedUniqueKeys([]), []);
 
   return {
     selectedUniqueKeys,
@@ -62,5 +64,6 @@ export function useProductSelection({
     toggleProduct,
     toggleSubCategoryProducts,
     toggleAll,
+    clearSelection,
   };
 }

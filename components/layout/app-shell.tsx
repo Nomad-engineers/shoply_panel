@@ -13,7 +13,7 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex h-screen w-full overflow-hidden bg-background-main",
+          "flex h-screen w-full gap-4 overflow-hidden bg-background-main p-4",
           className,
         )}
       >
@@ -36,7 +36,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative z-10 flex h-full flex-col bg-white transition-all duration-300 ease-in-out",
+          "relative z-10 flex h-full flex-col overflow-hidden rounded-[24px] bg-white transition-all duration-300 ease-in-out",
           isCollapsed ? "w-[88px]" : "w-[240px]",
           className,
         )}
@@ -59,7 +59,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "flex-1 h-full overflow-y-auto bg-background-main relative",
+          "relative flex h-full flex-1 flex-col overflow-hidden rounded-[24px] bg-background-surface",
           className,
         )}
       >
@@ -81,7 +81,7 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
       <div
         ref={ref}
         className={cn(
-          " z-20 flex h-[72px] items-center justify-between bg-background-surface  border-border px-8",
+          "z-20 flex h-[72px] items-center justify-between bg-background-surface px-8",
           className,
         )}
       >
@@ -100,7 +100,10 @@ interface ContentProps {
 const Content = React.forwardRef<HTMLDivElement, ContentProps>(
   ({ className, children }, ref) => {
     return (
-      <div ref={ref} className={cn("px-4 py-8", className)}>
+      <div
+        ref={ref}
+        className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4", className)}
+      >
         {children}
       </div>
     );

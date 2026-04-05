@@ -37,11 +37,13 @@ interface AuthContextType {
   loading: boolean;
   error: string;
   adminData: AuthProfile | null;
+  currentShopId: number | null;
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
   fetchWithSession: fetchSessionFn;
+  setCurrentShopId: (shopId: number | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [adminData, setAdminData] = useState<AuthProfile | null>(() =>
     readCachedProfile()
   );
+  const [currentShopId, setCurrentShopIdState] = useState<number | null>(() => {
+    const cookieShopId = Number(Cookies.get("current_shop_id"));
+
+    if (cookieShopId) {
+      return cookieShopId;
+    }
+
+    return readCachedProfile()?.shopId ?? null;
+  });
 
   const resolveShopId = useCallback(
     (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
@@ -192,9 +203,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authStorage.clear();
     } catch {}
 
+    Cookies.remove("user_role");
+    Cookies.remove("current_shop_id");
+    setCurrentShopIdState(null);
     setAdminData(null);
     router.push("/login");
   }, [clearCachedProfile, router]);
+
+  const setCurrentShopId = useCallback((shopId: number | null) => {
+    if (shopId) {
+      Cookies.set("current_shop_id", String(shopId));
+    } else {
+      Cookies.remove("current_shop_id");
+    }
+
+    setCurrentShopIdState(shopId);
+  }, []);
 
   const refreshPromise = useRef<Promise<string> | null>(null);
 
@@ -287,6 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       syncProfileCookies(userData);
       cacheProfile(userData);
       setAdminData(userData);
+      setCurrentShopIdState(userData.isAdmin ? null : (userData.shopId ?? null));
       return userData;
     } catch (err) {
       console.error(err);
@@ -338,12 +363,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (adminData) {
-      syncProfileCookies(adminData);
-    }
-  }, [adminData, syncProfileCookies]);
-
-  useEffect(() => {
     const token = localStorage.getItem("access_token");
 
     if (token) {
@@ -360,21 +379,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       error,
       adminData,
+      currentShopId,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
+      setCurrentShopId,
     }),
     [
       loading,
       error,
       adminData,
+      currentShopId,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
+      setCurrentShopId,
     ]
   );
   return (

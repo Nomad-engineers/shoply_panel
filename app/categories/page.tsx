@@ -16,13 +16,15 @@ import { CategoryGridView } from "./components/category/CategoryGridView";
 import { CategoryListView } from "./components/category/CategoryListView";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
 import { useViewMode } from "@/hooks/use-view-mode";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 
 function CategoryPageContent() {
   const router = useRouter();
   const userRole = Cookies.get("user_role");
+  const { currentShopId } = useAuthContext();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [viewMode, setViewMode] = useViewMode('CATEGORIES', 'grid');
+  const [viewMode, setViewMode] = useViewMode("CATEGORIES", "grid");
   const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
   const { mutate, isLoading: isArchiving } = useApiMutation();
 
@@ -34,15 +36,15 @@ function CategoryPageContent() {
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`);
   };
-  const shopId = Cookies.get("current_shop_id");
+  const shopId = currentShopId ? String(currentShopId) : undefined;
 
   const params = useMemo(() => {
     let searchParams = {};
-    if (userRole === ROLES.SHOP_OWNER) {
+    if (userRole === ROLES.SHOP_OWNER && shopId) {
       searchParams = { search: JSON.stringify({ "shop.id": shopId }) };
     }
     return searchParams;
-  }, [userRole]);
+  }, [shopId, userRole]);
 
   const {
     data: categories,

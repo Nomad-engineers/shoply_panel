@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { forwardRef } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/theme";
 
 interface LogoProps {
@@ -15,36 +14,35 @@ interface LogoProps {
 
 const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
   ({ className, showBadge = true, isCollapsed, onToggleCollapse }, ref) => {
-    const router = useRouter();
-
-    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      router.push("/categories");
-    };
-
     return (
       <div className="relative mb-1 flex items-center justify-between border-b border-[#dcdce6] px-[18px] py-[14px]">
-        <Link
-          ref={ref}
-          href="/partners"
-          onClick={handleClick}
-          className={cn(
-            "flex items-center gap-1 text-text-primary transition-all",
-            isCollapsed && "w-full justify-center",
-            className,
-          )}
-        >
-          {isCollapsed ? (
+        {isCollapsed ? (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={cn(
+              "flex w-full items-center justify-center text-text-primary transition-all",
+              className,
+            )}
+            aria-label="Развернуть меню"
+          >
             <Image
               src="/panel-icons/sidebar-toggle.png"
               alt="Toggle sidebar"
               width={20}
               height={20}
-              className="shrink-0 cursor-pointer"
-              onClick={onToggleCollapse}
-              aria-label={isCollapsed ? "Развернуть меню" : "Свернуть меню"}
+              className="shrink-0"
             />
-          ) : (
+          </button>
+        ) : (
+          <Link
+            ref={ref}
+            href="/categories"
+            className={cn(
+              "flex items-center gap-1 text-text-primary transition-all",
+              className,
+            )}
+          >
             <>
               <span className="text-[18px] font-extrabold leading-none tracking-[-0.04em]">
                 SHOPLY
@@ -57,8 +55,8 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
                 </span>
               )}
             </>
-          )}
-        </Link>
+          </Link>
+        )}
 
         {onToggleCollapse && !isCollapsed && (
           <button
