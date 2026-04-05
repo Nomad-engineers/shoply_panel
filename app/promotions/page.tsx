@@ -22,6 +22,8 @@ import { useShops } from "@/components/hooks/useShops";
 import type { Promocode } from "@/types/promocode";
 import { useAuth } from "@/components/hooks/useLogin";
 import { getImageUrl } from "@/lib/utils";
+import { PromocodeIcon } from "@/components/icons/PromocodeIcon";
+import { toast } from "sonner";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) + " ₽";
@@ -58,7 +60,7 @@ export default function PromotionsPage() {
     return Number.isNaN(n) ? undefined : n;
   }, [derivedShopId]);
 
-  const [activeTab, setActiveTab] = useState<"promocodes" | "contests">(
+  const [activeTab, setActiveTab] = useState<"promocodes" | "archive">(
     "promocodes"
   );
   const [filterActive, setFilterActive] = useState(false);
@@ -171,6 +173,14 @@ export default function PromotionsPage() {
   const promocodes = useMemo(() => {
     let list = data?.data ?? [];
 
+    // Filter by tab
+    const now = new Date();
+    if (activeTab === "promocodes") {
+      list = list.filter((p) => !p.validUntil || new Date(p.validUntil) > now);
+    } else {
+      list = list.filter((p) => p.validUntil && new Date(p.validUntil) <= now);
+    }
+
     // 1. Client-side Search
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -182,7 +192,7 @@ export default function PromotionsPage() {
       );
     }
 
-    // 2. Shop filter (if needed, although backend handles it, keep for safety)
+    // 2. Shop filter
     if (shopIdForFilter) {
       list = list.filter((p) => {
         const shops = p.promocodeShop ?? [];
@@ -191,7 +201,11 @@ export default function PromotionsPage() {
     }
 
     return list;
-  }, [data?.data, shopIdForFilter, searchTerm]);
+  }, [data?.data, shopIdForFilter, searchTerm, activeTab]);
+
+  const totalActivations = useMemo(() => {
+    return promocodes.reduce((sum, p) => sum + (p.orders?.length ?? 0), 0);
+  }, [promocodes]);
 
   const totalTurnover = useMemo(() => {
     return promocodes.reduce((sum, p) => {
@@ -214,73 +228,93 @@ export default function PromotionsPage() {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setActiveTab("promocodes")}
-              className={cn(
-                "text-[16px] font-medium pb-2 transition-all relative",
-                activeTab === "promocodes"
-                  ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform"
+    <div className="bg-[#F2F2F7] min-h-screen p-8">
+      <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-8 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setActiveTab("promocodes")}
+                className={cn(
+                  "text-[18px] font-bold pb-2 transition-all relative whitespace-nowrap",
+                  activeTab === "promocodes"
+                    ? "text-[#111111] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
+                    : "text-[#8E8E93] hover:text-[#111111]"
+                )}
+              >
+                Промокоды
+              </button>
+              <button
+                onClick={() => setActiveTab("archive")}
+                className={cn(
+                  "text-[18px] font-bold pb-2 transition-all relative whitespace-nowrap",
+                  activeTab === "archive"
+                    ? "text-[#111111] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
+                    : "text-[#8E8E93] hover:text-[#111111]"
+                )}
+              >
+                Архив
+              </button>
+            </div>
+
+            <div className="h-4 w-px bg-gray-200" />
+
+            <div className="flex items-center gap-6">
+              {isAdmin && (
+                <button
+                  onClick={() => setFilterActive(!filterActive)}
+                  className={cn(
+                    "flex items-center gap-2 text-[16px] font-medium transition-colors",
+                    filterActive ? "text-[#55CB00]" : "text-[#111111]"
+                  )}
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 6H21M7 12H17M10 18H14"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Фильтр
+                </button>
               )}
-            >
-              Промокоды
-            </button>
-            <button
-              onClick={() => setActiveTab("contests")}
-              className={cn(
-                "text-[16px] font-medium pb-2 transition-all relative",
-                activeTab === "contests"
-                  ? "text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                  : "text-[#8E8E93] hover:text-[#111111] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00] after:scale-x-0 hover:after:scale-x-100 after:transition-transform"
-              )}
-            >
-              Конкурсы
-            </button>
+
+              <div className="relative flex items-center min-w-[280px]">
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Поиск"
+                  className="w-full bg-transparent border-b border-[#E5E5EA] text-[16px] placeholder:text-[#8E8E93] py-2 pr-8 outline-none focus:border-[#55CB00] transition-colors"
+                />
+                <Search
+                  className="absolute right-0 text-[#111111]"
+                  size={20}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="h-6 w-px bg-gray-200" />
-
-          {/* Search - Line style */}
-          <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Поиск"
-              className="w-full bg-transparent border-none text-[14px] placeholder:text-[#8E8E93] py-1"
-            />
-            <Search className="text-[#111111] ml-2" size={18} />
-          </div>
-
-          {isAdmin && (
-            <FilterButton
-              active={filterActive}
-              className="px-0 py-0 border-none bg-transparent hover:bg-transparent text-[#8E8E93] hover:text-[#111111] font-normal text-[16px] gap-2"
-              onClick={() => setFilterActive(!filterActive)}
-            >
-              Фильтр
-            </FilterButton>
-          )}
+          <button
+            onClick={() => {
+              if (derivedShopId) {
+                router.push(`/promotions/create/${derivedShopId}`);
+              } else {
+                router.push("/promotions/create");
+              }
+            }}
+            className="bg-[#55CB00] hover:bg-[#4AB100] text-white px-5 py-2.5 rounded-[12px] flex items-center gap-2 font-bold text-[15px] transition-colors whitespace-nowrap ml-4"
+          >
+            Создать промокод
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
-
-        <Button
-          variant="success"
-          className="rounded-xl gap-2"
-          onClick={() => {
-            if (derivedShopId) {
-              router.push(`/promotions/create/${derivedShopId}`);
-            } else {
-              router.push("/promotions/create");
-            }
-          }}
-        >
-          Создать промокод
-          <Plus className="w-5 h-5" />
-        </Button>
-      </div>
 
       {isAdmin && filterActive && (
         <div className="mb-6 p-5 bg-[#F9F9FB] border border-[#E5E5EA] rounded-[24px] flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
@@ -390,11 +424,13 @@ export default function PromotionsPage() {
         </div>
       )}
 
-      {activeTab === "contests" ? (
-        <div className="text-gray-500 py-10">
-          Раздел «Конкурсы» в разработке
+      {activeTab === "archive" && promocodes.length === 0 && !loading && (
+        <div className="text-center py-20">
+          <div className="text-[#8E8E93] text-[16px]">Архив пуст</div>
         </div>
-      ) : (
+      )}
+
+      {(activeTab === "promocodes" || promocodes.length > 0) && (
         <>
           {loading && (
             <div className="flex items-center justify-center h-40">
@@ -410,44 +446,47 @@ export default function PromotionsPage() {
 
           {!loading && !error && (
             <>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full">
                   <thead>
-                    <tr
-                      className="border-b"
-                      style={{ borderColor: "rgba(220, 220, 230, 1)" }}
-                    >
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
                         ID
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
-                        Название
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider whitespace-nowrap">
+                        Дата
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
-                        Выпуск
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
+                        <div className="flex items-center gap-1 cursor-pointer hover:text-[#111111] transition-colors">
+                          Название
+                          <ChevronDown size={14} />
+                        </div>
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
+                        Комментарий
+                      </th>
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
+                        <div className="flex items-center gap-1 cursor-pointer hover:text-[#111111] transition-colors">
+                          Выпуск
+                          <ChevronDown size={14} />
+                        </div>
+                      </th>
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
                         Оборот
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
                         Условия
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
                         Содержание
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93]">
+                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
                         Активация
-                        <ChevronDown className="inline ml-1 w-4 h-4" />
                       </th>
-                      <th className="w-12"></th>
+                      <th className="w-10"></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {promocodes.map((p) => {
                       const turnover = (p.orders ?? []).reduce(
                         (acc, o) => acc + (Number(o.subtotalPrice) || 0),
@@ -458,18 +497,37 @@ export default function PromotionsPage() {
                       return (
                         <tr
                           key={p.id}
-                          className="border-b transition-colors"
-                          style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+                          className="group hover:bg-gray-50/50 transition-colors"
                         >
-                          <td className="py-4 px-4 text-sm text-[#8E8E93]">
+                          <td className="py-5 px-4 text-[14px] text-[#8E8E93] font-medium">
                             {p.id}
                           </td>
-                          <td className="py-4 px-4">
-                            <span className="text-sm text-[#111111] font-medium">
-                              {p.name}
-                            </span>
+                          <td className="py-5 px-4 text-[14px] text-[#111111] font-medium whitespace-nowrap">
+                            {formatDate(p.createdAt)}
                           </td>
-                          <td className="py-4 px-4 text-sm text-[#111111]">
+                          <td className="py-5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(p.name);
+                                  toast.success("Промокод скопирован");
+                                }}
+                                className="cursor-pointer hover:opacity-70 transition-opacity"
+                              >
+                                <PromocodeIcon className="w-6 h-6 flex-shrink-0 text-[#478EFF]" />
+                              </div>
+                              <span className="text-[15px] text-[#478EFF] font-bold hover:underline decoration-2 underline-offset-4">
+                                {p.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-5 px-4">
+                            <p className="text-[14px] text-[#8E8E93] line-clamp-2 max-w-[200px] leading-relaxed">
+                              {p.technicalName || "-"}
+                            </p>
+                          </td>
+                          <td className="py-5 px-4">
                             {(() => {
                               const shop = p.promocodeShop?.[0]?.shop;
                               const name = shop?.name || "SHOPLY";
@@ -480,90 +538,105 @@ export default function PromotionsPage() {
                               });
 
                               return (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                   {photoUrl ? (
-                                    <img
+                                    <Image
                                       src={photoUrl}
                                       alt={name}
-                                      className="w-6 h-6 rounded-full object-cover"
+                                      width={28}
+                                      height={28}
+                                      className="rounded-full object-cover border border-gray-100 shadow-sm"
                                     />
                                   ) : (
-                                    <div className="w-6 h-6 rounded-full bg-[#55CB00] flex items-center justify-center text-white text-[10px] font-bold">
+                                    <div className="w-7 h-7 rounded-full bg-[#55CB00]/10 flex items-center justify-center text-[#55CB00] text-[11px] font-bold border border-[#55CB00]/20">
                                       {name === "SHOPLY"
                                         ? "S"
                                         : name.charAt(0).toUpperCase()}
                                     </div>
                                   )}
-                                  <span>{name}</span>
+                                  <span className="text-[14px] text-[#111111] font-medium whitespace-nowrap">
+                                    {name}
+                                  </span>
                                 </div>
                               );
                             })()}
                           </td>
-                          <td className="py-4 px-4 text-sm text-[#111111]">
+                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
                             {formatCurrency(turnover)}
                           </td>
-                          <td className="py-4 px-4 text-sm text-[#111111]">
+                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-normal whitespace-nowrap">
                             {getConditionsLabel(p)}
                           </td>
-                          <td className="py-4 px-4 text-sm text-[#111111]">
-                            {getContentLabel(p)}
+                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
+                            <span className="px-2 py-1 bg-gray-100 rounded-lg">
+                              {getContentLabel(p)}
+                            </span>
                           </td>
-                          <td className="py-4 px-4 text-sm text-[#111111]">
+                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
                             {activation}
                           </td>
-                          <td className="py-4 px-4"></td>
+                          <td className="py-5 px-4 text-right">
+                            <ChevronRight
+                              size={18}
+                              className="text-[#C7C7CC] group-hover:text-[#55CB00] transition-colors inline"
+                            />
+                          </td>
                         </tr>
                       );
                     })}
 
-                    <tr>
-                      <td className="py-4 px-4 text-sm"></td>
-                      <td className="py-4 px-4 text-sm"></td>
-                      <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                        {total} промокодов
-                      </td>
-                      <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                        {allTimeTurnover !== null
-                          ? formatCurrency(allTimeTurnover)
-                          : "..."}
-                      </td>
-                      <td className="py-4 px-4 text-sm"></td>
-                      <td className="py-4 px-4 text-sm"></td>
-                      <td className="py-4 px-4 text-sm"></td>
-                      <td className="py-4 px-4"></td>
-                    </tr>
+                    {/* Summary row */}
+                    {promocodes.length > 0 && (
+                      <tr className="bg-white">
+                        <td
+                          colSpan={4}
+                          className="py-6 px-4 text-[13px] text-[#8E8E93] font-medium"
+                        >
+                          {promocodes.length} промокодов
+                        </td>
+                        <td className="py-6 px-4"></td>
+                        <td className="py-6 px-4 text-left text-[15px] text-[#111111] font-semibold">
+                          {formatCurrency(totalTurnover)}
+                        </td>
+                        <td className="py-6 px-4"></td>
+                        <td className="py-6 px-4"></td>
+                        <td className="py-6 px-4 text-left text-[15px] text-[#111111] font-semibold">
+                          {totalActivations}
+                        </td>
+                        <td className="py-6 px-4"></td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {promocodes.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-20 text-[#8E8E93]">
                   Нет промокодов
                 </div>
               )}
 
-              <div className="flex items-center justify-between mt-4 text-sm text-[#8E8E93]">
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-50 text-[14px] text-[#8E8E93]">
                 <div>
                   Страница {page} из {pageCount} (всего {total})
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                <div className="flex items-center gap-3">
+                  <button
                     disabled={page <= 1}
                     onClick={() => handlePageChange(page - 1)}
+                    className="px-4 py-2 bg-white border border-[#E5E5EA] rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
                   >
                     Назад
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  </button>
+                  <button
                     disabled={page >= pageCount}
                     onClick={() => handlePageChange(page + 1)}
+                    className="px-4 py-2 bg-white border border-[#E5E5EA] rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
                   >
                     Вперед
-                  </Button>
+                  </button>
                 </div>
               </div>
             </>
@@ -571,5 +644,6 @@ export default function PromotionsPage() {
         </>
       )}
     </div>
-  );
+  </div>
+);
 }

@@ -7,6 +7,7 @@ import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
+import { useShops } from "@/components/hooks/useShops";
 import type { Shop } from "@/types/shop";
 import { getImageUrl } from "@/lib/utils";
 
@@ -28,14 +29,21 @@ const generateCode = () => {
 export default function PromotionsCreateIndexPage() {
   const router = useRouter();
 
-  const { adminData, refreshSession, fetchWithSession } = useAuth();
+  const { adminData, refreshSession, fetchWithSession, loading: authLoading } = useAuth();
   const derivedShopId = adminData?.shopId;
 
-  const isAdmin = !derivedShopId;
+  const isAdmin = adminData?.isAdmin ?? false;
 
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    shops,
+    loading: shopsLoading,
+    error: shopsError,
+  } = useShops({
+    isAdmin,
+    dateFrom: new Date().toISOString().split("T")[0],
+    dateTo: new Date(new Date().getTime() + 86400000).toISOString().split("T")[0],
+    skip: authLoading || !adminData,
+  });
 
   const [open, setOpen] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
@@ -67,39 +75,6 @@ export default function PromotionsCreateIndexPage() {
       router.replace(`/promotions/create/${derivedShopId}`);
     }
   }, [derivedShopId, router]);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams();
-        query.set("relations", "photo");
-        query.set("isPublic", "true");
-        query.set("sort", JSON.stringify({ createdAt: "DESC" }));
-
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/shops?${query.toString()}`;
-        const res = await fetchWithSession(
-          url,
-          () => localStorage.getItem("access_token"),
-          refreshSession,
-        );
-
-        if (!res.ok) throw new Error("Ошибка при получении магазинов");
-
-        const json = await res.json();
-        const list = (json.data ?? json) as Shop[];
-        setShops(Array.isArray(list) ? list : []);
-      } catch (e: any) {
-        setError(e.message ?? "Ошибка");
-        setShops([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [fetchWithSession, refreshSession]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -228,21 +203,21 @@ export default function PromotionsCreateIndexPage() {
               type="button"
               onClick={() => setOpen(!open)}
               className="h-10 px-3 border border-input rounded-md flex items-center gap-2 min-w-[260px] justify-between"
-              disabled={loading || Boolean(error)}
+              disabled={shopsLoading || Boolean(shopsError)}
             >
               <span className="text-sm text-[#111111] font-medium truncate">
                 {selectedShopId === -1
                   ? "Региональный"
                   : selectedShop
                     ? selectedShop.name
-                    : loading
+                    : shopsLoading
                       ? "Загрузка..."
                       : "Выберите магазин"}
               </span>
               <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
             </button>
 
-            {open && !loading && !error && (
+            {open && !shopsLoading && !shopsError && (
               <div className="absolute z-20 mt-2 w-[320px] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-h-[400px] overflow-y-auto">
                 <button
                   type="button"
@@ -377,11 +352,11 @@ export default function PromotionsCreateIndexPage() {
       </div>
 
       <div className="px-6 py-6">
-        {(loading || error) && (
+        {(shopsLoading || shopsError) && (
           <div className="mb-6">
-            {loading && <Spinner size={24} />}
-            {!loading && error && (
-              <div className="text-red-500">Ошибка: {error}</div>
+            {shopsLoading && <Spinner size={24} />}
+            {!shopsLoading && shopsError && (
+              <div className="text-red-500">Ошибка: {shopsError}</div>
             )}
           </div>
         )}
