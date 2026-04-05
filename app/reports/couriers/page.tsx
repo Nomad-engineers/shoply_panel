@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -10,8 +10,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCouriers } from "@/components/hooks/useCouriers";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/theme";
 
@@ -22,7 +20,6 @@ type SortField =
   | "completedorderscount"
   | "canceledorderscount";
 type SortDirection = "asc" | "desc";
-type PeriodType = "week" | "month" | "halfYear" | "year";
 
 export default function CouriersPage() {
   const router = useRouter();
@@ -32,14 +29,14 @@ export default function CouriersPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [triggeredSearchQuery, setTriggeredSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [showActiveOnly, setShowActiveOnly] = useState(false);
-  const pageSize = 20;
+  const pageSize = 50;
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { dateFrom, dateTo } = useMemo(() => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     if (activePeriod === "day") {
       return {
@@ -49,13 +46,12 @@ export default function CouriersPage() {
     }
 
     if (activePeriod === "week") {
-      // Monday based week
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(today.setDate(diff));
       return {
         dateFrom: monday.toISOString(),
-        dateTo: undefined, // To end of time (or today?) let's leave undefined for "ongoing"
+        dateTo: undefined,
       };
     }
 
@@ -71,18 +67,18 @@ export default function CouriersPage() {
   }, [activePeriod]);
 
   const handleSearch = () => {
-    setCurrentPage(1);
     setTriggeredSearchQuery(searchQuery);
   };
 
   const {
     couriers,
-    meta: serverMeta,
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
     error,
   } = useCouriers({
-    page: currentPage,
-    pageSize: pageSize,
+    pageSize,
     dateFrom,
     dateTo,
     search: triggeredSearchQuery,
@@ -99,13 +95,8 @@ export default function CouriersPage() {
 
   const handlePeriodChange = (period: typeof activePeriod) => {
     setActivePeriod(period);
-    setCurrentPage(1);
     setIsDropdownOpen(false);
   };
-
-  useEffect(() => {
-    // Current page reset is now handled in handleSearch
-  }, [triggeredSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -120,6 +111,23 @@ export default function CouriersPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Infinite scroll: IntersectionObserver on sentinel element
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, loadMore]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -132,9 +140,6 @@ export default function CouriersPage() {
   const filteredAndSortedCouriers = useMemo(() => {
     if (!couriers.length) return [];
 
-    // All filtering and searching is now handled by the backend.
-    // We just apply client-side sorting if needed or just return the results.
-    // Note: The hook already sorts by ID DESC by default on the backend.
     let result = [...couriers];
 
     if (showActiveOnly) {
@@ -165,13 +170,6 @@ export default function CouriersPage() {
     return result;
   }, [couriers, sortField, sortDirection, showActiveOnly]);
 
-  const { paginatedCouriers, totalPages } = useMemo(() => {
-    return {
-      paginatedCouriers: filteredAndSortedCouriers,
-      totalPages: serverMeta.totalPages || 1,
-    };
-  }, [filteredAndSortedCouriers, serverMeta.totalPages]);
-
   const totals = useMemo(() => {
     return filteredAndSortedCouriers.reduce(
       (acc, c) => ({
@@ -192,7 +190,7 @@ export default function CouriersPage() {
     );
   };
 
-  if (loading) {
+  if (loading && couriers.length === 0) {
     return (
       <div className="bg-white rounded-[24px] p-6 h-full flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-[#55CB00]" />
@@ -202,13 +200,13 @@ export default function CouriersPage() {
 
   return (
     <div className="bg-white rounded-[24px] p-6">
-      {/* Header Area - Refined single line flex */}
+      {/* Header Area */}
       <div className="flex items-center gap-6 mb-10">
         <h1 className="text-[20px] font-bold text-[#111111] whitespace-nowrap">
           Курьеры
         </h1>
 
-        {/* Search - Line style with clickable icon */}
+        {/* Search */}
         <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
           <input
             value={searchQuery}
@@ -248,7 +246,7 @@ export default function CouriersPage() {
           </span>
         </div>
 
-        {/* Period Dropdown - Pushed to the right */}
+        {/* Period Dropdown */}
         <div className="ml-auto relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -328,7 +326,7 @@ export default function CouriersPage() {
             </tr>
           </thead>
           <tbody>
-            {paginatedCouriers.map((courier) => (
+            {filteredAndSortedCouriers.map((courier) => (
               <tr
                 key={courier.id}
                 onClick={() =>
@@ -386,28 +384,21 @@ export default function CouriersPage() {
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border rounded-xl text-sm font-semibold text-[#111111] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-[#F2F2F7] border-[#E5E5EA]"
-          >
-            Назад
-          </button>
-          <span className="text-sm font-medium text-[#8E8E93]">
-            {currentPage} из {totalPages}
-          </span>
-          <button
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-            }
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 border rounded-xl text-sm font-semibold text-[#111111] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-[#F2F2F7] border-[#E5E5EA]"
-          >
-            Вперед
-          </button>
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" />
+
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="w-6 h-6 animate-spin text-[#55CB00] mr-2" />
+          <span className="text-sm text-[#8E8E93]">Загрузка...</span>
+        </div>
+      )}
+
+      {/* All loaded indicator */}
+      {!hasMore && filteredAndSortedCouriers.length > 0 && !loading && (
+        <div className="text-center py-4 text-sm text-[#8E8E93]">
+          Все курьеры загружены
         </div>
       )}
 
