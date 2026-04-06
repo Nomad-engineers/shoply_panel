@@ -65,6 +65,15 @@ export function middleware(request: NextRequest) {
     );
   }
 
+  if (pathname === "/") {
+    return NextResponse.redirect(
+      new URL(
+        userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",
+        request.url
+      )
+    );
+  }
+
   if (userRole === ROLES.ADMIN) {
     return NextResponse.next();
   }

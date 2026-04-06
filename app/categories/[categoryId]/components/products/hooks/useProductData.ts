@@ -27,7 +27,6 @@ export function useProductData({
   const {
     data: subCategoriesData,
     loading,
-    refetch,
   } = useApiData<any>(
     shopId && categoryId ? `v2/shop/${shopId}/categories/${categoryId}/products` : null,
     {
@@ -47,7 +46,7 @@ export function useProductData({
           sub.products?.map((product: any) => ({
             uniqueKey: String(product.productId),
             name: product.name,
-            article: product.article,
+            barcodes: product.barcodes || [],
             weight: product.weight,
             measure: product.measure,
             photos: product.photoId
@@ -81,6 +80,5 @@ export function useProductData({
   return {
     subCategories,
     loading,
-    refetch,
   };
 }

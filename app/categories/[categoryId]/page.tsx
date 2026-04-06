@@ -7,6 +7,7 @@ import {
   useRouter,
   useParams,
   useSearchParams,
+  usePathname,
 } from "next/navigation";
 import { MainSection } from "@/components/layout";
 import { EditMenu } from "@/components/category/editMenu";
@@ -21,11 +22,14 @@ import { ROLES } from "@/middleware";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { ViewModeToggle } from "../components/category/ViewModeToggle";
 import { FlattenedProduct } from "./components/products/types";
+import { toast } from "sonner";
+import { EditableProductData } from "@/components/hooks/category/useEditProduct";
 
 export default function SubCategoryPage() {
   const router = useRouter();
   const { categoryId } = useParams();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const categoryName = searchParams.get("name");
   const shopId = Cookies.get("current_shop_id");
   const userRole = Cookies.get("user_role");
@@ -47,7 +51,7 @@ export default function SubCategoryPage() {
   const activeTab =
     (searchParams.get("tab") as "active" | "archived") || "active";
 
-  const { subCategories, loading, refetch } = useProductData({
+  const { subCategories, loading } = useProductData({
     categoryId: categoryId as string,
     searchQuery,
     tab: activeTab,
@@ -131,7 +135,9 @@ export default function SubCategoryPage() {
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    if (text) navigator.clipboard.writeText(text);
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success("Штрихкод скопирован");
   };
 
   const handleProductClick = (
@@ -139,6 +145,52 @@ export default function SubCategoryPage() {
     shopId: string | undefined,
     shopProductId: number
   ) => {
+    const selectedProduct = filteredSubCategories
+      .flatMap((sub) => sub.products)
+      .find((product) => product.activeShopProduct.id === shopProductId);
+
+    if (selectedProduct && typeof window !== "undefined") {
+      const seed: EditableProductData = {
+        id: selectedProduct.activeShopProduct.id,
+        purchasePrice: 0,
+        price: selectedProduct.activeShopProduct.price,
+        inStock: selectedProduct.activeShopProduct.inStock,
+        archivedAt: selectedProduct.activeShopProduct.archivedAt || null,
+        shop: {
+          id: selectedProduct.activeShopProduct.shop.id,
+          name: selectedProduct.activeShopProduct.shop.name,
+        },
+        product: {
+          id: selectedProduct.activeShopProduct.id,
+          name: selectedProduct.name,
+          weight: selectedProduct.weight,
+          measure: (selectedProduct.measure || "pc") as ProductMeasure,
+          article: "",
+          barcodes: selectedProduct.barcodes,
+          subCategory: {
+            id: subId,
+            name: "",
+            category: {
+              id: Number(categoryId),
+              name: categoryName || "",
+            },
+          },
+          photos:
+            selectedProduct.photos?.map((photo, index) => ({
+              id: photo.id ?? index,
+              file: {
+                url: photo.file?.url || "",
+              },
+            })) ?? [],
+        },
+      };
+
+      window.sessionStorage.setItem(
+        `shoply:edit-product:${shopProductId}`,
+        JSON.stringify(seed)
+      );
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     if (shopId) {
       params.set("shopId", shopId);

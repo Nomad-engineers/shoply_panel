@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ProductMeasure, ShopProduct } from "@/types/category.types";
+import { ProductMeasure } from "@/types/category.types";
 import { calculatePrice } from "@/lib/utils";
 
 interface PhotoState {
@@ -8,33 +8,100 @@ interface PhotoState {
   file?: File;
 }
 
+export interface EditableProductData {
+  id: number;
+  purchasePrice: number;
+  price: number;
+  inStock: boolean;
+  archivedAt: string | null;
+  shop?: {
+    id: number;
+    name: string;
+  } | null;
+  product: {
+    id: number;
+    name: string;
+    weight: number;
+    measure: ProductMeasure;
+    article: string;
+    barcodes: string[];
+    subCategory?: {
+      id: number;
+      name: string;
+      category?: {
+        id: number;
+        name: string;
+      } | null;
+    } | null;
+    photos?: Array<{
+      id: number;
+      file?: {
+        url?: string;
+      } | null;
+    }>;
+  };
+}
+
+function toFormSeed(
+  product: EditableProductData | undefined,
+  initialSubCategoryId: number,
+) {
+  if (!product) {
+    return {
+      categoryId: 0,
+      subCategoryId: initialSubCategoryId,
+      name: "",
+      article: "",
+      mainBarcode: "",
+      extraBarcodes: [] as string[],
+      purchasePrice: 0 as number | "",
+      price: 0 as number | "",
+      markup: 0 as number | "",
+      weight: 0 as number | "",
+      measure: ProductMeasure.PIECE as ProductMeasure,
+      inStock: true,
+    };
+  }
+
+  const baseProduct = product.product;
+  const pPrice = product.purchasePrice || 0;
+  const sPrice = product.price || 0;
+
+  return {
+    categoryId: baseProduct?.subCategory?.category?.id || 0,
+    subCategoryId:
+      baseProduct?.subCategory?.id || Number(initialSubCategoryId),
+    name: baseProduct?.name || "",
+    mainBarcode: (baseProduct?.barcodes || [])[0] || "",
+    extraBarcodes: (baseProduct?.barcodes || []).slice(1),
+    purchasePrice: pPrice,
+    price: sPrice,
+    markup:
+      pPrice > 0
+        ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
+        : 0,
+    weight: baseProduct?.weight || 0,
+    article: baseProduct?.article || "",
+    measure:
+      (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
+    inStock: product.inStock ?? true,
+  };
+}
+
 export function useProductForm(
-  shopProduct: ShopProduct | undefined,
+  shopProduct: EditableProductData | undefined,
   initialSubCategoryId: number,
   shopId: string | null
 ) {
   const [photos, setPhotos] = useState<PhotoState[]>([]);
-  const [formData, setFormData] = useState({
-    categoryId: 0,
-    subCategoryId: initialSubCategoryId,
-    name: "",
-    article: "",
-    mainBarcode: "",
-    extraBarcodes: [] as string[],
-    purchasePrice: 0 as number | "",
-    price: 0 as number | "",
-    markup: 0 as number | "",
-    weight: 0 as number | "",
-    measure: ProductMeasure.PIECE as ProductMeasure,
-    inStock: true,
-  });
+  const [formData, setFormData] = useState(() =>
+    toFormSeed(shopProduct, initialSubCategoryId)
+  );
 
-  // Инициализация данных из ShopProduct
+  // Инициализация данных из локального editable DTO
   useEffect(() => {
     if (shopProduct) {
       const baseProduct = shopProduct.product;
-      const pPrice = shopProduct.purchasePrice || 0;
-      const sPrice = shopProduct.price || 0;
 
       setPhotos(
         baseProduct?.photos?.map((p) => ({
@@ -43,25 +110,7 @@ export function useProductForm(
         })) || []
       );
 
-      setFormData({
-        categoryId: baseProduct?.subCategory?.category?.id || 0,
-        subCategoryId:
-          baseProduct?.subCategory?.id || Number(initialSubCategoryId),
-        name: baseProduct?.name || "",
-        mainBarcode: (baseProduct?.barcodes || [])[0] || "",
-        extraBarcodes: (baseProduct?.barcodes || []).slice(1),
-        purchasePrice: pPrice,
-        price: sPrice,
-        markup:
-          pPrice > 0
-            ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
-            : 0,
-        weight: baseProduct?.weight || 0,
-        article: baseProduct?.article || "",
-        measure:
-          (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
-        inStock: shopProduct.inStock ?? true,
-      });
+      setFormData(toFormSeed(shopProduct, initialSubCategoryId));
     }
   }, [shopProduct, initialSubCategoryId]);
 
@@ -180,8 +229,6 @@ export function useProductForm(
   const handleReset = () => {
     if (!shopProduct) return;
     const baseProduct = shopProduct.product;
-    const pPrice = shopProduct.purchasePrice || 0;
-    const sPrice = shopProduct.price || 0;
 
     setPhotos(
       baseProduct?.photos?.map((p) => ({
@@ -190,23 +237,7 @@ export function useProductForm(
       })) || []
     );
 
-    setFormData({
-      categoryId: baseProduct?.subCategory?.category?.id || 0,
-      subCategoryId: baseProduct?.subCategory?.id || initialSubCategoryId,
-      name: baseProduct?.name || "",
-      mainBarcode: (baseProduct?.barcodes || [])[0] || "",
-      extraBarcodes: (baseProduct?.barcodes || []).slice(1),
-      purchasePrice: pPrice,
-      price: sPrice,
-      article: baseProduct?.article || "",
-      markup:
-        pPrice > 0
-          ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
-          : 0,
-      weight: baseProduct?.weight || 0,
-      measure: (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
-      inStock: shopProduct.inStock ?? true,
-    });
+    setFormData(toFormSeed(shopProduct, initialSubCategoryId));
   };
 
   const handleGenerateArticle = useCallback(() => {

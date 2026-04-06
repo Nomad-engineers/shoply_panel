@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Pencil, Package } from "lucide-react";
+import { Check, Copy, Pencil } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { measureLabels } from "@/types/category.types";
 import { FlattenedProduct } from "./types";
@@ -42,17 +42,17 @@ export function ProductListItem({
   const buildDraft = React.useCallback(
     () => ({
       name: product.name,
-      article: product.article || "",
+      barcode: product.barcodes[0] || "",
       weight: String(product.weight),
       measure: product.measure || "pc",
       price: String(sp.price),
       inStock: sp.inStock,
     }),
-    [product.article, product.measure, product.name, product.weight, sp.inStock, sp.price],
+    [product.barcodes, product.measure, product.name, product.weight, sp.inStock, sp.price],
   );
   const [draft, setDraft] = React.useState({
     name: product.name,
-    article: product.article || "",
+    barcode: product.barcodes[0] || "",
     weight: String(product.weight),
     measure: product.measure || "pc",
     price: String(sp.price),
@@ -61,7 +61,7 @@ export function ProductListItem({
   const [showUnsavedWarning, setShowUnsavedWarning] = React.useState(false);
   const isDirty =
     draft.name !== product.name ||
-    draft.article !== (product.article || "") ||
+    draft.barcode !== (product.barcodes[0] || "") ||
     draft.weight !== String(product.weight) ||
     draft.measure !== (product.measure || "pc") ||
     draft.price !== String(sp.price) ||
@@ -82,7 +82,7 @@ export function ProductListItem({
         method: "PATCH",
         body: {
           name: draft.name.trim(),
-          article: draft.article.trim() || undefined,
+          barcodes: draft.barcode.trim() ? [draft.barcode.trim()] : [],
           weight: Number(draft.weight) || 0,
           measure: draft.measure,
           price: Number(draft.price) || 0,
@@ -93,7 +93,7 @@ export function ProductListItem({
       onUpdated({
         ...product,
         name: draft.name.trim(),
-        article: draft.article.trim() || undefined,
+        barcodes: draft.barcode.trim() ? [draft.barcode.trim()] : [],
         weight: Number(draft.weight) || 0,
         measure: draft.measure as typeof product.measure,
         activeShopProduct: {
@@ -221,15 +221,15 @@ export function ProductListItem({
       {isEditing ? (
         <>
           <Input
-            value={draft.article}
+            value={draft.barcode}
             onChange={(event) =>
-              setDraft((current) => ({ ...current, article: event.target.value }))
+              setDraft((current) => ({ ...current, barcode: event.target.value }))
             }
             onClick={(event) => event.stopPropagation()}
             onDoubleClick={(event) => event.stopPropagation()}
             onKeyDown={handleKeyDown}
             className={editorFieldClassName}
-            placeholder="Артикул"
+            placeholder="Штрихкод"
           />
 
           <div
@@ -316,12 +316,16 @@ export function ProductListItem({
       ) : (
         <>
           <span className="flex items-center gap-2 text-[14px] text-[#2a2f41]">
-            <Package
-              size={14}
-              className="shrink-0 text-[#5f8cff]"
-              onClick={(e) => onCopyArticle(product.article, e)}
-            />
-            <span className="truncate">{product.article || "---"}</span>
+            <button
+              type="button"
+              onClick={(e) => onCopyArticle(product.barcodes[0], e)}
+              onDoubleClick={(e) => e.stopPropagation()}
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-[#5f8cff] transition-colors hover:bg-[#eef4ff] hover:text-[#3f7cff]"
+              aria-label="Скопировать штрихкод"
+            >
+              <Copy size={14} className="shrink-0" />
+            </button>
+            <span className="truncate">{product.barcodes[0] || "---"}</span>
           </span>
 
           <span className="text-[14px] text-[#2a2f41]">

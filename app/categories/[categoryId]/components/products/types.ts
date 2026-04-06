@@ -3,7 +3,7 @@ import { ProductMeasure, measureLabels } from "@/types/category.types";
 export interface FlattenedProduct {
   uniqueKey: string;
   name: string;
-  article: string | null | undefined;
+  barcodes: string[];
   weight: number;
   measure: ProductMeasure | null | undefined;
   photos?: Array<{ file?: { url?: string } }>;

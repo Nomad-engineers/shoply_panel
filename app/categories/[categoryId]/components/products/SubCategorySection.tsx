@@ -23,7 +23,7 @@ interface SubCategorySectionProps {
     shopId: string | undefined,
     shopProductId: number
   ) => void;
-  onCopyArticle: (text: string | null | undefined, e: React.MouseEvent) => void;
+  onCopyBarcode: (text: string | null | undefined, e: React.MouseEvent) => void;
 }
 
 export function SubCategorySection({
@@ -39,7 +39,7 @@ export function SubCategorySection({
   onToggleOpen,
   onProductToggle,
   onProductClick,
-  onCopyArticle,
+  onCopyBarcode,
 }: SubCategorySectionProps) {
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "active";
@@ -66,7 +66,7 @@ export function SubCategorySection({
       />
 
       {isOpen && (
-        <div className="mt-4">
+        <div className="ml-4">
           {viewMode === "list" ? (
             <ProductsList
               products={displayedProducts}
@@ -75,7 +75,7 @@ export function SubCategorySection({
               onUpdated={onUpdated}
               onToggle={onProductToggle}
               onClick={onProductClick}
-              onCopyArticle={onCopyArticle}
+              onCopyBarcode={onCopyBarcode}
             />
           ) : (
             <ProductsGrid

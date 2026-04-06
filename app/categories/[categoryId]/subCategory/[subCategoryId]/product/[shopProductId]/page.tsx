@@ -16,13 +16,15 @@ import { cn } from "@/lib/utils";
 import { useApiData } from "@/components/hooks/useApiData";
 import {
   Category,
-  ProductMeasure,
   measureLabels,
   ShopProduct,
 } from "@/types/category.types";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";
 import { CategorySubcategorySelector } from "@/components/category/categorySubcategorySelector";
-import { useProductForm } from "@/components/hooks/category/useEditProduct";
+import {
+  EditableProductData,
+  useProductForm,
+} from "@/components/hooks/category/useEditProduct";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
 import { ROLES } from "@/middleware";
@@ -32,6 +34,7 @@ export default function EditProductPage() {
   const searchParams = useSearchParams();
   const shopId = searchParams.get("shopId");
   const [isMeasureOpen, setIsMeasureOpen] = useState(false);
+  const [seedProduct, setSeedProduct] = useState<EditableProductData | null>(null);
   const userRole = Cookies.get("user_role");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,8 +51,71 @@ export default function EditProductPage() {
     relations: ["product.photos.file", "product.subCategory.category", "shop"],
   });
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const rawValue = window.sessionStorage.getItem(
+      `shoply:edit-product:${shopProductId}`
+    );
+
+    if (!rawValue) return;
+
+    try {
+      setSeedProduct(JSON.parse(rawValue) as EditableProductData);
+    } catch {
+      setSeedProduct(null);
+    }
+  }, [shopProductId]);
+
+  const resolvedShopProduct = useMemo<EditableProductData | null>(() => {
+    if (shopProduct?.product) {
+      return {
+        id: shopProduct.id,
+        purchasePrice: shopProduct.purchasePrice,
+        price: shopProduct.price,
+        inStock: shopProduct.inStock,
+        archivedAt: shopProduct.archivedAt || null,
+        shop: shopProduct.shop
+          ? {
+              id: shopProduct.shop.id,
+              name: shopProduct.shop.name,
+            }
+          : null,
+        product: {
+          id: shopProduct.product.id,
+          name: shopProduct.product.name,
+          weight: shopProduct.product.weight,
+          measure: shopProduct.product.measure,
+          article: shopProduct.product.article || "",
+          barcodes: shopProduct.product.barcodes || [],
+          subCategory: shopProduct.product.subCategory
+            ? {
+                id: shopProduct.product.subCategory.id,
+                name: shopProduct.product.subCategory.name,
+                category: shopProduct.product.subCategory.category
+                  ? {
+                      id: shopProduct.product.subCategory.category.id,
+                      name: shopProduct.product.subCategory.category.name,
+                    }
+                  : null,
+              }
+            : null,
+          photos:
+            shopProduct.product.photos?.map((photo) => ({
+              id: photo.id,
+              file: {
+                url: photo.file?.url || "",
+              },
+            })) || [],
+        },
+      };
+    }
+
+    return seedProduct;
+  }, [seedProduct, shopProduct]);
+
   // Определяем, находится ли товар в архиве
-  const isArchived = !!shopProduct?.archivedAt;
+  const isArchived = !!resolvedShopProduct?.archivedAt;
   const userShopId = Cookies.get("current_shop_id");
 
   const categorySearchParams = useMemo<
@@ -79,7 +145,7 @@ export default function EditProductPage() {
     handleFileChange,
     sanitize,
     handleReset,
-  } = useProductForm(shopProduct, Number(subCategoryId), shopId);
+  } = useProductForm(resolvedShopProduct ?? undefined, Number(subCategoryId), shopId);
 
   const measureOptions = useMemo(
     () =>
@@ -145,11 +211,11 @@ export default function EditProductPage() {
         )
       );
 
-      const baseProductId = shopProduct?.id;
+      const baseProductId = resolvedShopProduct?.id;
 
-      if (shopProduct.product?.photos) {
+      if (resolvedShopProduct?.product?.photos) {
         const currentPhotoIds = photos.map((p) => p.id).filter(Boolean);
-        const photosToDelete = shopProduct.product.photos.filter(
+        const photosToDelete = resolvedShopProduct.product.photos.filter(
           (p) => !currentPhotoIds.includes(p.id)
         );
 
@@ -170,7 +236,7 @@ export default function EditProductPage() {
       const newFiles = photos.filter((p) => p.file).map((p) => p.file as File);
 
       if (newFiles.length > 0) {
-        const realProductId = shopProduct.product?.id;
+        const realProductId = resolvedShopProduct?.product?.id;
 
         if (realProductId) {
           const photoFormData = new FormData();
@@ -221,7 +287,8 @@ export default function EditProductPage() {
     return result > 0 ? result.toLocaleString() : "0";
   }, [formData.purchasePrice, formData.markup]);
 
-  if (loading || !shopProduct) return null;
+  if (loading && !resolvedShopProduct) return null;
+  if (!resolvedShopProduct) return null;
 
   const inputBase =
     "w-full h-[54px] px-4 bg-[#F1F2F6] rounded-xl border-none outline-none font-medium text-gray-800 disabled:opacity-70 disabled:cursor-not-allowed";

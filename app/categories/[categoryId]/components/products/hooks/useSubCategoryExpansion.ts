@@ -23,8 +23,13 @@ export function useSubCategoryExpansion({
         .filter((sub) => sub.products.length > 0)
         .map((sub) => sub.id);
       setOpenSubCategoryIds(ids);
+      return;
     }
-  }, [searchQuery, subCategories]);
+
+    if (subCategories.length > 0 && openSubCategoryIds.length === 0) {
+      setOpenSubCategoryIds([subCategories[0].id]);
+    }
+  }, [searchQuery, subCategories, openSubCategoryIds.length]);
 
   const toggleSubCategory = (id: number) => {
     setOpenSubCategoryIds((prev) =>

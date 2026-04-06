@@ -13,7 +13,7 @@ interface ProductsListProps {
     shopId: string | undefined,
     shopProductId: number
   ) => void;
-  onCopyArticle: (text: string | null | undefined, e: React.MouseEvent) => void;
+  onCopyBarcode: (text: string | null | undefined, e: React.MouseEvent) => void;
 }
 
 export function ProductsList({
@@ -23,7 +23,7 @@ export function ProductsList({
   onUpdated,
   onToggle,
   onClick,
-  onCopyArticle,
+  onCopyBarcode,
 }: ProductsListProps) {
   return (
     <div className="flex flex-col divide-y divide-border">
@@ -38,7 +38,7 @@ export function ProductsList({
             onUpdated={onUpdated}
             onToggle={onToggle}
             onClick={onClick}
-            onCopyArticle={onCopyArticle}
+            onCopyArticle={onCopyBarcode}
           />
         );
       })}
