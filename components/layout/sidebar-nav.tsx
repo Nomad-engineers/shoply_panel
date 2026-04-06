@@ -153,6 +153,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     const isLoggedIn = !!adminData;
     const isAdminArea =
       adminData?.isAdmin ||
+      pathname.startsWith("/users") ||
       pathname.startsWith("/partners") ||
       pathname.startsWith("/reports");
 
@@ -163,7 +164,11 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
     const navigationItems = isAdminArea
       ? [
           { title: "Заказы", icon: "/panel-icons/nav-orders.png" },
-          { title: "Пользователи", icon: "/panel-icons/nav-users.png" },
+          {
+            title: "Пользователи",
+            href: "/users",
+            icon: "/panel-icons/nav-users.png",
+          },
           {
             title: "Партнеры",
             href: "/partners",

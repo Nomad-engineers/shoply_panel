@@ -83,28 +83,10 @@ function readCachedProfile(): AuthProfile | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  const [loading, setLoading] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-
-    const hasAccessToken = Boolean(localStorage.getItem("access_token"));
-    return hasAccessToken && !readCachedProfile();
-  });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [adminData, setAdminData] = useState<AuthProfile | null>(() =>
-    readCachedProfile()
-  );
-  const [currentShopId, setCurrentShopIdState] = useState<number | null>(() => {
-    const cookieShopId = Number(Cookies.get("current_shop_id"));
-
-    if (cookieShopId) {
-      return cookieShopId;
-    }
-
-    return readCachedProfile()?.shopId ?? null;
-  });
+  const [adminData, setAdminData] = useState<AuthProfile | null>(null);
+  const [currentShopId, setCurrentShopIdState] = useState<number | null>(null);
 
   const resolveShopId = useCallback(
     (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
@@ -363,7 +345,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    const cachedProfile = readCachedProfile();
+    const cookieShopId = Number(Cookies.get("current_shop_id"));
     const token = localStorage.getItem("access_token");
+
+    if (cachedProfile) {
+      setAdminData(cachedProfile);
+      setCurrentShopIdState(cookieShopId || cachedProfile.shopId || null);
+      setLoading(false);
+    }
 
     if (token) {
       refreshProfile();
