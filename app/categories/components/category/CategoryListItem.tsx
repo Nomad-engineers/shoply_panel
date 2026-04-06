@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Category } from "@/types/category.types";
 
@@ -12,24 +12,26 @@ interface CategoryListItemProps {
 }
 
 export function CategoryListItem({ category, isSelected, onToggle, onClick }: CategoryListItemProps) {
+  const subCategoryCount = category.subCategory?.length || 0;
+
   return (
-    <div className="flex items-center w-full">
+    <div className="flex w-full items-center gap-[18px]">
       <div
         onClick={(e) => onToggle(category.id, e)}
-        className="w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-sm"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#b8bdcc] bg-white transition-colors"
       >
-        <CheckCircle2
+        <span
           className={cn(
-            "w-4 h-4 transition-colors",
-            isSelected ? "text-[#55CB00]" : "text-gray-300"
+            "h-2.5 w-2.5 rounded-full transition-colors",
+            isSelected ? "bg-[#55CB00]" : "bg-transparent"
           )}
         />
       </div>
       <div
         onClick={() => onClick(category.id, category.name)}
-        className="flex items-center w-full justify-between p-4 border-b hover:bg-gray-50 transition-colors cursor-pointer"
+        className="flex items-center w-full justify-between border-b px-0 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-[18px]">
           <div className="relative">
             {category.photo?.url ? (
               <div
@@ -38,14 +40,14 @@ export function CategoryListItem({ category, isSelected, onToggle, onClick }: Ca
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
-                  width: "120px",
-                  height: "70px",
+                  width: "90px",
+                  height: "54px",
                 }}
                 className="rounded-xl transition-all object-cover"
                 aria-label={category.name}
               />
             ) : (
-              <div className="w-[120px] h-[70px] rounded-xl flex items-center justify-center text-[8px] bg-gray-200 text-gray-400 font-bold uppercase">
+              <div className="h-[54px] w-[90px] rounded-xl flex items-center justify-center text-[8px] bg-gray-200 text-gray-400 font-bold uppercase">
                 Нет фото
               </div>
             )}
@@ -53,9 +55,11 @@ export function CategoryListItem({ category, isSelected, onToggle, onClick }: Ca
           <span className="text-sm transition-colors">{category.name}</span>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-gray-400">
-            {category.subCategory?.length || 0} суб категории
-          </p>
+          {subCategoryCount > 0 && (
+            <p className="text-xs text-gray-400">
+              {subCategoryCount} суб категории
+            </p>
+          )}
           <ChevronRight
             size={18}
             className={cn(

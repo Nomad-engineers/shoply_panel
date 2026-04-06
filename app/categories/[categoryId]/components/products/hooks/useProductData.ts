@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { useApiData } from "@/components/hooks/useApiData";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import Cookies from "js-cookie";
-import { ROLES } from "@/middleware";
 import { FlattenedProduct, SubCategoryWithFlattened } from "../types";
+import { getImageUrl } from "@/lib/utils";
 
 interface UseProductDataParams {
   categoryId: string | undefined;
@@ -14,72 +13,70 @@ interface UseProductDataParams {
 export function useProductData({
   categoryId,
   searchQuery,
-  tab,
+  tab: _tab,
 }: UseProductDataParams) {
-  const role = Cookies.get("user_role");
   const { currentShopId } = useAuthContext();
   const shopId = currentShopId ? String(currentShopId) : undefined;
 
   const params = useMemo(() => {
-    const filters: any = {};
-
-    if (role === ROLES.SHOP_OWNER && shopId) {
-      filters["shop.id"] = shopId;
-    }
-
     return {
-      search: JSON.stringify(filters),
+      ...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
     };
-  }, [role, categoryId, shopId]);
+  }, [searchQuery]);
 
   const {
     data: subCategoriesData,
     loading,
     refetch,
-  } = useApiData<any>(`subCategory/archived/${categoryId}`, {
-    searchParams: params,
-  });
+  } = useApiData<any>(
+    shopId && categoryId ? `v2/shop/${shopId}/categories/${categoryId}/products` : null,
+    {
+      searchParams: params,
+    },
+  );
 
   const subCategories = useMemo((): SubCategoryWithFlattened[] => {
     const responseData = subCategoriesData[0];
-    const actualRecords = responseData?.records || [];
+    const actualRecords = responseData?.subCategories || [];
 
     if (!actualRecords.length) return [];
 
-    const query = searchQuery.toLowerCase().trim();
-
     return actualRecords
       .map((sub: any) => {
-        const flattened: FlattenedProduct[] = [];
-
-        sub.products?.forEach((p: any) => {
-          p.shopProduct?.forEach((sp: any) => {
-            const matchesSearch =
-              p.name.toLowerCase().includes(query) ||
-              p.article?.toLowerCase().includes(query) ||
-              sp.shop?.name?.toLowerCase().includes(query);
-
-            if (query && !matchesSearch) return;
-
-            flattened.push({
-              ...p,
-              activeShopProduct: sp,
-              subCategoryId: sub.id,
-              uniqueKey: String(sp.id),
-            });
-          });
-        });
+        const flattened: FlattenedProduct[] =
+          sub.products?.map((product: any) => ({
+            uniqueKey: String(product.productId),
+            name: product.name,
+            article: product.article,
+            weight: product.weight,
+            measure: product.measure,
+            photos: product.photoId
+              ? [{ file: { url: getImageUrl({ id: product.photoId }, { width: 120, height: 120, fit: "cover" }) } }]
+              : [],
+            subCategoryId: sub.id,
+            activeShopProduct: {
+              id: product.productId,
+              price: product.price,
+              inStock: product.inStock,
+              archivedAt: product.archivedAt || "",
+              shop: {
+                id: product.shopId,
+                name: "",
+              },
+            },
+          })) || [];
 
         return {
-          ...sub,
+          id: sub.id,
+          name: sub.name,
           isArchived: sub.isArchived ?? false,
           subCategoryId: sub.id,
           products: flattened,
           displayCount: flattened.length,
         } as SubCategoryWithFlattened;
       })
-      .filter((sub: any) => sub.products.length > 0 || !query);
-  }, [subCategoriesData, searchQuery]);
+      .filter((sub: any) => sub.products.length > 0);
+  }, [subCategoriesData]);
 
   return {
     subCategories,

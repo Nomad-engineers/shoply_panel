@@ -9,14 +9,14 @@ interface ViewModeToggleProps {
 
 export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeToggleProps) {
   return (
-    <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+    <div className="inline-flex rounded-[14px] border border-border bg-white p-1">
       <button
         onClick={() => onViewModeChange("list")}
         className={cn(
-          "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium transition-all",
+          "inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-[14px] font-medium transition-colors",
           viewMode === "list"
-            ? "bg-white shadow-sm text-primary-main"
-            : "text-gray-500"
+            ? "bg-[#f3f4fb] text-[#25293a]"
+            : "text-[#6f7486]"
         )}
       >
         <List className="w-4 h-4" /> Список
@@ -24,10 +24,10 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
       <button
         onClick={() => onViewModeChange("grid")}
         className={cn(
-          "p-2 px-4 rounded-lg flex items-center gap-2 text-sm font-medium transition-all",
+          "inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-[14px] font-medium transition-colors",
           viewMode === "grid"
-            ? "bg-white shadow-sm text-primary-main"
-            : "text-gray-500"
+            ? "bg-[#f3f4fb] text-[#25293a]"
+            : "text-[#6f7486]"
         )}
       >
         <LayoutGrid className="w-4 h-4" /> Карточки

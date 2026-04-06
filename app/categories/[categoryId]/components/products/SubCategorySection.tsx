@@ -11,6 +11,7 @@ interface SubCategorySectionProps {
   isOpen: boolean;
   selectedUniqueKeys: string[];
   shopId: string | undefined;
+  onUpdated: (product: FlattenedProduct) => void;
   viewMode: "list" | "grid";
   isPartiallySelected: boolean;
   isFullySelected: boolean;
@@ -30,6 +31,7 @@ export function SubCategorySection({
   isOpen,
   selectedUniqueKeys,
   shopId,
+  onUpdated,
   viewMode,
   isPartiallySelected,
   isFullySelected,
@@ -51,7 +53,7 @@ export function SubCategorySection({
   }, [sub.products, activeTab]);
 
   return (
-    <div className="mb-6 border-b border-gray-50 pb-4 last:border-0">
+    <div>
       <SubCategoryHeader
         name={sub.name}
         displayCount={displayedProducts.length}
@@ -64,12 +66,13 @@ export function SubCategorySection({
       />
 
       {isOpen && (
-        <div className="mt-6">
+        <div className="mt-4">
           {viewMode === "list" ? (
             <ProductsList
               products={displayedProducts}
               selectedUniqueKeys={selectedUniqueKeys}
               shopId={shopId}
+              onUpdated={onUpdated}
               onToggle={onProductToggle}
               onClick={onProductClick}
               onCopyArticle={onCopyArticle}

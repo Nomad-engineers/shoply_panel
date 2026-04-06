@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/theme";
 
 interface SubCategoryHeaderProps {
@@ -24,22 +24,33 @@ export function SubCategoryHeader({
   subCategoryId,
 }: SubCategoryHeaderProps) {
   return (
-    <div className="flex items-center justify-between py-2 cursor-pointer">
-      <div className="flex items-center gap-3 flex-1">
+    <div className="flex cursor-pointer items-center justify-between py-2">
+      <div className="flex flex-1 items-center gap-3">
         <div onClick={(e) => onToggleProducts(subCategoryId, e)}>
-          <CheckCircle2
+          <span
             className={cn(
-              "w-5 h-5",
+              "inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
               isFullySelected
-                ? "text-[#55CB00]"
+                ? "border-[#55CB00] bg-[#55CB00]/10"
                 : isPartiallySelected
-                  ? "text-[#55CB00]/50"
-                  : "text-gray-300"
+                  ? "border-[#55CB00]/60 bg-[#55CB00]/5"
+                  : "border-[#b8bdcc] bg-white"
             )}
-          />
+          >
+            <span
+              className={cn(
+                "h-2.5 w-2.5 rounded-full transition-colors",
+                isFullySelected
+                  ? "bg-[#55CB00]"
+                  : isPartiallySelected
+                    ? "bg-[#55CB00]/60"
+                    : "bg-transparent"
+              )}
+            />
+          </span>
         </div>
-        <div className="flex items-center gap-3 flex-1" onClick={onToggleOpen}>
-          <h2 className="text-md font-semibold">{name}</h2>
+        <div className="flex flex-1 items-center gap-1.5" onClick={onToggleOpen}>
+          <h2 className="text-[16px] font-normal">{name}</h2>
           <span className="bg-[#F5F7F9] px-2 py-0.5 rounded-full text-[10px] text-gray-400 font-bold">
             {displayCount}
           </span>

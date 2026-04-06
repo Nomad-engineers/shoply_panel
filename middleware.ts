@@ -12,7 +12,6 @@ const FORBIDDEN_FOR_SHOP = [
   "/reports/shops",
   "/reports/couriers",
   "/users",
-  "/promotions",
 ];
 
 function getRoleFromToken(token: string): string | null {

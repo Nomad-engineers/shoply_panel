@@ -134,6 +134,19 @@ input:focus-visible {
   outline: none;
 }
 
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
 /* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
@@ -162,4 +175,3 @@ input:focus-visible {
     scrollbar-width: none;
   }
 }
-

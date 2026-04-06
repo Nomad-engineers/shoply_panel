@@ -23,3 +23,7 @@ export {
 export {
   DashboardLayout,
 } from "./dashboard-layout";
+
+export {
+  MainSection,
+} from "./main-section";
