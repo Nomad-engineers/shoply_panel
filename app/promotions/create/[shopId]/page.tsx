@@ -151,7 +151,7 @@ export default function CreatePromocodePage() {
 
       // Для POST используем обычный fetch + refresh при 401.
       const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocodes`, {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

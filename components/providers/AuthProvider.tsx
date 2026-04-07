@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
+          if (res.status === 400 || res.status === 401 || res.status === 403) {
             logout();
           }
           throw new Error(`Auth refresh failed: ${res.status}`);

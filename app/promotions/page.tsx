@@ -12,10 +12,8 @@ import {
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
-import { Button } from "@/components/ui/button";
-import { FilterButton } from "@/components/ui/filter-button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Spinner, Input } from "@/components/ui";
+import { DashboardLayout } from "@/components/layout";
+import { Spinner } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { usePromocodes } from "@/components/hooks/usePromocodes";
 import { useShops } from "@/components/hooks/useShops";
@@ -162,50 +160,62 @@ export default function PromotionsPage() {
     });
   };
 
+  const header = (
+    <div className="flex w-full items-center gap-8">
+      <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
+        Акции и промокоды
+      </h1>
+
+      <div className="flex items-center gap-6">
+        <button
+          onClick={() => setActiveTab("promocodes")}
+          className={cn(
+            "text-[20px] font-semibold leading-none transition-colors",
+            activeTab === "promocodes"
+              ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+              : "text-[#23263a]/60 hover:text-text-primary"
+          )}
+        >
+          Промокоды
+        </button>
+        <button
+          onClick={() => setActiveTab("archive")}
+          className={cn(
+            "text-[20px] font-semibold leading-none transition-colors",
+            activeTab === "archive"
+              ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+              : "text-[#23263a]/60 hover:text-text-primary"
+          )}
+        >
+          Архив
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="bg-[#F2F2F7] min-h-screen p-8">
-      <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-8 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => setActiveTab("promocodes")}
-                className={cn(
-                  "text-[18px] font-bold pb-2 transition-all relative whitespace-nowrap",
-                  activeTab === "promocodes"
-                    ? "text-[#111111] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                    : "text-[#8E8E93] hover:text-[#111111]"
-                )}
-              >
-                Промокоды
-              </button>
-              <button
-                onClick={() => setActiveTab("archive")}
-                className={cn(
-                  "text-[18px] font-bold pb-2 transition-all relative whitespace-nowrap",
-                  activeTab === "archive"
-                    ? "text-[#111111] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#55CB00]"
-                    : "text-[#8E8E93] hover:text-[#111111]"
-                )}
-              >
-                Архив
-              </button>
-            </div>
-
-            <div className="h-4 w-px bg-gray-200" />
-
-            <div className="flex items-center gap-6">
+    <DashboardLayout
+      header={header}
+      headerClassName="pl-4 pr-8"
+      contentClassName="min-h-0 p-0"
+    >
+      <section className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5">
+            <div className="flex flex-wrap items-center gap-6">
+              {/* Filter toggle */}
               {isAdmin && (
                 <button
                   onClick={() => setFilterActive(!filterActive)}
                   className={cn(
-                    "flex items-center gap-2 text-[16px] font-medium transition-colors",
-                    filterActive ? "text-[#55CB00]" : "text-[#111111]"
+                    "inline-flex items-center gap-2 text-[14px] font-medium transition-colors",
+                    filterActive ? "text-[#55CB00]" : "text-text-primary"
                   )}
                 >
                   <svg
-                    width="24"
-                    height="24"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -221,357 +231,355 @@ export default function PromotionsPage() {
                 </button>
               )}
 
-              <div className="relative flex items-center min-w-[280px]">
+              {/* Search */}
+              <label className="relative block w-[225px]">
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Поиск"
-                  className="w-full bg-transparent border-b border-[#E5E5EA] text-[16px] placeholder:text-[#8E8E93] py-2 pr-8 outline-none focus:border-[#55CB00] transition-colors"
+                  className="h-[32px] w-full border-0 border-b border-[#09091d40] bg-transparent pl-0 pr-8 text-[14px] text-text-primary outline-none transition-colors placeholder:text-[#8e90a0] focus:border-[#55CB00]"
                 />
-                <Search
-                  className="absolute right-0 text-[#111111]"
-                  size={20}
-                />
-              </div>
+                <Search className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+              </label>
+            </div>
+
+            {/* Create button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (derivedShopId) {
+                    router.push(`/promotions/create/${derivedShopId}`);
+                  } else {
+                    router.push("/promotions/create");
+                  }
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#55CB00] px-3 text-[14px] font-semibold text-white transition-colors hover:bg-[#4abb00]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Создать промокод
+              </button>
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              if (derivedShopId) {
-                router.push(`/promotions/create/${derivedShopId}`);
-              } else {
-                router.push("/promotions/create");
-              }
-            }}
-            className="bg-[#55CB00] hover:bg-[#4AB100] text-white px-5 py-2.5 rounded-[12px] flex items-center gap-2 font-bold text-[15px] transition-colors whitespace-nowrap ml-4"
-          >
-            Создать промокод
-            <Plus className="w-5 h-5" />
-          </button>
-        </div>
+          {/* Shop filter panel */}
+          {isAdmin && filterActive && (
+            <div className="border-b border-border px-6 py-4 flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
+              <div className="w-[300px] relative" ref={filterShopDropdownRef}>
+                <div className="text-[12px] font-medium text-[#8E8E93] mb-2 ml-1">
+                  Магазин
+                </div>
 
-      {isAdmin && filterActive && (
-        <div className="mb-6 p-5 bg-[#F9F9FB] border border-[#E5E5EA] rounded-[24px] flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
-          {isAdmin && (
-            <div className="w-[300px] relative" ref={filterShopDropdownRef}>
-              <div className="text-[12px] font-medium text-[#8E8E93] mb-2 ml-1">
-                Магазин
-              </div>
-
-              <button
-                onClick={() =>
-                  setIsFilterShopDropdownOpen(!isFilterShopDropdownOpen)
-                }
-                className="w-full h-11 px-4 rounded-xl bg-white border border-[#E5E5EA] flex items-center justify-between text-sm transition-all hover:border-[#55CB00]"
-              >
-                <span
-                  className={cn(
-                    selectedFilterShopId ? "text-[#111111]" : "text-[#8E8E93]"
-                  )}
+                <button
+                  onClick={() =>
+                    setIsFilterShopDropdownOpen(!isFilterShopDropdownOpen)
+                  }
+                  className="w-full h-[32px] px-3 rounded-xl bg-[#f6f6fa] border border-[#ececf1] flex items-center justify-between text-[14px] transition-all hover:border-[#55CB00]"
                 >
-                  {selectedFilterShopId
-                    ? allShops.find((s) => s.id === selectedFilterShopId)?.name
-                    : "Все магазины"}
-                </span>
-                <ChevronDown
-                  size={16}
-                  className={cn(
-                    "text-[#8E8E93] transition-transform",
-                    isFilterShopDropdownOpen && "rotate-180"
-                  )}
-                />
-              </button>
+                  <span
+                    className={cn(
+                      selectedFilterShopId ? "text-text-primary" : "text-[#8e90a0]"
+                    )}
+                  >
+                    {selectedFilterShopId
+                      ? allShops.find((s) => s.id === selectedFilterShopId)?.name
+                      : "Все магазины"}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "text-text-secondary transition-transform",
+                      isFilterShopDropdownOpen && "rotate-180"
+                    )}
+                  />
+                </button>
 
-              {isFilterShopDropdownOpen && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#E5E5EA] py-2 z-20 transition-all animate-in zoom-in-95 duration-200 origin-top">
-                  <div className="px-3 pb-2 mb-1 border-b border-[#F2F2F7]">
-                    <div className="relative flex items-center bg-[#F2F2F7] rounded-lg px-3 py-1.5 transition-all focus-within:ring-1 focus-within:ring-[#55CB00]/20">
-                      <Search size={14} className="text-[#8E8E93] mr-2" />
-                      <input
-                        autoFocus
-                        placeholder="Поиск магазина..."
-                        className="w-full bg-transparent border-none outline-none text-xs text-[#111111] placeholder:text-[#8E8E93]"
-                        value={shopSearchQuery}
-                        onChange={(e) => setShopSearchQuery(e.target.value)}
-                      />
+                {isFilterShopDropdownOpen && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-lg border border-border py-2 z-20 transition-all animate-in zoom-in-95 duration-200 origin-top">
+                    <div className="px-3 pb-2 mb-1 border-b border-border">
+                      <div className="relative flex items-center bg-[#f6f6fa] rounded-lg px-3 py-1.5 transition-all focus-within:ring-1 focus-within:ring-[#55CB00]/20">
+                        <Search size={14} className="text-[#8e90a0] mr-2" />
+                        <input
+                          autoFocus
+                          placeholder="Поиск магазина..."
+                          className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-[#8e90a0]"
+                          value={shopSearchQuery}
+                          onChange={(e) => setShopSearchQuery(e.target.value)}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="max-h-[200px] overflow-y-auto px-1 custom-scrollbar">
-                    <button
-                      onClick={() => {
-                        setSelectedFilterShopId(null);
-                        setIsFilterShopDropdownOpen(false);
-                        setShopSearchQuery("");
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                        !selectedFilterShopId
-                          ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                          : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]"
-                      )}
-                    >
-                      Все магазины
-                    </button>
-                    {filteredShops.map((s) => (
+                    <div className="max-h-[200px] overflow-y-auto px-1 custom-scrollbar">
                       <button
-                        key={s.id}
                         onClick={() => {
-                          setSelectedFilterShopId(s.id);
+                          setSelectedFilterShopId(null);
                           setIsFilterShopDropdownOpen(false);
                           setShopSearchQuery("");
                         }}
                         className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between",
-                          selectedFilterShopId === s.id
+                          "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors",
+                          !selectedFilterShopId
                             ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                            : "text-[#111111] hover:bg-gray-50 hover:text-[#55CB00]"
+                            : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
                         )}
                       >
-                        <span className="truncate">{s.name}</span>
-                        <span className="text-[10px] text-[#8E8E93] ml-2">
-                          ID {s.id}
-                        </span>
+                        Все магазины
                       </button>
-                    ))}
-                    {filteredShops.length === 0 && (
-                      <div className="px-3 py-4 text-center text-xs text-[#8E8E93]">
-                        Магазины не найдены
-                      </div>
-                    )}
+                      {filteredShops.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedFilterShopId(s.id);
+                            setIsFilterShopDropdownOpen(false);
+                            setShopSearchQuery("");
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors flex items-center justify-between",
+                            selectedFilterShopId === s.id
+                              ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
+                              : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
+                          )}
+                        >
+                          <span className="truncate">{s.name}</span>
+                          <span className="text-[10px] text-[#b7b8c5] ml-2">
+                            ID {s.id}
+                          </span>
+                        </button>
+                      ))}
+                      {filteredShops.length === 0 && (
+                        <div className="px-3 py-4 text-center text-xs text-[#b7b8c5]">
+                          Магазины не найдены
+                        </div>
+                      )}
+                    </div>
                   </div>
+                )}
+              </div>
+
+              <button
+                className="h-[32px] px-4 text-[14px] font-medium text-[#8e90a0] hover:text-[#E26D5C] transition-colors flex items-center gap-2"
+                onClick={() => {
+                  setSelectedFilterShopId(null);
+                  setShopSearchQuery("");
+                }}
+              >
+                <RotateCcw size={14} />
+                Сбросить
+              </button>
+            </div>
+          )}
+
+          {/* Content area */}
+          {activeTab === "archive" && promocodes.length === 0 && !loading && (
+            <div className="flex min-h-[320px] items-center justify-center px-6 py-16 text-[14px] text-text-secondary">
+              Архив пуст
+            </div>
+          )}
+
+          {(activeTab === "promocodes" || promocodes.length > 0) && (
+            <>
+              {loading && (
+                <div className="flex min-h-[320px] items-center justify-center px-6 py-16">
+                  <Spinner size={32} />
                 </div>
               )}
-            </div>
-          )}
 
-          <button
-            className="h-11 px-6 text-sm font-semibold text-[#8E8E93] hover:text-[#FF3B30] transition-colors flex items-center gap-2"
-            onClick={() => {
-              setSelectedFilterShopId(null);
-              setShopSearchQuery("");
-            }}
-          >
-            <RotateCcw size={16} />
-            Сбросить
-          </button>
-        </div>
-      )}
+              {!loading && error && (
+                <div className="flex min-h-[320px] items-center justify-center px-6 py-16 text-[14px] text-[#E26D5C]">
+                  Ошибка: {error}
+                </div>
+              )}
 
-      {activeTab === "archive" && promocodes.length === 0 && !loading && (
-        <div className="text-center py-20">
-          <div className="text-[#8E8E93] text-[16px]">Архив пуст</div>
-        </div>
-      )}
-
-      {(activeTab === "promocodes" || promocodes.length > 0) && (
-        <>
-          {loading && (
-            <div className="flex items-center justify-center h-40">
-              <Spinner size={32} />
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="flex items-center justify-center h-40">
-              <div className="text-red-500">Ошибка: {error}</div>
-            </div>
-          )}
-
-          {!loading && !error && (
-            <>
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        ID
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider whitespace-nowrap">
-                        Дата
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        <div className="flex items-center gap-1 cursor-pointer hover:text-[#111111] transition-colors">
-                          Название
-                          <ChevronDown size={14} />
-                        </div>
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        Комментарий
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        <div className="flex items-center gap-1 cursor-pointer hover:text-[#111111] transition-colors">
-                          Выпуск
-                          <ChevronDown size={14} />
-                        </div>
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        Оборот
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        Условия
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        Содержание
-                      </th>
-                      <th className="text-left py-4 px-4 text-[13px] font-medium text-[#8E8E93] uppercase tracking-wider">
-                        Активация
-                      </th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {promocodes.map((p) => {
-                      const turnover = p.turnover ?? 0;
-                      const activation = p.activationCount ?? 0;
-
-                      return (
-                        <tr
-                          key={p.id}
-                          className="group hover:bg-gray-50/50 transition-colors"
-                        >
-                          <td className="py-5 px-4 text-[14px] text-[#8E8E93] font-medium">
-                            {p.id}
-                          </td>
-                          <td className="py-5 px-4 text-[14px] text-[#111111] font-medium whitespace-nowrap">
-                            {formatDate(p.createdAt)}
-                          </td>
-                          <td className="py-5 px-4">
-                            <div className="flex items-center gap-3">
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigator.clipboard.writeText(p.name);
-                                  toast.success("Промокод скопирован");
-                                }}
-                                className="cursor-pointer hover:opacity-70 transition-opacity"
-                              >
-                                <PromocodeIcon className="w-6 h-6 flex-shrink-0 text-[#478EFF]" />
-                              </div>
-                              <span className="text-[15px] text-[#478EFF] font-bold hover:underline decoration-2 underline-offset-4">
-                                {p.name}
-                              </span>
+              {!loading && !error && (
+                <>
+                  <div className="flex-1 overflow-x-auto px-3 pb-2">
+                    <table className="min-w-full border-separate border-spacing-0">
+                      <thead>
+                        <tr className="text-left text-[14px] text-text-secondary">
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            ID
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium whitespace-nowrap">
+                            Дата
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            <div className="inline-flex items-center gap-1">
+                              Название
+                              <ChevronDown className="h-3 w-3" />
                             </div>
-                          </td>
-                          <td className="py-5 px-4">
-                            <p className="text-[14px] text-[#8E8E93] line-clamp-2 max-w-[200px] leading-relaxed">
-                              {p.technicalName || "-"}
-                            </p>
-                          </td>
-                          <td className="py-5 px-4">
-                            {(() => {
-                              const shop = p.shop;
-                              const name = shop?.name || "SHOPLY";
-                              const photoUrl = shop?.photoId ? getImageUrl({ id: shop.photoId }) : null;
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            Комментарий
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            <div className="inline-flex items-center gap-1">
+                              Выпуск
+                              <ChevronDown className="h-3 w-3" />
+                            </div>
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            Оборот
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            Условия
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            Содержание
+                          </th>
+                          <th className="border-b border-border px-3 py-3 font-medium">
+                            Активация
+                          </th>
+                          <th className="border-b border-border px-3 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {promocodes.map((p) => {
+                          const turnover = p.turnover ?? 0;
+                          const activation = p.activationCount ?? 0;
 
-                              return (
-                                <div className="flex items-center gap-3">
-                                  {photoUrl ? (
-                                    <Image
-                                      src={photoUrl}
-                                      alt={name}
-                                      width={28}
-                                      height={28}
-                                      className="rounded-full object-cover border border-gray-100 shadow-sm"
-                                    />
-                                  ) : (
-                                    <div className="w-7 h-7 rounded-full bg-[#55CB00]/10 flex items-center justify-center text-[#55CB00] text-[11px] font-bold border border-[#55CB00]/20">
-                                      {name === "SHOPLY"
-                                        ? "S"
-                                        : name.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                  <span className="text-[14px] text-[#111111] font-medium whitespace-nowrap">
-                                    {name}
+                          return (
+                            <tr
+                              key={p.id}
+                              className="group cursor-pointer transition-colors hover:bg-[#fafafe]"
+                            >
+                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary">
+                                {p.id}
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-[16px] font-medium text-text-primary whitespace-nowrap">
+                                {formatDate(p.createdAt)}
+                              </td>
+                              <td className="border-b border-border px-3 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(p.name);
+                                      toast.success("Промокод скопирован");
+                                    }}
+                                    className="cursor-pointer hover:opacity-70 transition-opacity"
+                                  >
+                                    <PromocodeIcon className="w-5 h-5 flex-shrink-0 text-[#478EFF]" />
+                                  </div>
+                                  <span className="text-[16px] text-[#478EFF] font-bold hover:underline decoration-2 underline-offset-4">
+                                    {p.name}
                                   </span>
                                 </div>
-                              );
-                            })()}
-                          </td>
-                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
-                            {formatCurrency(turnover)}
-                          </td>
-                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-normal whitespace-nowrap">
-                            {getConditionsLabel(p)}
-                          </td>
-                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
-                            <span className="px-2 py-1 bg-gray-100 rounded-lg">
-                              {getContentLabel(p)}
-                            </span>
-                          </td>
-                          <td className="py-5 px-4 text-left text-[14px] text-[#111111] font-semibold">
-                            {activation}
-                          </td>
-                          <td className="py-5 px-4 text-right">
-                            <ChevronRight
-                              size={18}
-                              className="text-[#C7C7CC] group-hover:text-[#55CB00] transition-colors inline"
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              </td>
+                              <td className="border-b border-border px-3 py-3">
+                                <p className="text-[14px] text-text-secondary line-clamp-2 max-w-[200px] leading-relaxed">
+                                  {p.technicalName || "-"}
+                                </p>
+                              </td>
+                              <td className="border-b border-border px-3 py-3">
+                                {(() => {
+                                  const shop = p.shop;
+                                  const name = shop?.name || "SHOPLY";
+                                  const photoUrl = shop?.photoId ? getImageUrl({ id: shop.photoId }) : null;
 
-                    {/* Summary row */}
-                    {promocodes.length > 0 && (
-                      <tr className="bg-white">
-                        <td
-                          colSpan={4}
-                          className="py-6 px-4 text-[13px] text-[#8E8E93] font-medium"
-                        >
-                          {promocodes.length} промокодов
-                        </td>
-                        <td className="py-6 px-4"></td>
-                        <td className="py-6 px-4 text-left text-[15px] text-[#111111] font-semibold">
-                          {formatCurrency(totalTurnover)}
-                        </td>
-                        <td className="py-6 px-4"></td>
-                        <td className="py-6 px-4"></td>
-                        <td className="py-6 px-4 text-left text-[15px] text-[#111111] font-semibold">
-                          {totalActivations}
-                        </td>
-                        <td className="py-6 px-4"></td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      {photoUrl ? (
+                                        <Image
+                                          src={photoUrl}
+                                          alt={name}
+                                          width={24}
+                                          height={24}
+                                          className="rounded-full object-cover border border-[#ececf1]"
+                                        />
+                                      ) : (
+                                        <div className="w-6 h-6 rounded-full bg-[#55CB00]/10 flex items-center justify-center text-[#55CB00] text-[11px] font-bold border border-[#55CB00]/20">
+                                          {name === "SHOPLY"
+                                            ? "S"
+                                            : name.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span className="text-[16px] text-text-primary font-medium whitespace-nowrap">
+                                        {name}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
+                                {formatCurrency(turnover)}
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary whitespace-nowrap">
+                                {getConditionsLabel(p)}
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
+                                <span className="px-2 py-1 bg-[#f6f6fa] rounded-lg">
+                                  {getContentLabel(p)}
+                                </span>
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
+                                {activation}
+                              </td>
+                              <td className="border-b border-border px-3 py-3 text-right">
+                                <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
+                              </td>
+                            </tr>
+                          );
+                        })}
 
-              {promocodes.length === 0 && (
-                <div className="text-center py-20 text-[#8E8E93]">
-                  Нет промокодов
-                </div>
+                        {/* Summary row */}
+                        {promocodes.length > 0 && (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-3 py-4 text-[14px] text-text-secondary font-medium"
+                            >
+                              {promocodes.length} промокодов
+                            </td>
+                            <td className="px-3 py-4" />
+                            <td className="px-3 py-4 text-[16px] text-text-primary font-semibold">
+                              {formatCurrency(totalTurnover)}
+                            </td>
+                            <td className="px-3 py-4" />
+                            <td className="px-3 py-4" />
+                            <td className="px-3 py-4 text-[16px] text-text-primary font-semibold">
+                              {totalActivations}
+                            </td>
+                            <td className="px-3 py-4" />
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {promocodes.length === 0 && (
+                    <div className="flex min-h-[320px] items-center justify-center px-6 py-16 text-[14px] text-text-secondary">
+                      Нет промокодов
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-border text-[14px] text-text-secondary">
+                    <div>
+                      Страница {page} из {pageCount} (всего {total})
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={page <= 1}
+                        onClick={() => handlePageChange(page - 1)}
+                        className="inline-flex h-8 items-center rounded-xl border border-[#ececf1] bg-[#f6f6fa] px-3 text-[14px] font-medium text-text-primary disabled:opacity-50 transition-colors hover:bg-[#eeeef3]"
+                      >
+                        Назад
+                      </button>
+                      <button
+                        disabled={page >= pageCount}
+                        onClick={() => handlePageChange(page + 1)}
+                        className="inline-flex h-8 items-center rounded-xl border border-[#ececf1] bg-[#f6f6fa] px-3 text-[14px] font-medium text-text-primary disabled:opacity-50 transition-colors hover:bg-[#eeeef3]"
+                      >
+                        Вперед
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-50 text-[14px] text-[#8E8E93]">
-                <div>
-                  Страница {page} из {pageCount} (всего {total})
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => handlePageChange(page - 1)}
-                    className="px-4 py-2 bg-white border border-[#E5E5EA] rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                  >
-                    Назад
-                  </button>
-                  <button
-                    disabled={page >= pageCount}
-                    onClick={() => handlePageChange(page + 1)}
-                    className="px-4 py-2 bg-white border border-[#E5E5EA] rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                  >
-                    Вперед
-                  </button>
-                </div>
-              </div>
             </>
           )}
-        </>
-      )}
-    </div>
-  </div>
-);
+        </div>
+      </section>
+    </DashboardLayout>
+  );
 }

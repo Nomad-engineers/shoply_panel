@@ -44,7 +44,7 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
           queryParams.set("searchTerm", String(searchTerm));
         }
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocodes?${queryParams.toString()}`;
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode?${queryParams.toString()}`;
 
         const res = await fetchWithSession(
           url,
