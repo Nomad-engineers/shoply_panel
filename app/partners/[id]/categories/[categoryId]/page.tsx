@@ -54,9 +54,9 @@ function ProductRow({ product }: { product: V2PartnerCategoryProductDto }) {
 
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#f4f5fb]">
-          {product.photoId ? (
+          {product.photos?.[0] ? (
             <img
-              src={getImageUrl({ id: product.photoId }, { width: 80, height: 80, fit: "cover" })}
+              src={getImageUrl({ id: product.photos[0] }, { width: 80, height: 80, fit: "cover" })}
               alt={product.name}
               className="h-full w-full object-cover"
             />

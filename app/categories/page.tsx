@@ -59,10 +59,13 @@ function CategoryPageContent() {
     data: categories,
     loading,
     refetch,
-  } = useApiData<Category>("category/archived", {
-    relations: ["photo", "subCategory"],
-    searchParams: params,
-  });
+  } = useApiData<Category>(
+    activeTab === "archived" ? "category/archived" : null,
+    {
+      relations: ["photo", "subCategory"],
+      searchParams: params,
+    }
+  );
 
   const { data: searchedCategories, loading: searchLoading } =
     useApiData<SearchCategoryResponse>(
@@ -84,7 +87,7 @@ function CategoryPageContent() {
   }, [categories, activeTab]);
 
   const filteredCategories = useMemo(() => {
-    if (!shopId) {
+    if (activeTab === "archived" || !shopId) {
       return filteredArchivedCategories;
     }
 
@@ -105,7 +108,7 @@ function CategoryPageContent() {
       subCategory: [],
       isArchived: false,
     })) as Category[];
-  }, [filteredArchivedCategories, searchedCategories, shopId]);
+  }, [activeTab, filteredArchivedCategories, searchedCategories, shopId]);
 
   const { selectedIds, isAllSelected, toggleCategory, toggleAll } =
     useCategorySelection({ categories: filteredCategories });
@@ -209,12 +212,11 @@ function CategoryPageContent() {
   };
 
   const handleCardClick = (id: number, name: string) => {
-    router.push(
-      `/categories/${id}?name=${encodeURIComponent(name)}&tab=${activeTab}`
-    );
+    router.push(`/categories/${id}`);
   };
 
-  const isPageLoading = shopId ? searchLoading : loading;
+  const isPageLoading =
+    activeTab === "archived" ? loading : shopId ? searchLoading : loading;
 
   if (isPageLoading) {
     return (

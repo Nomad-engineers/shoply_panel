@@ -51,7 +51,7 @@ export default function SubCategoryPage() {
   const activeTab =
     (searchParams.get("tab") as "active" | "archived") || "active";
 
-  const { subCategories, loading } = useProductData({
+  const { category, subCategories, loading } = useProductData({
     categoryId: categoryId as string,
     searchQuery,
     tab: activeTab,
@@ -151,38 +151,27 @@ export default function SubCategoryPage() {
 
     if (selectedProduct && typeof window !== "undefined") {
       const seed: EditableProductData = {
-        id: selectedProduct.activeShopProduct.id,
+        productId: selectedProduct.activeShopProduct.id,
+        createdAt: selectedProduct.createdAt,
+        shopId: selectedProduct.activeShopProduct.shop.id,
+        categoryId: Number(categoryId),
+        subCategoryId: subId,
+        subCategoryName: selectedProduct.subCategoryName.trim(),
+        name: selectedProduct.name,
         purchasePrice: 0,
         price: selectedProduct.activeShopProduct.price,
         inStock: selectedProduct.activeShopProduct.inStock,
         archivedAt: selectedProduct.activeShopProduct.archivedAt || null,
-        shop: {
-          id: selectedProduct.activeShopProduct.shop.id,
-          name: selectedProduct.activeShopProduct.shop.name,
-        },
-        product: {
-          id: selectedProduct.activeShopProduct.id,
-          name: selectedProduct.name,
-          weight: selectedProduct.weight,
-          measure: (selectedProduct.measure || "pc") as ProductMeasure,
-          article: "",
-          barcodes: selectedProduct.barcodes,
-          subCategory: {
-            id: subId,
-            name: "",
-            category: {
-              id: Number(categoryId),
-              name: categoryName || "",
-            },
-          },
-          photos:
-            selectedProduct.photos?.map((photo, index) => ({
-              id: photo.id ?? index,
-              file: {
-                url: photo.file?.url || "",
-              },
-            })) ?? [],
-        },
+        weight: selectedProduct.weight,
+        measure: (selectedProduct.measure || "pc") as ProductMeasure,
+        article: "",
+        barcodes: selectedProduct.barcodes,
+        photos:
+          selectedProduct.photos?.map((photo, index) => ({
+            id: photo.id ?? index,
+            fileId: photo.fileId,
+            url: photo.file?.url || "",
+          })) ?? [],
       };
 
       window.sessionStorage.setItem(
@@ -191,15 +180,7 @@ export default function SubCategoryPage() {
       );
     }
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (shopId) {
-      params.set("shopId", shopId);
-    } else {
-      params.delete("shopId");
-    }
-    router.push(
-      `${pathname}/subCategory/${subId}/product/${shopProductId}?${params.toString()}`
-    );
+    router.push(`${pathname}/subCategory/${subId}/product/${shopProductId}`);
   };
 
   const handleArchiveSelected = async () => {
@@ -357,7 +338,7 @@ export default function SubCategoryPage() {
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <h2 className="text-[20px] font-bold leading-none text-[#1b2030]">
-                {categoryName}
+                {category?.name || categoryName}
               </h2>
             </div>
             <div className="flex items-center gap-4">

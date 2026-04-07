@@ -34,6 +34,11 @@ export function useProductData({
     },
   );
 
+  const category = useMemo(() => {
+    const responseData = subCategoriesData[0];
+    return responseData?.category ?? null;
+  }, [subCategoriesData]);
+
   const subCategories = useMemo((): SubCategoryWithFlattened[] => {
     const responseData = subCategoriesData[0];
     const actualRecords = responseData?.subCategories || [];
@@ -45,14 +50,28 @@ export function useProductData({
         const flattened: FlattenedProduct[] =
           sub.products?.map((product: any) => ({
             uniqueKey: String(product.productId),
+            createdAt: product.createdAt,
             name: product.name,
             barcodes: product.barcodes || [],
             weight: product.weight,
             measure: product.measure,
-            photos: product.photoId
-              ? [{ file: { url: getImageUrl({ id: product.photoId }, { width: 120, height: 120, fit: "cover" }) } }]
-              : [],
+            photos:
+              product.photos?.length
+                ? product.photos.map((fileId: string, index: number) => ({
+                    id: index,
+                    fileId,
+                    file: fileId
+                      ? {
+                          url: getImageUrl(
+                            { id: fileId },
+                            { width: 120, height: 120, fit: "cover" }
+                          ),
+                        }
+                      : undefined,
+                  }))
+                : [],
             subCategoryId: sub.id,
+            subCategoryName: sub.name.trim(),
             activeShopProduct: {
               id: product.productId,
               price: product.price,
@@ -78,6 +97,7 @@ export function useProductData({
   }, [subCategoriesData]);
 
   return {
+    category,
     subCategories,
     loading,
   };
