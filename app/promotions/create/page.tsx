@@ -143,7 +143,7 @@ export default function PromotionsCreateIndexPage() {
       };
 
       const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/promocode`, {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocodes`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

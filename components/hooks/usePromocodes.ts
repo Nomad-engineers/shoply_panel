@@ -29,37 +29,22 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
       try {
         const page = params?.page ?? initialParams?.page ?? 1;
         const pageSize = params?.pageSize ?? initialParams?.pageSize ?? 10;
-        const relations =
-          params?.relations ??
-          initialParams?.relations ??
-          "promocodeShop.shop,promocodeShop.shop.photo,orders";
         const shopId = params?.shopId ?? initialParams?.shopId;
+        const searchTerm = params?.filter?.searchTerm;
 
         const queryParams = new URLSearchParams();
         queryParams.set("page", String(page));
         queryParams.set("pageSize", String(pageSize));
-        queryParams.set("relations", relations);
-        queryParams.set("sort", JSON.stringify({ createdAt: "DESC" }));
-
-        const searchParams: any = {};
 
         if (shopId) {
-          searchParams.promocodeShop = {
-            shop: {
-              id: shopId,
-            },
-          };
+          queryParams.set("shopId", String(shopId));
         }
 
-        if (params?.filter) {
-          Object.assign(searchParams, params.filter);
+        if (searchTerm) {
+          queryParams.set("searchTerm", String(searchTerm));
         }
 
-        if (Object.keys(searchParams).length > 0) {
-          queryParams.set("search", JSON.stringify(searchParams));
-        }
-
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/promocodes?${queryParams.toString()}`;
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocodes?${queryParams.toString()}`;
 
         const res = await fetchWithSession(
           url,
@@ -83,9 +68,8 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
       refreshSession,
       initialParams?.page,
       initialParams?.pageSize,
-      initialParams?.relations,
       initialParams?.shopId,
-      initialParams?.filter,
+      initialParams?.filter?.searchTerm,
     ],
   );
 
@@ -96,9 +80,8 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     initialParams?.shopId,
     initialParams?.page,
     initialParams?.pageSize,
-    initialParams?.relations,
     initialParams?.skip,
-    initialParams?.filter,
+    initialParams?.filter?.searchTerm,
     fetchPromocodes,
   ]);
 

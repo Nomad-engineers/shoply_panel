@@ -87,71 +87,26 @@ export default function PromotionsPage() {
     );
   }, [allShops, shopSearchQuery]);
 
-  const { data, loading, error, refetch } = usePromocodes({
-    page,
-    pageSize,
-    relations: "promocodeShop.shop,promocodeShop.shop.photo,orders",
-    shopId: selectedFilterShopId || shopIdForFilter,
-    skip: authLoading || (!shopIdForFilter && !isAdmin),
-  });
+  const promocodeParams = useMemo(
+    () => ({
+      page,
+      pageSize,
+      shopId: selectedFilterShopId || shopIdForFilter,
+      skip: authLoading || (!shopIdForFilter && !isAdmin),
+      filter: { searchTerm },
+    }),
+    [
+      page,
+      pageSize,
+      selectedFilterShopId,
+      shopIdForFilter,
+      authLoading,
+      isAdmin,
+      searchTerm,
+    ]
+  );
 
-  const { fetchWithSession, refreshSession } = useAuth();
-
-  const [allTimeTurnover, setAllTimeTurnover] = useState<number | null>(null);
-
-  useEffect(() => {
-    const fetchTotalStats = async () => {
-      const isShopOwnerWithoutId = !shopIdForFilter && !isAdmin;
-      if (isShopOwnerWithoutId) {
-        return;
-      }
-
-      try {
-        const queryParams = new URLSearchParams();
-        queryParams.set("page", "1");
-        queryParams.set("pageSize", "30");
-        queryParams.set("relations", "orders");
-
-        if (shopIdForFilter) {
-          const searchParams = {
-            promocodeShop: {
-              shop: {
-                id: shopIdForFilter,
-              },
-            },
-          };
-          queryParams.set("search", JSON.stringify(searchParams));
-        }
-
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/promocodes?${queryParams.toString()}`;
-        const res = await fetchWithSession(
-          url,
-          () => localStorage.getItem("access_token"),
-          refreshSession
-        );
-
-        if (res.ok) {
-          const json = await res.json();
-          const allItems = (json.data || []) as Promocode[];
-
-          // Calculate total turnover
-          const total = allItems.reduce((sum, p) => {
-            const ordersSum = (p.orders ?? []).reduce(
-              (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-              0
-            );
-            return sum + ordersSum;
-          }, 0);
-
-          setAllTimeTurnover(total);
-        }
-      } catch (e) {
-        console.error("Failed to fetch total stats", e);
-      }
-    };
-
-    fetchTotalStats();
-  }, [isAdmin, shopIdForFilter, refetch, adminData]); // Re-fetch stats when filter changes or main data refetched
+  const { data, loading, error, refetch } = usePromocodes(promocodeParams);
 
   const total = data?.meta?.total ?? 0;
   const pageCount = data?.meta?.pageCount ?? 1;
@@ -181,40 +136,20 @@ export default function PromotionsPage() {
       list = list.filter((p) => p.validUntil && new Date(p.validUntil) <= now);
     }
 
-    // 1. Client-side Search
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.technicalName?.toLowerCase().includes(lowerSearch) ||
-          String(p.id).includes(lowerSearch)
-      );
-    }
-
-    // 2. Shop filter
+    // Client-side Shop filter (additional safety/UI consistency)
     if (shopIdForFilter) {
-      list = list.filter((p) => {
-        const shops = p.promocodeShop ?? [];
-        return shops.some((ps) => (ps as any)?.shop?.id === shopIdForFilter);
-      });
+      list = list.filter((p) => p.shop?.id === shopIdForFilter);
     }
 
     return list;
-  }, [data?.data, shopIdForFilter, searchTerm, activeTab]);
+  }, [data?.data, shopIdForFilter, activeTab]);
 
   const totalActivations = useMemo(() => {
-    return promocodes.reduce((sum, p) => sum + (p.orders?.length ?? 0), 0);
+    return promocodes.reduce((sum, p) => sum + (p.activationCount ?? 0), 0);
   }, [promocodes]);
 
   const totalTurnover = useMemo(() => {
-    return promocodes.reduce((sum, p) => {
-      const ordersSum = (p.orders ?? []).reduce(
-        (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-        0
-      );
-      return sum + ordersSum;
-    }, 0);
+    return promocodes.reduce((sum, p) => sum + (p.turnover ?? 0), 0);
   }, [promocodes]);
 
   const handlePageChange = (newPage: number) => {
@@ -222,8 +157,8 @@ export default function PromotionsPage() {
     refetch({
       page: newPage,
       pageSize,
-      relations: "promocodeShop.shop,promocodeShop.shop.photo,orders",
       shopId: shopIdForFilter,
+      filter: { searchTerm },
     });
   };
 
@@ -488,11 +423,8 @@ export default function PromotionsPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {promocodes.map((p) => {
-                      const turnover = (p.orders ?? []).reduce(
-                        (acc, o) => acc + (Number(o.subtotalPrice) || 0),
-                        0
-                      );
-                      const activation = (p.orders ?? []).length;
+                      const turnover = p.turnover ?? 0;
+                      const activation = p.activationCount ?? 0;
 
                       return (
                         <tr
@@ -529,13 +461,9 @@ export default function PromotionsPage() {
                           </td>
                           <td className="py-5 px-4">
                             {(() => {
-                              const shop = p.promocodeShop?.[0]?.shop;
+                              const shop = p.shop;
                               const name = shop?.name || "SHOPLY";
-                              const photoUrl = getImageUrl(shop?.photo, {
-                                width: 48,
-                                height: 48,
-                                fit: "cover",
-                              });
+                              const photoUrl = shop?.photoId ? getImageUrl({ id: shop.photoId }) : null;
 
                               return (
                                 <div className="flex items-center gap-3">
