@@ -17,6 +17,7 @@ import { useApiData } from "@/components/hooks/useApiData";
 import {
   Category,
   measureLabels,
+  ProductMeasure,
   ShopProduct,
 } from "@/types/category.types";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";

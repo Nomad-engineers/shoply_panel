@@ -24,6 +24,7 @@ import { ViewModeToggle } from "../components/category/ViewModeToggle";
 import { FlattenedProduct } from "./components/products/types";
 import { toast } from "sonner";
 import { EditableProductData } from "@/components/hooks/category/useEditProduct";
+import { ProductMeasure } from "@/types/category.types";
 
 export default function SubCategoryPage() {
   const router = useRouter();
@@ -176,7 +177,7 @@ export default function SubCategoryPage() {
             },
           },
           photos:
-            selectedProduct.photos?.map((photo, index) => ({
+            selectedProduct.photos?.map((photo: any, index: number) => ({
               id: photo.id ?? index,
               file: {
                 url: photo.file?.url || "",
@@ -429,7 +430,7 @@ export default function SubCategoryPage() {
                   onToggleOpen={() => toggleSubCategory(sub.id)}
                   onProductToggle={toggleProduct}
                   onProductClick={handleProductClick}
-                  onCopyArticle={copyToClipboard}
+                  onCopyBarcode={copyToClipboard}
                 />
               );
             })}
