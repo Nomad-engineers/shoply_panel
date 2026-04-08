@@ -163,6 +163,10 @@ export default function SubCategoryPage() {
         price: selectedProduct.activeShopProduct.price,
         inStock: selectedProduct.activeShopProduct.inStock,
         archivedAt: selectedProduct.activeShopProduct.archivedAt || null,
+        weight: selectedProduct.weight,
+        measure: (selectedProduct.measure || "pc") as ProductMeasure,
+        article: "",
+        barcodes: selectedProduct.barcodes,
         shop: {
           id: selectedProduct.activeShopProduct.shop.id,
           name: selectedProduct.activeShopProduct.shop.name,

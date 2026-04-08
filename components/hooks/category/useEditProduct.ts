@@ -10,6 +10,31 @@ interface PhotoState {
 }
 
 export interface EditableProductData {
+  product?: {
+    id: number;
+    name: string;
+    weight: number;
+    measure: ProductMeasure;
+    article: string;
+    barcodes: string[];
+    subCategory: {
+      id: number;
+      name: string;
+      category: {
+        id: number;
+        name: string;
+      };
+    };
+    photos: Array<{
+      id: number;
+      file: { url: string };
+    }>;
+  };
+
+  shop?: {
+    id: number;
+    name: string;
+  };
   productId: number;
   createdAt: string;
   shopId: number;

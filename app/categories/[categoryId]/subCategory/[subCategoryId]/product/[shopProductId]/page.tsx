@@ -18,7 +18,6 @@ import {
   Category,
   ProductMeasure,
   measureLabels,
-  ProductMeasure,
   ShopProduct,
 } from "@/types/category.types";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";
