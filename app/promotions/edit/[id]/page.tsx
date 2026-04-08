@@ -3,33 +3,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { mutate } from "swr";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Check, ChevronDown, ChevronLeft, Trash2 } from "lucide-react";
 
+import { DashboardLayout } from "@/components/layout";
+import { Button, Input, Switch, Spinner } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import { useShops } from "@/components/hooks/useShops";
 import type { Shop } from "@/types/shop";
+import type { Promocode } from "@/types/promocode";
 import { getImageUrl } from "@/lib/utils";
-
-import { DashboardLayout } from "@/components/layout";
-import { Button, Input, Switch, Spinner } from "@/components/ui";
+import { toast } from "sonner";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
-
 type UsageMode = "quantity" | "infinite" | "temporary";
 
-const generateCode = () => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let res = "";
-  for (let i = 0; i < 8; i++) {
-    res += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return res;
-};
-
-export default function PromotionsCreateIndexPage() {
+export default function EditPromocodePage() {
   const router = useRouter();
+  const params = useParams();
+  const promocodeId = params?.id;
 
   const {
     adminData,
@@ -37,26 +30,16 @@ export default function PromotionsCreateIndexPage() {
     fetchWithSession,
     loading: authLoading,
   } = useAuth();
-  const derivedShopId = adminData?.shopId;
 
   const isAdmin = adminData?.isAdmin ?? false;
 
-  const {
-    shops,
-    loading: shopsLoading,
-    error: shopsError,
-  } = useShops({
-    isAdmin,
-    dateFrom: new Date().toISOString().split("T")[0],
-    dateTo: new Date(new Date().getTime() + 86400000).toISOString().split("T")[0],
-    skip: authLoading || !adminData,
-  });
-
-  const [open, setOpen] = useState(false);
-  const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
-
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [initialShop, setInitialShop] = useState<Shop | null>(null);
+  const [shopId, setShopId] = useState<number | null>(null);
 
   const [technicalName, setTechnicalName] = useState("");
   const [promocodeName, setPromocodeName] = useState("");
@@ -77,12 +60,105 @@ export default function PromotionsCreateIndexPage() {
 
   const [typeOpen, setTypeOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+
+  const {
+    shops,
+    loading: shopsLoading,
+    error: shopsError,
+  } = useShops({
+    isAdmin,
+    dateFrom: new Date().toISOString().split("T")[0],
+    dateTo: new Date(new Date().getTime() + 86400000).toISOString().split("T")[0],
+    skip: authLoading || !adminData,
+  });
+
+  const selectedShop = useMemo(() => {
+    if (shopId === -1) return null;
+    const found = shops.find((s) => s.id === shopId);
+    return found || initialShop;
+  }, [shopId, shops, initialShop]);
 
   useEffect(() => {
-    if (derivedShopId) {
-      router.replace(`/promotions/create/${derivedShopId}`);
-    }
-  }, [derivedShopId, router]);
+    const loadFromSession = () => {
+      try {
+        const raw = sessionStorage.getItem(`shoply:edit-promocode:${promocodeId}`);
+        if (raw) {
+          const p = JSON.parse(raw) as Promocode;
+          mapPromocodeToState(p);
+          setLoading(false);
+          return true;
+        }
+      } catch (e) {
+        console.error("Error loading from session storage", e);
+      }
+      return false;
+    };
+
+    const mapPromocodeToState = (p: Promocode) => {
+      setTechnicalName(p.technicalName || "");
+      setPromocodeName(p.name || "");
+      // minSum might be stored in technicalName or meta in some versions
+      // Default to 0 if not explicitly in the type
+      setMinSum(0); 
+      setType(p.type as DiscountType);
+      setValueForType(p.valueForType || 0);
+      
+      const sid = p.shop?.id || -1; // -1 for Regional
+      setShopId(sid);
+
+      if (p.usageLimit === null || p.usageLimit === undefined || p.usageLimit === 0) {
+        if (p.validUntil) {
+          setUsageMode("temporary");
+          setValidUntil(new Date(p.validUntil).toISOString().slice(0, 16));
+          setValidUntilEnabled(true);
+        } else {
+          setUsageMode("infinite");
+        }
+        setUsageLimit(0);
+      } else {
+        setUsageMode("quantity");
+        setUsageLimit(p.usageLimit);
+      }
+
+      if (p.shop?.id) {
+        setInitialShop(p.shop as any);
+      }
+    };
+
+    const loadPromocode = async () => {
+      const hasInitialData = loadFromSession();
+      if (!hasInitialData) setLoading(true);
+
+      if (!promocodeId) return;
+
+      try {
+        // Try the list endpoint with ID filter if direct detail fetch is failing
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`;
+        const res = await fetchWithSession(
+          url,
+          () => localStorage.getItem("access_token"),
+          refreshSession,
+        );
+
+        if (res.ok) {
+          const json = await res.json();
+          const p: Promocode = json.data ?? json;
+          mapPromocodeToState(p);
+          setSubmitError(null);
+        } else if (!hasInitialData) {
+          // If both fail and no session storage data, then error
+          throw new Error("Не удалось загрузить данные промокода");
+        }
+      } catch (e: any) {
+        if (!hasInitialData) setSubmitError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPromocode();
+  }, [fetchWithSession, refreshSession, promocodeId]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -98,13 +174,7 @@ export default function PromotionsCreateIndexPage() {
     }
   }, [usageMode]);
 
-  const selectedShop = useMemo(() => {
-    if (selectedShopId === null) return null;
-    return shops.find((s) => s.id === selectedShopId) ?? null;
-  }, [selectedShopId, shops]);
-
   const isSaveDisabled = useMemo(() => {
-    if (!selectedShopId) return true;
     if (!technicalName.trim()) return true;
     if (!promocodeName.trim()) return true;
     if (type === "fixed" && valueForType <= 0) return true;
@@ -117,7 +187,6 @@ export default function PromotionsCreateIndexPage() {
     return false;
   }, [
     promocodeName,
-    selectedShopId,
     technicalName,
     type,
     usageLimit,
@@ -131,9 +200,6 @@ export default function PromotionsCreateIndexPage() {
     setSaving(true);
 
     try {
-      const shopId = selectedShopId;
-      if (!shopId) throw new Error("Выберите магазин");
-
       const body = {
         technicalName: technicalName.trim(),
         promocodeName: promocodeName.trim(),
@@ -145,15 +211,14 @@ export default function PromotionsCreateIndexPage() {
             ? new Date(validUntil).toISOString()
             : null,
         type,
-        shopId,
-
+        shopId: shopId === -1 ? null : shopId,
         payFromShop: isAdmin ? payFromShop : false,
         onlyOneActivation: oneActivation,
       };
 
-      const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
-          method: "POST",
+      const doPatch = async (token: string) => {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`, {
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -165,22 +230,18 @@ export default function PromotionsCreateIndexPage() {
       let token = localStorage.getItem("access_token");
       if (!token) throw new Error("Не авторизован");
 
-      let postRes = await doPost(token);
-      if (postRes.status === 401) {
+      let patchRes = await doPatch(token);
+      if (patchRes.status === 401) {
         token = await refreshSession();
-        postRes = await doPost(token);
+        patchRes = await doPatch(token);
       }
 
-      if (!postRes.ok) {
-        if (postRes.status === 400) {
-          const errorJson = await postRes.json();
-          if (errorJson.message === "promocode with this name already exist") {
-            throw new Error("Такой промокод уже существует");
-          }
-        }
-        throw new Error("Не удалось создать промокод");
+      if (!patchRes.ok) {
+        const errorJson = await patchRes.json();
+        throw new Error(errorJson.message || "Не удалось обновить промокод");
       }
 
+      toast.success("Промокод обновлен");
       // Clear SWR cache for promocodes list
       mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
       
@@ -192,6 +253,42 @@ export default function PromotionsCreateIndexPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("Вы уверены, что хотите удалить этот промокод?")) return;
+    setDeleting(true);
+    try {
+      const doDelete = async (token: string) => {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      };
+
+      let token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Не авторизован");
+
+      let delRes = await doDelete(token);
+      if (delRes.status === 401) {
+        token = await refreshSession();
+        delRes = await doDelete(token);
+      }
+
+      if (!delRes.ok) throw new Error("Не удалось удалить промокод");
+
+      toast.success("Промокод удален");
+      // Clear SWR cache for promocodes list
+      mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
+      
+      router.push("/promotions");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const header = (
     <div className="flex w-full items-center gap-8">
       <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
@@ -199,6 +296,16 @@ export default function PromotionsCreateIndexPage() {
       </h1>
     </div>
   );
+
+  if (loading) {
+    return (
+      <DashboardLayout header={header}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Spinner size={32} />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -220,116 +327,21 @@ export default function PromotionsCreateIndexPage() {
               <ChevronLeft className="w-5 h-5 text-[#111111]" />
             </button>
             <div className="text-[16px] font-semibold text-[#111111]">
-              Создание промокода
+              Редактирование промокода
             </div>
 
-            <div className="relative ml-4">
+            <div className="h-4 w-px bg-[#DCDCE6] mx-2" />
+
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                onClick={() => setShopOpen(!shopOpen)}
+                className="flex items-center gap-2 text-[15px] font-medium text-[#111111]"
                 disabled={shopsLoading || Boolean(shopsError)}
               >
-                <span className="max-w-[200px] truncate">
-                  {selectedShopId === -1
-                    ? "Региональный"
-                    : selectedShop
-                      ? selectedShop.name
-                      : shopsLoading
-                        ? "Загрузка..."
-                        : "Выберите магазин"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
-
-              {open && !shopsLoading && !shopsError && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => setOpen(false)}
-                  />
-                  <div className="absolute z-20 top-[-8px] left-[-8px] w-80 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar">
-                  <button
-                    type="button"
-                    className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
-                    onClick={() => {
-                      setSelectedShopId(-1);
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#5AC800] flex items-center justify-center">
-                        <Check className="w-6 h-6 text-white" />
-                      </div>
-                      <span className="text-[#111111] font-medium">Региональный</span>
-                    </div>
-                    <div
-                      className={cn(
-                        "w-6 h-6 rounded-full transition-all",
-                        selectedShopId === -1
-                          ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
-                          : "bg-[#F2F2F7]",
-                      )}
-                    />
-                  </button>
-
-                  {(shops || []).map((shop) => (
-                    <div key={shop.id}>
-                      <div className="mx-5 h-px bg-[#F2F2F7]" />
-                      <button
-                        type="button"
-                        className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors"
-                        onClick={() => {
-                          setSelectedShopId(shop.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {shop.photo ? (
-                            <img
-                              src={getImageUrl(shop.photo, {
-                                width: 40,
-                                height: 40,
-                                fit: "cover",
-                              })}
-                              alt={shop.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-[#F6F6FA] flex items-center justify-center text-[#111111] font-bold text-sm">
-                              {shop.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex flex-col">
-                            <span className="text-[#111111] font-medium truncate max-w-[140px]">
-                              {shop.name}
-                            </span>
-                            <span className="text-[11px] text-[#8E8E93]">
-                              ID {shop.id}
-                            </span>
-                          </div>
-                        </div>
-                        <div
-                          className={cn(
-                            "w-6 h-6 rounded-full transition-all",
-                            selectedShopId === shop.id
-                              ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
-                              : "bg-[#F2F2F7]",
-                          )}
-                        />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            </div>
-
-            {(selectedShop || selectedShopId === -1) && (
-              <div className="flex items-center gap-2">
-                {selectedShopId === -1 ? (
+                {shopId === -1 ? (
                   <div className="w-6 h-6 rounded-full bg-[#5AC800] flex items-center justify-center">
-                    <div className="w-3 h-1.5 border-b-2 border-l-2 border-white -rotate-45 mb-0.5" />
+                    <Check className="w-3 h-3 text-white" />
                   </div>
                 ) : selectedShop?.photo?.url ? (
                   <img
@@ -343,35 +355,121 @@ export default function PromotionsCreateIndexPage() {
                   />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold border border-gray-200">
-                    {selectedShop?.name?.charAt(0).toUpperCase()}
+                    {selectedShop?.name?.charAt(0).toUpperCase() || "?"}
                   </div>
                 )}
-                <Lock className="w-4 h-4 text-[#C7C7CC]" />
-              </div>
-            )}
+                <span className="max-w-[150px] truncate">
+                  {shopId === -1 ? "Региональный" : selectedShop?.name || "Загрузка..."}
+                </span>
+                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+              </button>
+
+              {shopOpen && !shopsLoading && !shopsError && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10 cursor-default"
+                    onClick={() => setShopOpen(false)}
+                  />
+                  <div className="absolute z-20 top-[40px] left-0 w-80 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar border border-border">
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setShopId(-1);
+                        setShopOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#5AC800] flex items-center justify-center">
+                          <Check className="w-6 h-6 text-white" />
+                        </div>
+                        <span className="text-[#111111] font-medium">Региональный</span>
+                      </div>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          shopId === -1
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+
+                    {(shops || []).map((s) => (
+                      <div key={s.id}>
+                        <div className="mx-5 h-px bg-[#F2F2F7]" />
+                        <button
+                          type="button"
+                          className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors"
+                          onClick={() => {
+                            setShopId(s.id);
+                            setShopOpen(false);
+                          }}
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {s.photo ? (
+                              <img
+                                src={getImageUrl(s.photo, {
+                                  width: 40,
+                                  height: 40,
+                                  fit: "cover",
+                                })}
+                                alt={s.name}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-[#F6F6FA] flex items-center justify-center text-[#111111] font-bold text-sm">
+                                {s.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex flex-col">
+                              <span className="text-[#111111] font-medium truncate max-w-[140px]">
+                                {s.name}
+                              </span>
+                              <span className="text-[11px] text-[#8E8E93]">
+                                ID {s.id}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            className={cn(
+                              "w-6 h-6 rounded-full transition-all",
+                              shopId === s.id
+                                ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                                : "bg-[#F2F2F7]",
+                            )}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          <Button
-            variant="secondary"
-            className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
-            disabled={isSaveDisabled || saving}
-            onClick={submit}
-          >
-            Сохранить
-            {saving ? <Spinner size={16} /> : <Check className="w-4 h-4" />}
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2 text-[14px] font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {deleting ? <Spinner size={16} /> : <Trash2 className="w-4 h-4" />}
+              Удалить
+            </button>
+            <Button
+              variant="secondary"
+              className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
+              disabled={isSaveDisabled || saving}
+              onClick={submit}
+            >
+              Сохранить
+              {saving ? <Spinner size={16} /> : <Check className="w-4 h-4" />}
+            </Button>
+          </div>
         </div>
 
         <div className="px-6 py-6 space-y-6">
-          {(shopsLoading || shopsError) && (
-            <div className="mb-2">
-              {shopsLoading && <Spinner size={24} />}
-              {!shopsLoading && shopsError && (
-                <div className="text-red-500 text-sm font-medium">Ошибка: {shopsError}</div>
-              )}
-            </div>
-          )}
-
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-2">
               <div className="text-[13px] text-[#8E8E93] font-medium">
@@ -389,27 +487,12 @@ export default function PromotionsCreateIndexPage() {
               <div className="text-[13px] text-[#8E8E93] font-medium">
                 Промокод
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Поле ввода"
-                    value={promocodeName}
-                    onChange={(e) => setPromocodeName(e.target.value)}
-                    className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const code = generateCode();
-                    setPromocodeName(code);
-                    if (!technicalName) setTechnicalName(code);
-                  }}
-                  className="text-[15px] text-[#2F80ED] font-semibold"
-                >
-                  Сгенерировать
-                </button>
-              </div>
+              <Input
+                placeholder="Поле ввода"
+                value={promocodeName}
+                onChange={(e) => setPromocodeName(e.target.value)}
+                className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+              />
             </div>
           </div>
 
@@ -639,7 +722,7 @@ export default function PromotionsCreateIndexPage() {
                   type="number"
                   value={String(minSum)}
                   onChange={(e) => setMinSum(Number(e.target.value))}
-                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12"
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12 focus:ring-1 focus:ring-[#5AC800]"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
                   руб

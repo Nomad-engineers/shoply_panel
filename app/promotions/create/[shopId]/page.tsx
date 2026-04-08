@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 
-import { Button, Input, Switch } from "@/components/ui";
+import { DashboardLayout } from "@/components/layout";
+import { Button, Input, Switch, Spinner } from "@/components/ui";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Shop } from "@/types/shop";
@@ -30,7 +31,12 @@ export default function CreatePromocodePage() {
 
   const shopId = Number((params as any)?.shopId);
 
-  const { adminData, refreshSession, fetchWithSession, loading: authLoading } = useAuth();
+  const {
+    adminData,
+    refreshSession,
+    fetchWithSession,
+    loading: authLoading,
+  } = useAuth();
   const derivedShopId = adminData?.shopId;
 
   const isAdmin = adminData?.isAdmin ?? false;
@@ -53,6 +59,7 @@ export default function CreatePromocodePage() {
   const [minSum, setMinSum] = useState<number>(0);
 
   const [payFromShop, setPayFromShop] = useState(false);
+  const [oneActivation, setOneActivation] = useState(false);
 
   const [validUntilEnabled, setValidUntilEnabled] = useState(false);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -147,9 +154,9 @@ export default function CreatePromocodePage() {
         shopId,
 
         payFromShop: isAdmin ? payFromShop : false,
+        onlyOneActivation: oneActivation,
       };
 
-      // Для POST используем обычный fetch + refresh при 401.
       const doPost = async (token: string) => {
         return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
           method: "POST",
@@ -188,376 +195,410 @@ export default function CreatePromocodePage() {
     }
   };
 
+  const header = (
+    <div className="flex w-full items-center gap-8">
+      <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
+        Акции и промокоды
+      </h1>
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-3xl">
-      <div
-        className="flex items-center justify-between px-6 py-4 border-b"
-        style={{ borderColor: "rgba(220, 220, 230, 1)" }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            className="inline-flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-50"
-            onClick={() => router.back()}
-            type="button"
-          >
-            <ChevronLeft className="w-5 h-5 text-[#111111]" />
-          </button>
-          <div className="text-[16px] font-semibold text-[#111111]">
-            Создание промокода
-          </div>
-
-          <div className="flex items-center gap-2 ml-4">
-            {shop?.photo?.url ? (
-              <img
-                src={getImageUrl(shop.photo, {
-                  width: 40,
-                  height: 40,
-                  fit: "cover",
-                })}
-                alt={shop.name}
-                className="w-5 h-5 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-[#5AC800]" />
-            )}
-            <div className="text-sm text-[#111111] font-medium">
-              {shopLoading ? "..." : (shop?.name ?? "")}
-            </div>
-            <Lock className="w-4 h-4 text-[#C7C7CC]" />
-          </div>
-        </div>
-
-        <Button
-          variant="secondary"
-          className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
-          disabled={isSaveDisabled || saving}
-          onClick={submit}
-        >
-          Сохранить
-          <Check className="w-4 h-4" />
-        </Button>
-      </div>
-
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">
-              Техническое название
-            </div>
-            <Input
-              placeholder="Поле ввода"
-              value={technicalName}
-              onChange={(e) => setTechnicalName(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Промокод</div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Поле ввода"
-                  value={promocodeName}
-                  onChange={(e) => setPromocodeName(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const code = generateCode();
-                  setPromocodeName(code);
-                  if (!technicalName) setTechnicalName(code);
-                }}
-                className="text-sm text-[#2F80ED] font-medium"
-              >
-                Сгенерировать
-              </button>
-            </div>
-          </div>
-        </div>
-
+    <DashboardLayout
+      header={header}
+      headerClassName="pl-4 pr-8"
+      contentClassName="min-h-0 p-0"
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+        >
+          <div className="flex items-center gap-3">
+            <button
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-50"
+              onClick={() => router.back()}
+              type="button"
+            >
+              <ChevronLeft className="w-5 h-5 text-[#111111]" />
+            </button>
+            <div className="text-[16px] font-semibold text-[#111111]">
+              Создание промокода
+            </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Содержание</div>
-            <div className="relative">
-              <Input
-                type="number"
-                value={String(valueForType)}
-                onChange={(e) => setValueForType(Number(e.target.value))}
-                className="pr-16"
-                disabled={type === "freeDelivery"}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                {type === "percent" ? "%" : type === "fixed" ? "руб" : ""}
+            <div className="h-4 w-px bg-[#DCDCE6] mx-2" />
+
+            <div className="flex items-center gap-2">
+              {shop?.photo?.url ? (
+                <img
+                  src={getImageUrl(shop.photo, {
+                    width: 40,
+                    height: 40,
+                    fit: "cover",
+                  })}
+                  alt={shop.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-[#5AC800] flex items-center justify-center">
+                  <div className="w-3 h-1.5 border-b-2 border-l-2 border-white -rotate-45 mb-0.5" />
+                </div>
+              )}
+              <div className="text-sm text-[#111111] font-medium">
+                {shopLoading ? "..." : (shop?.name ?? "Региональный")}
               </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">&nbsp;</div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setTypeOpen(!typeOpen);
-                  setUsageOpen(false);
-                }}
-                className="w-full h-10 px-3 border border-input rounded-md flex items-center justify-between text-sm"
-              >
-                <span className="text-[#111111]">
+          <Button
+            variant="secondary"
+            className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
+            disabled={isSaveDisabled || saving}
+            onClick={submit}
+          >
+            Сохранить
+            {saving ? <Spinner size={16} /> : <Check className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        <div className="px-6 py-6 space-y-6">
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium">
+                Техническое название
+              </div>
+              <Input
+                placeholder="Поле ввода"
+                value={technicalName}
+                onChange={(e) => setTechnicalName(e.target.value)}
+                className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium">
+                Промокод
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Поле ввода"
+                    value={promocodeName}
+                    onChange={(e) => setPromocodeName(e.target.value)}
+                    className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = generateCode();
+                    setPromocodeName(code);
+                    if (!technicalName) setTechnicalName(code);
+                  }}
+                  className="text-[15px] text-[#2F80ED] font-semibold"
+                >
+                  Сгенерировать
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="space-y-2">
+            <div className="text-[13px] text-[#8E8E93] font-medium">
+              Содержание
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="relative w-[340px]">
+                <Input
+                  type="number"
+                  value={String(valueForType)}
+                  onChange={(e) => setValueForType(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12"
+                  disabled={type === "freeDelivery"}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  {type === "percent" ? "%" : type === "fixed" ? "руб" : ""}
+                </div>
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeOpen(!typeOpen);
+                    setUsageOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                >
                   {type === "fixed"
                     ? "Фиксированный"
                     : type === "percent"
                       ? "Процент"
                       : "Бесплатная доставка"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
+                  <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+                </button>
 
-              {typeOpen && (
-                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("fixed");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Фиксированный
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        type === "fixed"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("percent");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Процент
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        type === "percent"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("freeDelivery");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Бесплатная доставка
+                {typeOpen && (
+                  <>
                     <div
-                      className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                        type === "freeDelivery"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                      className="fixed inset-0 z-10 cursor-default"
+                      onClick={() => setTypeOpen(false)}
+                    />
+                    <div className="absolute z-20 top-[-8px] left-[-8px] w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden no-scrollbar">
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("fixed");
+                        setTypeOpen(false);
+                      }}
                     >
-                      {type === "freeDelivery" && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </button>
-                </div>
+                      <span className="text-[#111111] font-normal">Фиксированный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "fixed"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("percent");
+                        setTypeOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Процент</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "percent"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("freeDelivery");
+                        setTypeOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Бесплатная доставка</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "freeDelivery"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                  </div>
+                </>
               )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
-
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Условия</div>
-            <div className="relative">
-              <Input
-                type="number"
-                value={String(usageLimit)}
-                onChange={(e) => setUsageLimit(Number(e.target.value))}
-                className="pr-16"
-                disabled={usageMode !== "quantity"}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                шт.
               </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">&nbsp;</div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsageOpen(!usageOpen);
-                  setTypeOpen(false);
-                }}
-                className="w-full h-10 px-3 border border-input rounded-md flex items-center justify-between text-sm"
-              >
-                <span className="text-[#111111]">
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="space-y-2">
+            <div className="text-[13px] text-[#8E8E93] font-medium">
+              Условия
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="relative w-[340px]">
+                <Input
+                  type="number"
+                  value={String(usageLimit)}
+                  onChange={(e) => setUsageLimit(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12 focus:ring-1 focus:ring-[#5AC800]"
+                  disabled={usageMode !== "quantity"}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  шт.
+                </div>
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsageOpen(!usageOpen);
+                    setTypeOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                >
                   {usageMode === "quantity"
-                    ? "Заданное количество"
+                    ? "Количество"
                     : usageMode === "infinite"
                       ? "Бесконечный"
                       : "Временный"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
+                  <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+                </button>
 
-              {usageOpen && (
-                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("quantity");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Заданное количество
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "quantity"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                {usageOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10 cursor-default"
+                      onClick={() => setUsageOpen(false)}
                     />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("infinite");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Бесконечный
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "infinite"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("temporary");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Временный
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "temporary"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
+                    <div className="absolute z-20 top-[-8px] left-[-8px] w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden no-scrollbar">
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("quantity");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Заданное количество</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "quantity"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("infinite");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Бесконечный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "infinite"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("temporary");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Временный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "temporary"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                  </div>
+                </>
+              )}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="grid grid-cols-2 gap-8 items-end">
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium leading-tight max-w-[280px]">
+                Минимальная сумма для активации промокода
+              </div>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={String(minSum)}
+                  onChange={(e) => setMinSum(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  руб
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {validUntilEnabled && (
+                <>
+                  <div className="text-[13px] text-[#8E8E93] font-medium">
+                    Дата окончания
+                  </div>
+                  <Input
+                    type="datetime-local"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+                  />
+                </>
               )}
             </div>
           </div>
-        </div>
 
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
+          <div className="h-px bg-[#DCDCE6]/60" />
 
-        <div className="grid grid-cols-2 gap-6 items-end">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">
-              Минимальная сумма для активации промокода
-            </div>
-            <div className="relative">
-              <Input
-                type="number"
-                value={String(minSum)}
-                onChange={(e) => setMinSum(Number(e.target.value))}
-                className="pr-16"
+          <div className="space-y-6">
+            <div className="flex items-start gap-3">
+              <Switch
+                checked={oneActivation}
+                onCheckedChange={(v) => setOneActivation(Boolean(v))}
+                className="mt-1"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                руб
+              <div className="space-y-0.5">
+                <div className="text-[16px] font-semibold text-[#111111]">
+                  Одна активация
+                </div>
+                <div className="text-[14px] text-[#8E8E93]">
+                  Активировать можно одному пользователю только один раз
+                </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            {validUntilEnabled && (
-              <div>
-                <div className="text-xs text-[#8E8E93] mb-2">
-                  Дата окончания
-                </div>
-                <Input
-                  type="datetime-local"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={payFromShop}
+                  onCheckedChange={(v) => setPayFromShop(Boolean(v))}
                 />
+                <div className="text-[16px] font-semibold text-[#111111]">
+                  За счет магазина
+                </div>
               </div>
             )}
           </div>
-        </div>
 
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
-
-        <div className="flex flex-col gap-6">
-          {isAdmin && (
-            <div className="flex flex-row-reverse items-center justify-end gap-2">
-              <div className="text-sm font-medium text-[#111111]">
-                За счет магазина
-              </div>
-              <Switch
-                checked={payFromShop}
-                onCheckedChange={(v) => setPayFromShop(Boolean(v))}
-              />
+          {submitError && (
+            <div className="mt-6 text-sm text-red-600 font-medium">
+              {submitError}
             </div>
           )}
+
+          {!shopId || Number.isNaN(shopId) ? (
+            <div className="mt-6 text-sm text-red-600 font-medium">
+              Не передан корректный shopId в URL
+            </div>
+          ) : null}
         </div>
-
-        {submitError && (
-          <div className="mt-6 text-sm text-red-600">{submitError}</div>
-        )}
-
-        {!shopId || Number.isNaN(shopId) ? (
-          <div className="mt-6 text-sm text-red-600">
-            Не передан корректный shopId в URL
-          </div>
-        ) : null}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

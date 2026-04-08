@@ -72,6 +72,19 @@ export const useShops = (initialParams?: FetchShopsParams) => {
   };
 
   useEffect(() => {
+    if (initialParams) {
+      setParams(initialParams);
+    }
+  }, [
+    initialParams?.isAdmin,
+    initialParams?.periodType,
+    initialParams?.dateFrom,
+    initialParams?.dateTo,
+    initialParams?.skip,
+    initialParams?.isPublic,
+  ]);
+
+  useEffect(() => {
     if (data) {
       const rawData = data.data || data;
       const shopsData = Array.isArray(rawData) ? rawData : [];

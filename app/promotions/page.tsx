@@ -74,9 +74,17 @@ export default function PromotionsPage() {
   const pageSize = 30;
 
   // Filter States
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  
+  const today = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-  const { shops: allShops, loading: shopsLoading } = useShops();
+  const { shops: allShops, loading: shopsLoading } = useShops({ 
+    isAdmin, 
+    dateFrom: today,
+    dateTo: tomorrow,
+    skip: authLoading
+  });
   const filteredShops = useMemo(() => {
     if (!shopSearchQuery) return allShops || [];
     const lowerQuery = shopSearchQuery.toLowerCase();
@@ -91,7 +99,7 @@ export default function PromotionsPage() {
       pageSize,
       shopId: selectedFilterShopId || shopIdForFilter,
       skip: authLoading || (!shopIdForFilter && !isAdmin),
-      filter: { searchTerm },
+      filter: { search },
     }),
     [
       page,
@@ -100,11 +108,16 @@ export default function PromotionsPage() {
       shopIdForFilter,
       authLoading,
       isAdmin,
-      searchTerm,
+      search,
     ]
   );
 
   const { data, loading, error, refetch } = usePromocodes(promocodeParams);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedFilterShopId]);
 
   const total = data?.meta?.total ?? 0;
   const pageCount = data?.meta?.pageCount ?? 1;
@@ -139,7 +152,7 @@ export default function PromotionsPage() {
       list = list.filter((p) => p.shop?.id === shopIdForFilter);
     }
 
-    return list;
+    return list.sort((a, b) => b.id - a.id);
   }, [data?.data, shopIdForFilter, activeTab]);
 
   const totalActivations = useMemo(() => {
@@ -152,44 +165,13 @@ export default function PromotionsPage() {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    refetch({
-      page: newPage,
-      pageSize,
-      shopId: shopIdForFilter,
-      filter: { searchTerm },
-    });
   };
 
   const header = (
     <div className="flex w-full items-center gap-8">
       <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
-        Акции и промокоды
+        Промокоды
       </h1>
-
-      <div className="flex items-center gap-6">
-        <button
-          onClick={() => setActiveTab("promocodes")}
-          className={cn(
-            "text-[20px] font-semibold leading-none transition-colors",
-            activeTab === "promocodes"
-              ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
-              : "text-[#23263a]/60 hover:text-text-primary"
-          )}
-        >
-          Промокоды
-        </button>
-        <button
-          onClick={() => setActiveTab("archive")}
-          className={cn(
-            "text-[20px] font-semibold leading-none transition-colors",
-            activeTab === "archive"
-              ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
-              : "text-[#23263a]/60 hover:text-text-primary"
-          )}
-        >
-          Архив
-        </button>
-      </div>
     </div>
   );
 
@@ -202,14 +184,43 @@ export default function PromotionsPage() {
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
             <div className="flex flex-wrap items-center gap-6">
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-6 pr-2">
+                <button
+                  onClick={() => setActiveTab("promocodes")}
+                  className={cn(
+                    "text-[18px] font-semibold leading-none transition-all py-1.5",
+                    activeTab === "promocodes"
+                      ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[13px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+                      : "text-[#23263a]/60 hover:text-text-primary"
+                  )}
+                >
+                  Промокоды
+                </button>
+                <button
+                  onClick={() => setActiveTab("archive")}
+                  className={cn(
+                    "text-[18px] font-semibold leading-none transition-all py-1.5",
+                    activeTab === "archive"
+                      ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[13px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+                      : "text-[#23263a]/60 hover:text-text-primary"
+                  )}
+                >
+                  Архив
+                </button>
+              </div>
+
+              {/* Separator */}
+              <div className="h-8 w-px bg-[#DCDCE6]/60" />
+
               {/* Filter toggle */}
               {isAdmin && (
                 <button
                   onClick={() => setFilterActive(!filterActive)}
                   className={cn(
-                    "inline-flex items-center gap-2 text-[14px] font-medium transition-colors",
+                    "inline-flex items-center gap-2 text-[15px] font-medium transition-colors",
                     filterActive ? "text-[#55CB00]" : "text-text-primary"
                   )}
                 >
@@ -234,10 +245,10 @@ export default function PromotionsPage() {
               {/* Search */}
               <label className="relative block w-[225px]">
                 <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="Поиск"
-                  className="h-[32px] w-full border-0 border-b border-[#09091d40] bg-transparent pl-0 pr-8 text-[14px] text-text-primary outline-none transition-colors placeholder:text-[#8e90a0] focus:border-[#55CB00]"
+                  className="h-[32px] w-full border-0 border-b border-[#DCDCE6] bg-transparent pl-0 pr-8 text-[15px] text-text-primary outline-none transition-colors placeholder:text-[#8e90a0] focus:border-[#55CB00]"
                 />
                 <Search className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
               </label>
@@ -253,9 +264,9 @@ export default function PromotionsPage() {
                     router.push("/promotions/create");
                   }
                 }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#55CB00] px-3 text-[14px] font-semibold text-white transition-colors hover:bg-[#4abb00]"
+                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white transition-all hover:bg-[#4abb00] shadow-[0_10px_20px_rgba(85,203,0,0.15)] active:scale-95"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Создать промокод
               </button>
             </div>
@@ -324,31 +335,39 @@ export default function PromotionsPage() {
                       >
                         Все магазины
                       </button>
-                      {filteredShops.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setSelectedFilterShopId(s.id);
-                            setIsFilterShopDropdownOpen(false);
-                            setShopSearchQuery("");
-                          }}
-                          className={cn(
-                            "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors flex items-center justify-between",
-                            selectedFilterShopId === s.id
-                              ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                              : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
-                          )}
-                        >
-                          <span className="truncate">{s.name}</span>
-                          <span className="text-[10px] text-[#b7b8c5] ml-2">
-                            ID {s.id}
-                          </span>
-                        </button>
-                      ))}
-                      {filteredShops.length === 0 && (
-                        <div className="px-3 py-4 text-center text-xs text-[#b7b8c5]">
-                          Магазины не найдены
+                      {shopsLoading ? (
+                        <div className="px-3 py-4 text-center">
+                          <Spinner size={16} />
                         </div>
+                      ) : (
+                        <>
+                          {filteredShops.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => {
+                                setSelectedFilterShopId(s.id);
+                                setIsFilterShopDropdownOpen(false);
+                                setShopSearchQuery("");
+                              }}
+                              className={cn(
+                                "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors flex items-center justify-between",
+                                selectedFilterShopId === s.id
+                                  ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
+                                  : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
+                              )}
+                            >
+                              <span className="truncate">{s.name}</span>
+                              <span className="text-[10px] text-[#b7b8c5] ml-2">
+                                ID {s.id}
+                              </span>
+                            </button>
+                          ))}
+                          {filteredShops.length === 0 && (
+                            <div className="px-3 py-4 text-center text-xs text-[#b7b8c5]">
+                              Магазины не найдены
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -359,7 +378,7 @@ export default function PromotionsPage() {
                 className="h-[32px] px-4 text-[14px] font-medium text-[#8e90a0] hover:text-[#E26D5C] transition-colors flex items-center gap-2"
                 onClick={() => {
                   setSelectedFilterShopId(null);
-                  setShopSearchQuery("");
+                  setSearch("");
                 }}
               >
                 <RotateCcw size={14} />
@@ -440,6 +459,10 @@ export default function PromotionsPage() {
                             <tr
                               key={p.id}
                               className="group cursor-pointer transition-colors hover:bg-[#fafafe]"
+                              onClick={() => {
+                                sessionStorage.setItem(`shoply:edit-promocode:${p.id}`, JSON.stringify(p));
+                                router.push(`/promotions/edit/${p.id}`);
+                              }}
                             >
                               <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary">
                                 {p.id}
