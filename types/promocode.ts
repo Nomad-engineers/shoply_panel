@@ -2,34 +2,22 @@ export type PromocodeType = "fixed" | "percent";
 
 export interface PromocodeShop {
   id: number;
-  createdAt: string;
-  shop?: {
-    id: number;
-    name?: string;
-    photo?: { id?: string; url?: string | null } | null;
-  } | null;
-}
-
-export interface PromocodeOrder {
-  id: number;
-  subtotalPrice?: number;
-  createdAt?: string;
+  name: string;
+  photoId?: string | null;
 }
 
 export interface Promocode {
   id: number;
   createdAt: string;
-  type: PromocodeType;
-  valueForType: number;
-  usageLimit: number | null;
-  validUntil: string | null;
-  useMultiple: boolean;
-  payFromShop: boolean;
   name: string;
-  technicalName: string;
-  minSum: number;
-  orders: PromocodeOrder[];
-  promocodeShop: PromocodeShop[];
+  technicalName?: string | null;
+  shop?: PromocodeShop | null;
+  turnover: number;
+  usageLimit?: number | null;
+  validUntil?: string | null;
+  type: PromocodeType;
+  valueForType?: number | null;
+  activationCount: number;
 }
 
 export interface PaginatedMeta {

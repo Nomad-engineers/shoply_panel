@@ -12,7 +12,6 @@ const FORBIDDEN_FOR_SHOP = [
   "/reports/shops",
   "/reports/couriers",
   "/users",
-  "/promotions",
 ];
 
 function getRoleFromToken(token: string): string | null {
@@ -58,6 +57,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    return NextResponse.redirect(
+      new URL(
+        userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",
+        request.url
+      )
+    );
+  }
+
+  if (pathname === "/") {
     return NextResponse.redirect(
       new URL(
         userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",

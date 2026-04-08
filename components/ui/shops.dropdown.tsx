@@ -45,7 +45,7 @@ export const ShopSwitcher = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full flex items-center gap-3 p-2 rounded-2xl transition-all outline-none group",
+          "w-full cursor-pointer flex items-center gap-3 p-2 rounded-2xl transition-all outline-none group",
           isOpen ? "bg-surface-light" : "hover:bg-surface-light"
         )}
       >
@@ -104,7 +104,7 @@ export const ShopSwitcher = ({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-full px-4 py-3 flex items-center gap-3 transition-colors hover:bg-surface-light text-left group",
+                    "w-full cursor-pointer px-4 py-3 flex items-center gap-3 transition-colors hover:bg-surface-light text-left group",
                     isSelected && "bg-primary-light/5"
                   )}
                 >

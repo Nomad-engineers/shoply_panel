@@ -16,7 +16,7 @@ export function CategoryGridView({
   onClick,
 }: CategoryGridViewProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
       {categories.map((cat: Category, index) => {
         const isSelected = selectedIds.includes(cat.id);
         return (

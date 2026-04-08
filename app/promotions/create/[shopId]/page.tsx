@@ -30,10 +30,10 @@ export default function CreatePromocodePage() {
 
   const shopId = Number((params as any)?.shopId);
 
-  const { adminData, refreshSession, fetchWithSession } = useAuth();
+  const { adminData, refreshSession, fetchWithSession, loading: authLoading } = useAuth();
   const derivedShopId = adminData?.shopId;
 
-  const isAdmin = !derivedShopId;
+  const isAdmin = adminData?.isAdmin ?? false;
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLoading, setShopLoading] = useState(false);
@@ -65,7 +65,14 @@ export default function CreatePromocodePage() {
       if (!shopId || Number.isNaN(shopId)) return;
       setShopLoading(true);
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/shops/${shopId}?relations=photo&isPublic=true`;
+        const query = new URLSearchParams();
+        query.set("relations", "photo");
+        if (!isAdmin) {
+          query.set("isPublic", "true");
+        }
+        query.set("dateFrom", new Date().toISOString().split("T")[0]);
+        query.set("dateTo", new Date(new Date().getTime() + 86400000).toISOString().split("T")[0]);
+        const url = `${process.env.NEXT_PUBLIC_API_URL}${isAdmin ? "/admin" : ""}/shops/${shopId}?${query.toString()}`;
         const res = await fetchWithSession(
           url,
           () => localStorage.getItem("access_token"),
@@ -82,7 +89,7 @@ export default function CreatePromocodePage() {
     };
 
     loadShop();
-  }, [fetchWithSession, refreshSession, shopId]);
+  }, [fetchWithSession, refreshSession, shopId, isAdmin]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -144,7 +151,7 @@ export default function CreatePromocodePage() {
 
       // Для POST используем обычный fetch + refresh при 401.
       const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/promocode`, {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

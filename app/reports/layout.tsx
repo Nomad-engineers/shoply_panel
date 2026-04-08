@@ -33,9 +33,11 @@ export default function ReportsLayout({
   ];
 
   const header = (
-    <div className="flex flex-col gap-6 mt-22">
-      <h1 className="text-[24px] font-bold text-[#111111]">Отчеты</h1>
-      <div className="flex gap-2">
+    <div className="flex w-full items-center gap-8">
+      <h1 className="text-[28px] font-bold leading-none text-[#111322]">
+        Отчеты
+      </h1>
+      <div className="flex items-center gap-5">
         {tabs.map((tab) => {
           const isDisabled = !tab.href;
           const button = (
@@ -44,15 +46,23 @@ export default function ReportsLayout({
               disabled={isDisabled}
               aria-disabled={isDisabled}
               className={cn(
-                "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                "inline-flex items-center px-0 text-[20px] font-semibold leading-none transition-colors",
                 tab.active
-                  ? "bg-[#55CB00] text-white shadow-sm"
-                  : "text-[#111111] hover:bg-gray-100",
+                  ? "text-text-primary"
+                  : "text-[#23263a] hover:text-text-primary",
                 isDisabled &&
-                  "cursor-not-allowed text-[#111111]/40 hover:bg-transparent",
+                  "cursor-not-allowed text-[#23263a]/40 hover:text-[#23263a]/40",
               )}
             >
-              {tab.name}
+              <span
+                className={cn(
+                  "relative inline-flex items-center",
+                  tab.active &&
+                    "after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']",
+                )}
+              >
+                {tab.name}
+              </span>
             </button>
           );
 
@@ -86,9 +96,13 @@ export default function ReportsLayout({
   }
 
   return (
-    <DashboardLayout header={header}>
+    <DashboardLayout
+      header={header}
+      headerClassName="pl-4 pr-8"
+      contentClassName="min-h-0 p-0"
+    >
       {/* Page Content */}
-      <div className="text-left mt-10">{children}</div>
+      <div className="min-h-0 flex-1 text-left">{children}</div>
     </DashboardLayout>
   );
 }

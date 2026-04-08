@@ -65,77 +65,69 @@ export const CategoryHeader = ({
   }, [activeTab, refetchArchive, refetchCounts, refetchUnavailable]);
 
   return (
-    <div className="flex flex-col gap-8 w-full mb-10 px-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-10">
-          <h1 className="text-[32px] font-bold text-[#111111]">Товары</h1>
+    <div className="flex w-full items-center justify-between gap-6">
+      <div className="flex items-center gap-8">
+        <h1 className="text-[28px] font-bold leading-none text-[#111322]">
+          Товары
+        </h1>
+        <div className="flex items-center gap-5">
+          {[
+            {
+              key: "active" as const,
+              label: "Товары",
+              count: productCount,
+            },
+            {
+              key: "archived" as const,
+              label: "Архив",
+              count: archiveCount,
+            },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
 
-          {/* Табы */}
-          <div className="flex gap-8  border-transparent">
-            <button
-              onClick={() => setActiveTab?.("active")}
-              className={cn(
-                " text-lg font-medium transition-all relative",
-                activeTab === "active"
-                  ? "text-[#55CB00] border-b-2 border-[#55CB00]"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-            >
-              Товары
-              <span
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab?.(tab.key)}
                 className={cn(
-                  "ml-2 text-xs px-2 py-0.5 rounded-full",
-                  activeTab === "active"
-                    ? "bg-[#55CB00]/10 text-[#55CB00]"
-                    : "bg-gray-100 text-gray-500"
+                  "inline-flex items-center gap-2 text-[20px] font-semibold",
+                  isActive ? "text-[#1f2333]" : "text-[#52576b]"
                 )}
               >
-                {productCount}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab?.("archived")}
-              className={cn(
-                " text-lg font-medium transition-all relative",
-                activeTab === "archived"
-                  ? "text-[#55CB00] border-b-2 border-[#55CB00]"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-            >
-              Архив
-              <span
-                className={cn(
-                  "ml-2 text-xs px-2 py-0.5 rounded-full",
-                  activeTab === "archived"
-                    ? "bg-[#55CB00]/10 text-[#55CB00]"
-                    : "bg-gray-100 text-gray-500"
-                )}
-              >
-                {archiveCount}
-              </span>
-            </button>
-          </div>
+                <span
+                  className={cn(
+                    "relative inline-flex items-center",
+                    isActive &&
+                      "after:absolute after:inset-x-0 after:-bottom-[8px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+                  )}
+                >
+                  {tab.label}
+                </span>
+                <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e5e6ee] px-1.5 text-[12px] font-semibold text-[#9a9dab]">
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Кнопки действий */}
-        <div className="flex items-center gap-3">
-          <Link href="/categories/excel">
-            <Button
-              variant="outline"
-              className="rounded-xl border-gray-200 h-11 px-4 text-sm font-bold flex gap-2"
-            >
-              <FileSpreadsheet className="w-5 h-5 text-[#55CB00]" />
-              Импорт товаров
-            </Button>
-          </Link>
-          <Link href="/categories/addProduct">
-            <Button className="bg-[#55CB00] hover:bg-[#48ad00] text-white rounded-xl h-11 px-6 text-sm font-bold flex gap-2 border-none">
-              <Plus className="w-5 h-5" />
-              Добавить товар
-            </Button>
-          </Link>
-        </div>
+      <div className="flex items-center gap-3">
+        <Link href="/categories/excel">
+          <Button
+            variant="outline"
+            className="inline-flex h-10 items-center gap-2 rounded-[14px] border border-[#d9ddea] bg-white px-4 text-[14px] font-medium text-[#3b4052] hover:bg-[#f7f7fa] hover:text-[#3b4052]"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-[#55CB00]" />
+            Импорт товаров
+          </Button>
+        </Link>
+        <Link href="/categories/addProduct">
+          <Button className="inline-flex h-10 items-center gap-2 rounded-[14px] bg-[#55CB00] px-4 text-[14px] font-semibold text-white hover:bg-[#4abb00]">
+            Добавить товар
+            <Plus className="h-4 w-4" />
+          </Button>
+        </Link>
       </div>
     </div>
   );

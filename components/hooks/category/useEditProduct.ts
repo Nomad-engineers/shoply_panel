@@ -1,79 +1,129 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ProductMeasure, ShopProduct } from "@/types/category.types";
+import { ProductMeasure } from "@/types/category.types";
 import { calculatePrice } from "@/lib/utils";
 
 interface PhotoState {
   id?: number;
+  fileId?: string;
   url: string;
   file?: File;
 }
 
+export interface EditableProductData {
+  productId: number;
+  createdAt: string;
+  shopId: number;
+  categoryId: number;
+  subCategoryId: number;
+  subCategoryName: string;
+  name: string;
+  purchasePrice: number;
+  price: number;
+  inStock: boolean;
+  archivedAt: string | null;
+  weight: number;
+  measure: ProductMeasure;
+  article: string;
+  barcodes: string[];
+  photos?: Array<{
+    id: number;
+    fileId?: string;
+    url?: string | null;
+  }>;
+}
+
+function toFormSeed(
+  product: EditableProductData | undefined,
+  initialSubCategoryId: number,
+) {
+  if (!product) {
+    return {
+      categoryId: 0,
+      subCategoryId: initialSubCategoryId,
+      name: "",
+      article: "",
+      mainBarcode: "",
+      extraBarcodes: [] as string[],
+      purchasePrice: 0 as number | "",
+      price: 0 as number | "",
+      markup: 0 as number | "",
+      weight: 0 as number | "",
+      measure: ProductMeasure.PIECE as ProductMeasure,
+      inStock: true,
+    };
+  }
+
+  const persistedPurchasePrice = Number(product.purchasePrice) || 0;
+  const persistedPrice = Number(product.price) || 0;
+  const hasMarkup = persistedPurchasePrice > 0;
+  const editableBasePrice = hasMarkup ? persistedPurchasePrice : persistedPrice;
+  const sellingPrice = hasMarkup ? persistedPrice : editableBasePrice;
+  const markup =
+    hasMarkup && editableBasePrice > 0
+      ? Number(
+          (((sellingPrice - editableBasePrice) / editableBasePrice) * 100).toFixed(
+            2
+          )
+        )
+      : 0;
+
+  return {
+    categoryId: product.categoryId || 0,
+    subCategoryId: product.subCategoryId || Number(initialSubCategoryId),
+    name: product.name || "",
+    mainBarcode: (product.barcodes || [])[0] || "",
+    extraBarcodes: (product.barcodes || []).slice(1),
+    purchasePrice: editableBasePrice,
+    price: sellingPrice,
+    markup,
+    weight: product.weight || 0,
+    article: product.article || "",
+    measure: (product.measure as ProductMeasure) || ProductMeasure.PIECE,
+    inStock: product.inStock ?? true,
+  };
+}
+
 export function useProductForm(
-  shopProduct: ShopProduct | undefined,
+  shopProduct: EditableProductData | undefined,
   initialSubCategoryId: number,
   shopId: string | null
 ) {
   const [photos, setPhotos] = useState<PhotoState[]>([]);
-  const [formData, setFormData] = useState({
-    categoryId: 0,
-    subCategoryId: initialSubCategoryId,
-    name: "",
-    article: "",
-    mainBarcode: "",
-    extraBarcodes: [] as string[],
-    purchasePrice: 0 as number | "",
-    price: 0 as number | "",
-    markup: 0 as number | "",
-    weight: 0 as number | "",
-    measure: ProductMeasure.PIECE as ProductMeasure,
-    inStock: true,
-  });
+  const [formData, setFormData] = useState(() =>
+    toFormSeed(shopProduct, initialSubCategoryId)
+  );
 
-  // Инициализация данных из ShopProduct
+  // Инициализация данных из локального editable DTO
   useEffect(() => {
     if (shopProduct) {
-      const baseProduct = shopProduct.product;
-      const pPrice = shopProduct.purchasePrice || 0;
-      const sPrice = shopProduct.price || 0;
-
       setPhotos(
-        baseProduct?.photos?.map((p) => ({
+        shopProduct.photos?.map((p) => ({
           id: p.id,
-          url: p.file?.url || "",
+          fileId: p.fileId,
+          url: p.url || "",
         })) || []
       );
 
-      setFormData({
-        categoryId: baseProduct?.subCategory?.category?.id || 0,
-        subCategoryId:
-          baseProduct?.subCategory?.id || Number(initialSubCategoryId),
-        name: baseProduct?.name || "",
-        mainBarcode: (baseProduct?.barcodes || [])[0] || "",
-        extraBarcodes: (baseProduct?.barcodes || []).slice(1),
-        purchasePrice: pPrice,
-        price: sPrice,
-        markup:
-          pPrice > 0
-            ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
-            : 0,
-        weight: baseProduct?.weight || 0,
-        article: baseProduct?.article || "",
-        measure:
-          (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
-        inStock: shopProduct.inStock ?? true,
-      });
+      setFormData(toFormSeed(shopProduct, initialSubCategoryId));
     }
   }, [shopProduct, initialSubCategoryId]);
 
   const generateEAN13 = useCallback(() => {
-    let code =
-      "29" +
-      Array.from({ length: 10 }, () => Math.floor(Math.random() * 10)).join("");
+    let code = "29";
+
+    for (let i = 0; i < 10; i++) {
+      code += Math.floor(Math.random() * 10).toString();
+    }
+
     let sum = 0;
-    for (let i = 0; i < 12; i++)
-      sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3);
+    for (let i = 0; i < 12; i++) {
+      const digit = Number.parseInt(code[i], 10);
+      sum += digit * (i % 2 === 0 ? 1 : 3);
+    }
+
     const checkSum = (10 - (sum % 10)) % 10;
-    return code + checkSum;
+
+    return `SP-${code}${checkSum}`;
   }, []);
 
   const handleGenerateMainBarcode = () => {
@@ -83,7 +133,7 @@ export function useProductForm(
   const handleAddExtraBarcode = () => {
     setFormData((prev) => ({
       ...prev,
-      extraBarcodes: [...prev.extraBarcodes, generateEAN13()],
+      extraBarcodes: [...prev.extraBarcodes, ""],
     }));
   };
 
@@ -110,14 +160,17 @@ export function useProductForm(
       const updates: any = { [field]: num };
       const currentPurchasePrice =
         field === "purchasePrice" ? numVal : Number(prev.purchasePrice) || 0;
-      const currentPrice = field === "price" ? numVal : Number(prev.price) || 0;
       const currentMarkup =
         field === "markup" ? numVal : Number(prev.markup) || 0;
 
       if (field === "purchasePrice") {
-        updates.price = calculatePrice(numVal, currentMarkup);
+        updates.price =
+          currentMarkup > 0 ? calculatePrice(numVal, currentMarkup) : numVal;
       } else if (field === "markup") {
-        updates.price = calculatePrice(currentPurchasePrice, numVal);
+        updates.price =
+          numVal > 0
+            ? calculatePrice(currentPurchasePrice, numVal)
+            : currentPurchasePrice;
       } else if (field === "price") {
         updates.markup =
           currentPurchasePrice > 0
@@ -137,25 +190,26 @@ export function useProductForm(
   const isDirty = useMemo(() => {
     if (!shopProduct) return false;
 
-    const baseProduct = shopProduct.product;
-    const initialBarcodes = baseProduct?.barcodes || [];
+    const initialBarcodes = shopProduct.barcodes || [];
     const currentBarcodes = [
       formData.mainBarcode,
       ...formData.extraBarcodes,
     ].filter(Boolean);
+    const initialSeed = toFormSeed(shopProduct, initialSubCategoryId);
 
     const hasFormChanged =
-      formData.name !== baseProduct?.name ||
-      formData.subCategoryId !== baseProduct?.subCategory?.id ||
-      Number(formData.price) !== (shopProduct.price || 0) ||
-      Number(formData.purchasePrice) !== (shopProduct.purchasePrice || 0) ||
-      Number(formData.weight) !== (baseProduct?.weight || 0) ||
-      formData.measure !== baseProduct?.measure ||
+      formData.name !== shopProduct.name ||
+      formData.subCategoryId !== shopProduct.subCategoryId ||
+      Number(formData.price) !== Number(initialSeed.price || 0) ||
+      Number(formData.purchasePrice) !== Number(initialSeed.purchasePrice || 0) ||
+      Number(formData.weight) !== (shopProduct.weight || 0) ||
+      formData.measure !== shopProduct.measure ||
       formData.inStock !== (shopProduct.inStock ?? true) ||
-      formData.article !== (baseProduct?.article || "") ||
+      formData.article !== (shopProduct.article || "") ||
+      Number(formData.markup) !== Number(initialSeed.markup || 0) ||
       JSON.stringify(initialBarcodes) !== JSON.stringify(currentBarcodes);
 
-    const initialPhotoUrls = baseProduct?.photos?.map((p) => p.file?.url) || [];
+    const initialPhotoUrls = shopProduct.photos?.map((p) => p.url) || [];
     const currentPhotoUrls = photos.map((p) => p.url);
     const hasPhotosChanged =
       JSON.stringify(initialPhotoUrls) !== JSON.stringify(currentPhotoUrls);
@@ -179,34 +233,16 @@ export function useProductForm(
 
   const handleReset = () => {
     if (!shopProduct) return;
-    const baseProduct = shopProduct.product;
-    const pPrice = shopProduct.purchasePrice || 0;
-    const sPrice = shopProduct.price || 0;
 
     setPhotos(
-      baseProduct?.photos?.map((p) => ({
+      shopProduct.photos?.map((p) => ({
         id: p.id,
-        url: p.file?.url || "",
+        fileId: p.fileId,
+        url: p.url || "",
       })) || []
     );
 
-    setFormData({
-      categoryId: baseProduct?.subCategory?.category?.id || 0,
-      subCategoryId: baseProduct?.subCategory?.id || initialSubCategoryId,
-      name: baseProduct?.name || "",
-      mainBarcode: (baseProduct?.barcodes || [])[0] || "",
-      extraBarcodes: (baseProduct?.barcodes || []).slice(1),
-      purchasePrice: pPrice,
-      price: sPrice,
-      article: baseProduct?.article || "",
-      markup:
-        pPrice > 0
-          ? Number((((sPrice - pPrice) / pPrice) * 100).toFixed(2))
-          : 0,
-      weight: baseProduct?.weight || 0,
-      measure: (baseProduct?.measure as ProductMeasure) || ProductMeasure.PIECE,
-      inStock: shopProduct.inStock ?? true,
-    });
+    setFormData(toFormSeed(shopProduct, initialSubCategoryId));
   };
 
   const handleGenerateArticle = useCallback(() => {

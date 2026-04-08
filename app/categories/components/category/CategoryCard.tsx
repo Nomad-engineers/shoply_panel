@@ -1,5 +1,4 @@
 import React from "react";
-import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Category } from "@/types/category.types";
 
@@ -23,19 +22,21 @@ export function CategoryCard({ category, isSelected, onToggle, onClick }: Catego
           isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}
       >
-        <div
+        <span
           className={cn(
-            "w-6 h-6 rounded-full border-2 bg-white flex items-center justify-center transition-colors",
-            isSelected ? "border-[#55CB00]" : "border-gray-200"
+            "inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
+            isSelected
+              ? "border-[#55CB00] bg-[#55CB00]/10"
+              : "border-[#b8bdcc] bg-white"
           )}
         >
-          <CheckCircle2
+          <span
             className={cn(
-              "w-5 h-5",
-              isSelected ? "text-[#55CB00]" : "text-gray-300"
+              "h-2.5 w-2.5 rounded-full transition-colors",
+              isSelected ? "bg-[#55CB00]" : "bg-transparent"
             )}
           />
-        </div>
+        </span>
       </div>
 
       <div
