@@ -10,6 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCouriers } from "@/components/hooks/useCouriers";
+import { MainSection } from "@/components/layout";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/theme";
 
@@ -192,221 +193,225 @@ export default function CouriersPage() {
 
   if (loading && couriers.length === 0) {
     return (
-      <div className="bg-white rounded-[24px] p-6 h-full flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#55CB00]" />
-      </div>
+      <MainSection>
+        <div className="flex h-full min-h-[320px] items-center justify-center p-6">
+          <Loader2 className="h-10 w-10 animate-spin text-[#55CB00]" />
+        </div>
+      </MainSection>
     );
   }
 
   return (
-    <div className="bg-white rounded-[24px] p-6">
-      {/* Header Area */}
-      <div className="flex items-center gap-6 mb-10">
-        <h1 className="text-[20px] font-bold text-[#111111] whitespace-nowrap">
-          Курьеры
-        </h1>
+    <MainSection>
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+        {/* Header Area */}
+        <div className="mb-10 flex items-center gap-6">
+          <h1 className="whitespace-nowrap text-[20px] font-bold text-[#111111]">
+            Курьеры
+          </h1>
 
-        {/* Search */}
-        <div className="relative flex items-center border-b border-[#E5E5EA] w-full max-w-[240px] pb-1">
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearch();
-              }
-            }}
-            placeholder="Поиск"
-            className="w-full bg-transparent border-none outline-none text-[14px] placeholder:text-[#8E8E93] py-1"
-          />
-          <button
-            onClick={handleSearch}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors ml-2 group"
-            title="Поиск"
-          >
-            <Search
-              className="text-[#111111] group-hover:text-[#55CB00] transition-colors"
-              size={18}
-            />
-          </button>
-        </div>
-
-        {/* Vertical Divider */}
-        <div className="w-[1px] h-8 bg-[#E5E5EA] mx-2" />
-
-        {/* Active Only Switch */}
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={showActiveOnly}
-            onCheckedChange={setShowActiveOnly}
-            className="data-[state=checked]:bg-[#55CB00]"
-          />
-          <span className="text-[14px] font-medium text-[#111111] whitespace-nowrap">
-            Только активные
-          </span>
-        </div>
-
-        {/* Period Dropdown */}
-        <div className="ml-auto relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="px-4 py-2 rounded-[12px] text-sm font-medium transition-colors flex items-center gap-2"
-            style={{ backgroundColor: "rgba(238, 238, 244, 0.5)" }}
-          >
-            {periods.find((p) => p.value === activePeriod)?.label || "Месяц"}
-            <ChevronDown
-              size={16}
-              className={cn(
-                "transition-transform",
-                isDropdownOpen && "rotate-180",
-              )}
-            />
-          </button>
-
-          {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-[12px] shadow-lg border border-gray-200 overflow-hidden z-20">
-              {periods.map((period) => (
-                <button
-                  key={period.value}
-                  onClick={() => handlePeriodChange(period.value)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50",
-                    activePeriod === period.value
-                      ? "bg-green-50 text-[#55CB00] font-medium"
-                      : "text-gray-700",
-                  )}
-                >
-                  {period.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr
-              className="border-b"
-              style={{ borderColor: "rgba(220, 220, 230, 1)" }}
-            >
-              <th
-                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
-                onClick={() => handleSort("id")}
-              >
-                ID <SortIcon field="id" />
-              </th>
-              <th
-                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
-                onClick={() => handleSort("username")}
-              >
-                Имя Фамилия <SortIcon field="username" />
-              </th>
-              <th
-                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
-                onClick={() => handleSort("totaldeliverymansum")}
-              >
-                Заработано <SortIcon field="totaldeliverymansum" />
-              </th>
-              <th
-                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
-                onClick={() => handleSort("completedorderscount")}
-              >
-                Выполнено <SortIcon field="completedorderscount" />
-              </th>
-              <th
-                className="text-left py-3 px-4 text-sm font-medium text-[#8E8E93] cursor-pointer hover:text-gray-700"
-                onClick={() => handleSort("canceledorderscount")}
-              >
-                Отменно <SortIcon field="canceledorderscount" />
-              </th>
-              <th className="w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAndSortedCouriers.map((courier) => (
-              <tr
-                key={courier.id}
-                onClick={() =>
-                  router.push(
-                    `/reports/couriers/${courier.id}?periodType=${activePeriod}`,
-                  )
+          {/* Search */}
+          <div className="relative flex w-full max-w-[240px] items-center border-b border-[#E5E5EA] pb-1">
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
                 }
-                className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+              }}
+              placeholder="Поиск"
+              className="w-full border-none bg-transparent py-1 text-[14px] outline-none placeholder:text-[#8E8E93]"
+            />
+            <button
+              onClick={handleSearch}
+              className="group ml-2 rounded-full p-1 transition-colors hover:bg-gray-100"
+              title="Поиск"
+            >
+              <Search
+                className="text-[#111111] transition-colors group-hover:text-[#55CB00]"
+                size={18}
+              />
+            </button>
+          </div>
+
+          {/* Vertical Divider */}
+          <div className="mx-2 h-8 w-[1px] bg-[#E5E5EA]" />
+
+          {/* Active Only Switch */}
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={showActiveOnly}
+              onCheckedChange={setShowActiveOnly}
+              className="data-[state=checked]:bg-[#55CB00]"
+            />
+            <span className="whitespace-nowrap text-[14px] font-medium text-[#111111]">
+              Только активные
+            </span>
+          </div>
+
+          {/* Period Dropdown */}
+          <div className="relative ml-auto" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 rounded-[12px] px-4 py-2 text-sm font-medium transition-colors"
+              style={{ backgroundColor: "rgba(238, 238, 244, 0.5)" }}
+            >
+              {periods.find((p) => p.value === activePeriod)?.label || "Месяц"}
+              <ChevronDown
+                size={16}
+                className={cn(
+                  "transition-transform",
+                  isDropdownOpen && "rotate-180",
+                )}
+              />
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-[12px] border border-gray-200 bg-white shadow-lg">
+                {periods.map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => handlePeriodChange(period.value)}
+                    className={cn(
+                      "w-full px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50",
+                      activePeriod === period.value
+                        ? "bg-green-50 font-medium text-[#55CB00]"
+                        : "text-gray-700",
+                    )}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr
+                className="border-b"
                 style={{ borderColor: "rgba(220, 220, 230, 1)" }}
               >
-                <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                  {courier.id}
-                </td>
-                <td className="py-4 px-4">
-                  <span className="text-sm text-[#111111] font-medium">
-                    {courier.username} {courier.lastname}
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-sm text-[#111111]">
-                  {Math.round(
-                    Number(courier.totaldeliverymansum || 0),
-                  ).toLocaleString("ru-RU")}{" "}
-                  ₽
-                </td>
-                <td className="py-4 px-4 text-sm text-[#111111]">
-                  {courier.completedorderscount} заказов
-                </td>
-                <td className="py-4 px-4 text-sm text-[#111111]">
-                  {courier.canceledorderscount} заказов
-                </td>
-                <td className="py-4 px-4 text-right">
-                  <ChevronRight size={20} className="text-[#C7C7CC]" />
-                </td>
+                <th
+                  className="cursor-pointer px-4 py-3 text-left text-sm font-medium text-[#8E8E93] hover:text-gray-700"
+                  onClick={() => handleSort("id")}
+                >
+                  ID <SortIcon field="id" />
+                </th>
+                <th
+                  className="cursor-pointer px-4 py-3 text-left text-sm font-medium text-[#8E8E93] hover:text-gray-700"
+                  onClick={() => handleSort("username")}
+                >
+                  Имя Фамилия <SortIcon field="username" />
+                </th>
+                <th
+                  className="cursor-pointer px-4 py-3 text-left text-sm font-medium text-[#8E8E93] hover:text-gray-700"
+                  onClick={() => handleSort("totaldeliverymansum")}
+                >
+                  Заработано <SortIcon field="totaldeliverymansum" />
+                </th>
+                <th
+                  className="cursor-pointer px-4 py-3 text-left text-sm font-medium text-[#8E8E93] hover:text-gray-700"
+                  onClick={() => handleSort("completedorderscount")}
+                >
+                  Выполнено <SortIcon field="completedorderscount" />
+                </th>
+                <th
+                  className="cursor-pointer px-4 py-3 text-left text-sm font-medium text-[#8E8E93] hover:text-gray-700"
+                  onClick={() => handleSort("canceledorderscount")}
+                >
+                  Отменно <SortIcon field="canceledorderscount" />
+                </th>
+                <th className="w-12"></th>
               </tr>
-            ))}
+            </thead>
+            <tbody>
+              {filteredAndSortedCouriers.map((courier) => (
+                <tr
+                  key={courier.id}
+                  onClick={() =>
+                    router.push(
+                      `/reports/couriers/${courier.id}?periodType=${activePeriod}`,
+                    )
+                  }
+                  className="cursor-pointer border-b transition-colors hover:bg-gray-50"
+                  style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+                >
+                  <td className="px-4 py-4 text-sm text-[#8E8E93]">
+                    {courier.id}
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-sm font-medium text-[#111111]">
+                      {courier.username} {courier.lastname}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#111111]">
+                    {Math.round(
+                      Number(courier.totaldeliverymansum || 0),
+                    ).toLocaleString("ru-RU")}{" "}
+                    ₽
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#111111]">
+                    {courier.completedorderscount} заказов
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#111111]">
+                    {courier.canceledorderscount} заказов
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <ChevronRight size={20} className="text-[#C7C7CC]" />
+                  </td>
+                </tr>
+              ))}
 
-            {/* Totals Row */}
-            <tr className="">
-              <td className="py-4 px-4 text-sm"></td>
-              <td className="py-4 px-4 text-sm text-[#8E8E93] font-medium text-center">
-                {filteredAndSortedCouriers.length} курьеров
-              </td>
-              <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                {Math.round(totals.earned).toLocaleString("ru-RU")} ₽
-              </td>
-              <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                {totals.completed} заказов
-              </td>
-              <td className="py-4 px-4 text-sm text-[#8E8E93]">
-                {totals.cancelled} заказов
-              </td>
-              <td className="py-4 px-4"></td>
-            </tr>
-          </tbody>
-        </table>
+              {/* Totals Row */}
+              <tr>
+                <td className="px-4 py-4 text-sm"></td>
+                <td className="px-4 py-4 text-center text-sm font-medium text-[#8E8E93]">
+                  {filteredAndSortedCouriers.length} курьеров
+                </td>
+                <td className="px-4 py-4 text-sm text-[#8E8E93]">
+                  {Math.round(totals.earned).toLocaleString("ru-RU")} ₽
+                </td>
+                <td className="px-4 py-4 text-sm text-[#8E8E93]">
+                  {totals.completed} заказов
+                </td>
+                <td className="px-4 py-4 text-sm text-[#8E8E93]">
+                  {totals.cancelled} заказов
+                </td>
+                <td className="px-4 py-4"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin text-[#55CB00]" />
+            <span className="text-sm text-[#8E8E93]">Загрузка...</span>
+          </div>
+        )}
+
+        {/* All loaded indicator */}
+        {!hasMore && filteredAndSortedCouriers.length > 0 && !loading && (
+          <div className="py-4 text-center text-sm text-[#8E8E93]">
+            Все курьеры загружены
+          </div>
+        )}
+
+        {!loading && filteredAndSortedCouriers.length === 0 && (
+          <div className="py-12 text-center text-[#8E8E93]">
+            Нет данных о курьерах
+          </div>
+        )}
       </div>
-
-      {/* Infinite scroll sentinel */}
-      <div ref={sentinelRef} className="h-1" />
-
-      {/* Loading more indicator */}
-      {loadingMore && (
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-6 h-6 animate-spin text-[#55CB00] mr-2" />
-          <span className="text-sm text-[#8E8E93]">Загрузка...</span>
-        </div>
-      )}
-
-      {/* All loaded indicator */}
-      {!hasMore && filteredAndSortedCouriers.length > 0 && !loading && (
-        <div className="text-center py-4 text-sm text-[#8E8E93]">
-          Все курьеры загружены
-        </div>
-      )}
-
-      {!loading && filteredAndSortedCouriers.length === 0 && (
-        <div className="text-center py-12 text-[#8E8E93]">
-          Нет данных о курьерах
-        </div>
-      )}
-    </div>
+    </MainSection>
   );
 }

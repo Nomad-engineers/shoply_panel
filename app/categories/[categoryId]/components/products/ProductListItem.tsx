@@ -36,6 +36,13 @@ export function ProductListItem({
     product.measure && measureLabels[product.measure]
       ? measureLabels[product.measure]
       : "шт";
+  const createdAtLabel = product.createdAt
+    ? new Intl.DateTimeFormat("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(product.createdAt))
+    : "—";
   const editorFieldClassName =
     "h-auto rounded-none border-0 border-b border-[#d9ddea] bg-transparent px-0 py-0 text-[14px] text-[#1f2333] shadow-none focus-visible:border-[#b8bdcc] focus-visible:ring-0 focus-visible:ring-offset-0";
   const [isEditing, setIsEditing] = React.useState(false);
@@ -212,7 +219,7 @@ export function ProductListItem({
             </h4>
           )}
           <div className="mt-1 flex items-center gap-2 text-[10px] text-[#a3a7b7]">
-            <span>12.02.2025</span>
+            <span>{createdAtLabel}</span>
             <span>ID: {sp.id}</span>
           </div>
         </div>

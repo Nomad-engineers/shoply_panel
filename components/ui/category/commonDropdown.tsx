@@ -35,18 +35,18 @@ export const CategoryBaseDropdown = <T extends string | boolean | number>({
         disabled={disabled}
         onClick={onToggle}
         className={cn(
-          "w-full rounded-2xl p-4 text-sm border flex justify-between items-center transition-all outline-none",
+          "w-full h-[54px] rounded-xl px-4 text-sm flex justify-between items-center transition-all outline-none",
           disabled
-            ? "border-gray-100 bg-gray-50/50 cursor-not-allowed"
+            ? "bg-[#F1F2F6] cursor-not-allowed opacity-70"
             : hasValue
-              ? "border-blue-400 bg-blue-50/20"
-              : "border-gray-100 bg-gray-50 hover:border-gray-200"
+              ? "bg-[#F1F2F6]"
+              : "bg-[#F1F2F6]"
         )}
       >
         <span
           className={cn(
-            "font-bold",
-            hasValue ? "text-gray-600" : "text-gray-400"
+            "font-medium",
+            hasValue ? "text-gray-800" : "text-gray-400"
           )}
         >
           {selectedLabel || placeholder}

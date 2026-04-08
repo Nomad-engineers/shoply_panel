@@ -6,6 +6,7 @@ import { useAuth } from "./useLogin";
 
 export interface V2PartnerCategoryProductDto {
   productId: number;
+  createdAt: string;
   name: string;
   price: number;
   inStock: boolean;
@@ -18,7 +19,7 @@ export interface V2PartnerCategoryProductDto {
   categoryId: number;
   categoryName: string;
   shopId: number;
-  photoId?: string | null;
+  photos?: string[];
   barcodes: string[];
 }
 

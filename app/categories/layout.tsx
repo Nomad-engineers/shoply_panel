@@ -1,10 +1,10 @@
 "use client";
-import React from "react";
+import React, { Suspense } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CategoryHeader } from "@/components/category/header";
 
-export default function CategoryLayout({
+function CategoryLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -36,5 +36,17 @@ export default function CategoryLayout({
     >
       {children}
     </DashboardLayout>
+  );
+}
+
+export default function CategoryLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<DashboardLayout>{children}</DashboardLayout>}>
+      <CategoryLayoutContent>{children}</CategoryLayoutContent>
+    </Suspense>
   );
 }

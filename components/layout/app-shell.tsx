@@ -102,7 +102,7 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(
     return (
       <div
         ref={ref}
-        className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4", className)}
+        className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", className)}
       >
         {children}
       </div>
