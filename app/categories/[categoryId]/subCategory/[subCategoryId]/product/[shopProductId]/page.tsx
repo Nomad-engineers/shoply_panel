@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useApiData } from "@/components/hooks/useApiData";
 import {
   Category,
+  ProductMeasure,
   measureLabels,
 } from "@/types/category.types";
 import { CategoryBaseDropdown } from "@/components/ui/category/commonDropdown";
@@ -231,7 +232,6 @@ export default function EditProductPage() {
         createdAt: product.createdAt,
         shopId: product.shopId,
         categoryId: product.categoryId,
-        categoryName: product.categoryName,
         subCategoryId: product.subCategoryId,
         subCategoryName: product.subCategoryName,
         name: product.name,

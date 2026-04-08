@@ -24,6 +24,7 @@ import { ViewModeToggle } from "../components/category/ViewModeToggle";
 import { FlattenedProduct } from "./components/products/types";
 import { toast } from "sonner";
 import { EditableProductData } from "@/components/hooks/category/useEditProduct";
+import { ProductMeasure } from "@/types/category.types";
 
 export default function SubCategoryPage() {
   const router = useRouter();
@@ -163,7 +164,8 @@ export default function SubCategoryPage() {
         inStock: selectedProduct.activeShopProduct.inStock,
         archivedAt: selectedProduct.activeShopProduct.archivedAt || null,
         weight: selectedProduct.weight,
-        measure: (selectedProduct.measure || "pc") as ProductMeasure,
+        measure:
+          (selectedProduct.measure as ProductMeasure) || ProductMeasure.PIECE,
         article: "",
         barcodes: selectedProduct.barcodes,
         photos:
@@ -410,7 +412,7 @@ export default function SubCategoryPage() {
                   onToggleOpen={() => toggleSubCategory(sub.id)}
                   onProductToggle={toggleProduct}
                   onProductClick={handleProductClick}
-                  onCopyArticle={copyToClipboard}
+                  onCopyBarcode={copyToClipboard}
                 />
               );
             })}

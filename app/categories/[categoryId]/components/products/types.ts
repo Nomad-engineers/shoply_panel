@@ -7,7 +7,11 @@ export interface FlattenedProduct {
   barcodes: string[];
   weight: number;
   measure: ProductMeasure | null | undefined;
-  photos?: Array<{ file?: { url?: string } }>;
+  photos?: Array<{
+    id?: number;
+    fileId?: string;
+    file?: { url?: string };
+  }>;
   subCategoryId: number;
   subCategoryName: string;
   activeShopProduct: {
