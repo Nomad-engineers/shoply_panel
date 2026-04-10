@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft } from "lucide-react";
 
+import {
+  AllowedUsersField,
+  type AllowedUserOption,
+} from "@/components/promotions/allowed-users-field";
 import { DashboardLayout } from "@/components/layout";
 import { Button, Input, Switch, Spinner } from "@/components/ui";
+import { attachAllowedUsersToPromocode } from "@/lib/promocode-allowed-users";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
+import type { Promocode } from "@/types/promocode";
 import type { Shop } from "@/types/shop";
 import { getImageUrl } from "@/lib/utils";
 
@@ -57,6 +63,7 @@ export default function CreatePromocodePage() {
 
   const [payFromShop, setPayFromShop] = useState(false);
   const [oneActivation, setOneActivation] = useState(false);
+  const [allowedUsers, setAllowedUsers] = useState<AllowedUserOption[]>([]);
 
   const [validUntilEnabled, setValidUntilEnabled] = useState(false);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -184,6 +191,24 @@ export default function CreatePromocodePage() {
         throw new Error("Не удалось создать промокод");
       }
 
+      const postJson = (await postRes.json().catch(() => null)) as
+        | { data?: Promocode }
+        | Promocode
+        | null;
+      const createdPromocodeId =
+        postJson && typeof postJson === "object" && "id" in postJson
+          ? postJson.id
+          : postJson?.data?.id ?? null;
+
+      if (isAdmin && createdPromocodeId && allowedUsers.length > 0) {
+        await attachAllowedUsersToPromocode({
+          promocodeId: createdPromocodeId,
+          userIds: allowedUsers.map((user) => user.id),
+          accessToken: token,
+          refreshSession,
+        });
+      }
+
       router.push("/promotions");
     } catch (e: any) {
       setSubmitError(e.message ?? "Ошибка");
@@ -258,7 +283,7 @@ export default function CreatePromocodePage() {
           </Button>
         </div>
 
-        <div className="px-6 py-6 space-y-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 space-y-6">
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-2">
               <div className="text-[13px] text-[#8E8E93] font-medium">
@@ -571,14 +596,21 @@ export default function CreatePromocodePage() {
             </div>
 
             {isAdmin && (
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={payFromShop}
-                  onCheckedChange={(v) => setPayFromShop(Boolean(v))}
-                />
-                <div className="text-[16px] font-semibold text-[#111111]">
-                  За счет магазина
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={payFromShop}
+                    onCheckedChange={(v) => setPayFromShop(Boolean(v))}
+                  />
+                  <div className="text-[16px] font-semibold text-[#111111]">
+                    За счет магазина
+                  </div>
                 </div>
+
+                <AllowedUsersField
+                  value={allowedUsers}
+                  onChange={setAllowedUsers}
+                />
               </div>
             )}
           </div>
