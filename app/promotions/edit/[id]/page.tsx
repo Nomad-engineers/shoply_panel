@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { mutate } from "swr";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Trash2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout";
+import { AllowedUsersField, type AllowedUserOption } from "@/components/promotions/allowed-users-field";
 import { Button, Input, Switch, Spinner } from "@/components/ui";
 import { cn } from "@/lib/theme";
+import { attachAllowedUsersToPromocode } from "@/lib/promocode-allowed-users";
 import { useAuth } from "@/components/hooks/useLogin";
 import { useShops } from "@/components/hooks/useShops";
 import type { Shop } from "@/types/shop";
@@ -54,6 +55,8 @@ export default function EditPromocodePage() {
 
   const [payFromShop, setPayFromShop] = useState(false);
   const [oneActivation, setOneActivation] = useState(false);
+  const [allowedUsers, setAllowedUsers] = useState<AllowedUserOption[]>([]);
+  const [initialAllowedUserIds, setInitialAllowedUserIds] = useState<number[]>([]);
 
   const [validUntilEnabled, setValidUntilEnabled] = useState(false);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -89,8 +92,7 @@ export default function EditPromocodePage() {
           setLoading(false);
           return true;
         }
-      } catch (e) {
-        console.error("Error loading from session storage", e);
+      } catch {
       }
       return false;
     };
@@ -98,11 +100,22 @@ export default function EditPromocodePage() {
     const mapPromocodeToState = (p: Promocode) => {
       setTechnicalName(p.technicalName || "");
       setPromocodeName(p.name || "");
-      // minSum might be stored in technicalName or meta in some versions
-      // Default to 0 if not explicitly in the type
-      setMinSum(0); 
+      setMinSum(p.minSum || 0);
       setType(p.type as DiscountType);
       setValueForType(p.valueForType || 0);
+      setPayFromShop(Boolean(p.payFromShop));
+      setOneActivation(Boolean(p.onlyOneActivation));
+      setAllowedUsers(
+        (p.allowedUsers ?? []).map((user) => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          email: user.email,
+          photoId: user.photoId,
+        })),
+      );
+      setInitialAllowedUserIds((p.allowedUsers ?? []).map((user) => user.id));
       
       const sid = p.shop?.id || -1; // -1 for Regional
       setShopId(sid);
@@ -241,6 +254,21 @@ export default function EditPromocodePage() {
         throw new Error(errorJson.message || "Не удалось обновить промокод");
       }
 
+      const nextAllowedUserIds = allowedUsers.map((user) => user.id);
+      const newAllowedUserIds = nextAllowedUserIds.filter(
+        (userId) => !initialAllowedUserIds.includes(userId),
+      );
+
+      if (isAdmin && newAllowedUserIds.length > 0) {
+        await attachAllowedUsersToPromocode({
+          promocodeId: Number(promocodeId),
+          userIds: newAllowedUserIds,
+          accessToken: token,
+          refreshSession,
+        });
+        setInitialAllowedUserIds(nextAllowedUserIds);
+      }
+
       toast.success("Промокод обновлен");
       // Clear SWR cache for promocodes list
       mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
@@ -313,7 +341,7 @@ export default function EditPromocodePage() {
       headerClassName="pl-4 pr-8"
       contentClassName="min-h-0 p-0"
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div
           className="flex items-center justify-between px-6 py-4 border-b"
           style={{ borderColor: "rgba(220, 220, 230, 1)" }}
@@ -767,14 +795,21 @@ export default function EditPromocodePage() {
             </div>
 
             {isAdmin && (
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={payFromShop}
-                  onCheckedChange={(v) => setPayFromShop(Boolean(v))}
-                />
-                <div className="text-[16px] font-semibold text-[#111111]">
-                  За счет магазина
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={payFromShop}
+                    onCheckedChange={(v) => setPayFromShop(Boolean(v))}
+                  />
+                  <div className="text-[16px] font-semibold text-[#111111]">
+                    За счет магазина
+                  </div>
                 </div>
+
+                <AllowedUsersField
+                  value={allowedUsers}
+                  onChange={setAllowedUsers}
+                />
               </div>
             )}
           </div>

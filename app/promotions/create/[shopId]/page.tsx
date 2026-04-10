@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 
@@ -35,9 +34,7 @@ export default function CreatePromocodePage() {
     adminData,
     refreshSession,
     fetchWithSession,
-    loading: authLoading,
   } = useAuth();
-  const derivedShopId = adminData?.shopId;
 
   const isAdmin = adminData?.isAdmin ?? false;
 
