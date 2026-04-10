@@ -6,6 +6,15 @@ export interface PromocodeShop {
   photoId?: string | null;
 }
 
+export interface PromocodeAllowedUser {
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  email: string | null;
+  photoId?: string | null;
+}
+
 export interface Promocode {
   id: number;
   createdAt: string;
@@ -18,6 +27,11 @@ export interface Promocode {
   type: PromocodeType;
   valueForType?: number | null;
   activationCount: number;
+  minSum?: number | null;
+  payFromShop?: boolean | null;
+  onlyOneActivation?: boolean | null;
+  allowedUsers?: PromocodeAllowedUser[] | null;
+  allowedUserIds?: number[] | null;
 }
 
 export interface PaginatedMeta {
