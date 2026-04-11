@@ -20,6 +20,7 @@ export interface Promocode {
   createdAt: string;
   name: string;
   technicalName?: string | null;
+  shopId?: number | null;
   shop?: PromocodeShop | null;
   turnover: number;
   usageLimit?: number | null;
@@ -29,7 +30,9 @@ export interface Promocode {
   activationCount: number;
   minSum?: number | null;
   payFromShop?: boolean | null;
+  useMultiple?: boolean | null;
   onlyOneActivation?: boolean | null;
+  oneActivation?: boolean | null;
   allowedUsers?: PromocodeAllowedUser[] | null;
   allowedUserIds?: number[] | null;
 }
