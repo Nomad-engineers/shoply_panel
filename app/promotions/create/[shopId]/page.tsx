@@ -158,7 +158,9 @@ export default function CreatePromocodePage() {
         shopId,
 
         payFromShop: isAdmin ? payFromShop : false,
+        useMultiple: !oneActivation,
         onlyOneActivation: oneActivation,
+        oneActivation,
       };
 
       const doPost = async (token: string) => {

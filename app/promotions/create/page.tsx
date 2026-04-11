@@ -153,7 +153,9 @@ export default function PromotionsCreateIndexPage() {
         shopId,
 
         payFromShop: isAdmin ? payFromShop : false,
+        useMultiple: !oneActivation,
         onlyOneActivation: oneActivation,
+        oneActivation,
       };
 
       const doPost = async (token: string) => {
