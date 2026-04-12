@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { mutate } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Trash2 } from "lucide-react";
@@ -20,25 +20,54 @@ import { toast } from "sonner";
 type DiscountType = "fixed" | "percent" | "freeDelivery";
 type UsageMode = "quantity" | "infinite" | "temporary";
 
-interface PromocodeAllowedUserResponseItem {
-  userId: number;
-  firstName: string | null;
-  lastName: string | null;
-  phone?: string | null;
-  email?: string | null;
-  photoId?: string | null;
-}
+const readPromocodeFromStorage = (keys: string[]) => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  for (const key of keys) {
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        return JSON.parse(raw) as Promocode;
+      }
+    } catch {
+    }
+  }
+
+  return null;
+};
+
+const mapAllowedUsersFromPromocode = (promocode: Promocode) =>
+  (promocode.allowedUsers ?? []).reduce<AllowedUserOption[]>((acc, user) => {
+    const resolvedUserId = user.userId ?? user.id ?? null;
+
+    if (resolvedUserId === null) {
+      return acc;
+    }
+
+    acc.push({
+      id: resolvedUserId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone ?? null,
+      email: user.email ?? null,
+      photoId: user.photoId,
+    });
+
+    return acc;
+  }, []);
 
 export default function EditPromocodePage() {
   const router = useRouter();
   const params = useParams();
   const promocodeId = params?.id;
   const detailCacheKey = `shoply:promocode-detail:${promocodeId}`;
+  const listSnapshotCacheKey = `shoply:edit-promocode:${promocodeId}`;
 
   const {
     adminData,
     refreshSession,
-    fetchWithSession,
     loading: authLoading,
   } = useAuth();
 
@@ -67,6 +96,7 @@ export default function EditPromocodePage() {
   const [oneActivation, setOneActivation] = useState(false);
   const [allowedUsers, setAllowedUsers] = useState<AllowedUserOption[]>([]);
   const [initialAllowedUserIds, setInitialAllowedUserIds] = useState<number[]>([]);
+  const [selectedRegionIds, setSelectedRegionIds] = useState<number[]>([]);
 
   const [validUntilEnabled, setValidUntilEnabled] = useState(false);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -92,170 +122,84 @@ export default function EditPromocodePage() {
     return found || initialShop;
   }, [shopId, shops, initialShop]);
 
+  const mapPromocodeToState = (p: Promocode) => {
+    const mappedAllowedUsers = mapAllowedUsersFromPromocode(p);
+
+    setTechnicalName(p.technicalName || "");
+    setPromocodeName(p.name || "");
+    setMinSum(p.minSum || 0);
+    setType(p.type as DiscountType);
+    setValueForType(p.valueForType || 0);
+    setPayFromShop(Boolean(p.payFromShop));
+    setOneActivation(
+      Boolean(
+        p.onlyOneActivation ??
+          p.oneActivation ??
+          (typeof p.useMultiple === "boolean" ? !p.useMultiple : false),
+      ),
+    );
+    setAllowedUsers(mappedAllowedUsers);
+    setInitialAllowedUserIds(mappedAllowedUsers.map((user) => user.id));
+    setSelectedRegionIds((p.regions ?? []).map((region) => region.id));
+
+    const sid = p.shop?.id ?? p.shopId ?? -1;
+    setShopId(sid);
+
+    if (p.usageLimit === null || p.usageLimit === undefined || p.usageLimit === 0) {
+      if (p.validUntil) {
+        setUsageMode("temporary");
+        setValidUntil(new Date(p.validUntil).toISOString().slice(0, 16));
+        setValidUntilEnabled(true);
+      } else {
+        setUsageMode("infinite");
+        setValidUntil("");
+        setValidUntilEnabled(false);
+      }
+      setUsageLimit(0);
+    } else {
+      setUsageMode("quantity");
+      setUsageLimit(p.usageLimit);
+      setValidUntil("");
+      setValidUntilEnabled(false);
+    }
+
+    if (p.shop?.id) {
+      setInitialShop(p.shop as Shop);
+    } else {
+      setInitialShop(null);
+    }
+  };
+
+  useLayoutEffect(() => {
+    const cachedPromocode = readPromocodeFromStorage([
+      detailCacheKey,
+      listSnapshotCacheKey,
+    ]);
+
+    if (!cachedPromocode) {
+      return;
+    }
+
+    mapPromocodeToState(cachedPromocode);
+    setLoading(false);
+  }, [detailCacheKey, listSnapshotCacheKey]);
+
   useEffect(() => {
-    const loadFromSession = () => {
-      try {
-        const raw = sessionStorage.getItem(detailCacheKey);
-        if (raw) {
-          return JSON.parse(raw) as Promocode;
-        }
-      } catch {
-      }
-      return null;
-    };
+    const cachedPromocode = readPromocodeFromStorage([
+      detailCacheKey,
+      listSnapshotCacheKey,
+    ]);
 
-    const mapAllowedUsers = (
-      users: PromocodeAllowedUserResponseItem[] | null | undefined,
-    ) => {
-      const mappedUsers = (users ?? []).map((user) => ({
-        id: user.userId,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone ?? null,
-        email: user.email ?? null,
-        photoId: user.photoId ?? null,
-      }));
+    if (cachedPromocode) {
+      mapPromocodeToState(cachedPromocode);
+      setSubmitError(null);
+      setLoading(false);
+      return;
+    }
 
-      setAllowedUsers(mappedUsers);
-      setInitialAllowedUserIds(mappedUsers.map((user) => user.id));
-    };
-
-    const mapPromocodeToState = (p: Promocode) => {
-      setTechnicalName(p.technicalName || "");
-      setPromocodeName(p.name || "");
-      setMinSum(p.minSum || 0);
-      setType(p.type as DiscountType);
-      setValueForType(p.valueForType || 0);
-      setPayFromShop(Boolean(p.payFromShop));
-      setOneActivation(
-        Boolean(
-          p.onlyOneActivation ??
-            p.oneActivation ??
-            (typeof p.useMultiple === "boolean" ? !p.useMultiple : false),
-        ),
-      );
-      setAllowedUsers(
-        (p.allowedUsers ?? []).map((user) => ({
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          email: user.email,
-          photoId: user.photoId,
-        })),
-      );
-      setInitialAllowedUserIds((p.allowedUsers ?? []).map((user) => user.id));
-
-      const sid = p.shop?.id ?? p.shopId ?? -1; // -1 for Regional
-      setShopId(sid);
-
-      if (p.usageLimit === null || p.usageLimit === undefined || p.usageLimit === 0) {
-        if (p.validUntil) {
-          setUsageMode("temporary");
-          setValidUntil(new Date(p.validUntil).toISOString().slice(0, 16));
-          setValidUntilEnabled(true);
-        } else {
-          setUsageMode("infinite");
-        }
-        setUsageLimit(0);
-      } else {
-        setUsageMode("quantity");
-        setUsageLimit(p.usageLimit);
-      }
-
-      if (p.shop?.id) {
-        setInitialShop(p.shop as any);
-      } else {
-        setInitialShop(null);
-      }
-    };
-
-    const loadPromocode = async () => {
-      const cachedPromocode = loadFromSession();
-
-      if (cachedPromocode) {
-        mapPromocodeToState(cachedPromocode);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-
-      if (!promocodeId) return;
-
-      try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`;
-        const [promocodeRes, allowedUsersRes] = await Promise.all([
-          fetchWithSession(
-            url,
-            () => localStorage.getItem("access_token"),
-            refreshSession,
-          ),
-          fetchWithSession(
-            `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}/allowed-users`,
-            () => localStorage.getItem("access_token"),
-            refreshSession,
-          ),
-        ]);
-
-        let fetchedAllowedUsers:
-          | PromocodeAllowedUserResponseItem[]
-          | null = null;
-
-        if (allowedUsersRes.ok) {
-          const allowedUsersJson = await allowedUsersRes.json();
-          fetchedAllowedUsers = (allowedUsersJson.data ??
-            []) as PromocodeAllowedUserResponseItem[];
-          mapAllowedUsers(fetchedAllowedUsers);
-        }
-
-        if (promocodeRes.ok) {
-          const json = await promocodeRes.json();
-          const p: Promocode = json.data ?? json;
-
-          if (fetchedAllowedUsers) {
-            p.allowedUsers = fetchedAllowedUsers.map((user) => ({
-              id: user.userId,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              phone: user.phone ?? null,
-              email: user.email ?? null,
-              photoId: user.photoId ?? null,
-            }));
-          }
-
-          mapPromocodeToState(p);
-          sessionStorage.setItem(detailCacheKey, JSON.stringify(p));
-          setSubmitError(null);
-        } else if (cachedPromocode) {
-          mapPromocodeToState({
-            ...cachedPromocode,
-            allowedUsers: fetchedAllowedUsers
-              ? fetchedAllowedUsers.map((user) => ({
-                  id: user.userId,
-                  firstName: user.firstName,
-                  lastName: user.lastName,
-                  phone: user.phone ?? null,
-                  email: user.email ?? null,
-                  photoId: user.photoId ?? null,
-                }))
-              : cachedPromocode.allowedUsers,
-          });
-        } else {
-          throw new Error("Не удалось загрузить данные промокода");
-        }
-      } catch (e: any) {
-        if (cachedPromocode) {
-          mapPromocodeToState(cachedPromocode);
-        } else {
-          setSubmitError(e.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPromocode();
-  }, [detailCacheKey, fetchWithSession, refreshSession, promocodeId]);
+    setSubmitError("Не удалось загрузить данные промокода");
+    setLoading(false);
+  }, [detailCacheKey, listSnapshotCacheKey]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -297,6 +241,10 @@ export default function EditPromocodePage() {
     setSaving(true);
 
     try {
+      const regionIds = shopId === -1 && selectedRegionIds.length === 0
+        ? [1]
+        : selectedRegionIds;
+
       const body = {
         technicalName: technicalName.trim(),
         promocodeName: promocodeName.trim(),
@@ -309,10 +257,9 @@ export default function EditPromocodePage() {
             : null,
         type,
         shopId: shopId === -1 ? null : shopId,
+        regionIds,
         payFromShop: isAdmin ? payFromShop : false,
-        useMultiple: !oneActivation,
         onlyOneActivation: oneActivation,
-        oneActivation,
       };
 
       const doPatch = async (token: string) => {

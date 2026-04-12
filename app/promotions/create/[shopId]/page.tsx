@@ -156,11 +156,10 @@ export default function CreatePromocodePage() {
             : null,
         type,
         shopId,
+        regionIds: [],
 
         payFromShop: isAdmin ? payFromShop : false,
-        useMultiple: !oneActivation,
         onlyOneActivation: oneActivation,
-        oneActivation,
       };
 
       const doPost = async (token: string) => {

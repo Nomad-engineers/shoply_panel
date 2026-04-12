@@ -58,6 +58,7 @@ export default function PromotionsCreateIndexPage() {
 
   const [open, setOpen] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
+  const [selectedRegionIds] = useState<number[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -137,7 +138,10 @@ export default function PromotionsCreateIndexPage() {
 
     try {
       const shopId = selectedShopId;
-      if (!shopId) throw new Error("Выберите магазин");
+      if (shopId === null) throw new Error("Выберите магазин");
+      const regionIds = shopId === -1 && selectedRegionIds.length === 0
+        ? [1]
+        : selectedRegionIds;
 
       const body = {
         technicalName: technicalName.trim(),
@@ -150,12 +154,11 @@ export default function PromotionsCreateIndexPage() {
             ? new Date(validUntil).toISOString()
             : null,
         type,
-        shopId,
+        shopId: shopId === -1 ? null : shopId,
+        regionIds,
 
         payFromShop: isAdmin ? payFromShop : false,
-        useMultiple: !oneActivation,
         onlyOneActivation: oneActivation,
-        oneActivation,
       };
 
       const doPost = async (token: string) => {
