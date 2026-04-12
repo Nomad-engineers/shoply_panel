@@ -6,37 +6,46 @@ export interface PromocodeShop {
   photoId?: string | null;
 }
 
+export interface PromocodeRegion {
+  id: number;
+  name: string;
+}
+
 export interface PromocodeAllowedUser {
   userId?: number | null;
   id?: number | null;
   firstName: string | null;
   lastName: string | null;
-  phone: string | null;
-  email: string | null;
+  phone?: string | null;
+  email?: string | null;
   photoId?: string | null;
 }
 
-export interface Promocode {
+export interface V2AdminPromocodeDto {
   id: number;
   createdAt: string;
   name: string;
   technicalName?: string | null;
   shopId?: number | null;
   shop?: PromocodeShop | null;
+  regionIds?: number[] | null;
+  regions: PromocodeRegion[];
+  allowedUsers: PromocodeAllowedUser[];
   turnover: number;
   usageLimit?: number | null;
   validUntil?: string | null;
   type: PromocodeType;
   valueForType?: number | null;
   activationCount: number;
-  minSum?: number | null;
-  payFromShop?: boolean | null;
-  useMultiple?: boolean | null;
-  onlyOneActivation?: boolean | null;
+  minSum: number;
+  payFromShop: boolean;
+  useMultiple: boolean;
+  onlyOneActivation: boolean;
   oneActivation?: boolean | null;
-  allowedUsers?: PromocodeAllowedUser[] | null;
   allowedUserIds?: number[] | null;
 }
+
+export type Promocode = V2AdminPromocodeDto;
 
 export interface PaginatedMeta {
   total: number;
