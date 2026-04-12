@@ -62,8 +62,10 @@ export function AllowedUsersField({
   value,
   onChange,
 }: AllowedUsersFieldProps) {
+  const USERS_PER_PAGE = 5;
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -102,6 +104,20 @@ export function AllowedUsersField({
   const handleRemoveUser = (userId: number) => {
     onChange(value.filter((user) => user.id !== userId));
   };
+
+  useEffect(() => {
+    const nextPageCount = Math.max(1, Math.ceil(value.length / USERS_PER_PAGE));
+    if (currentPage > nextPageCount) {
+      setCurrentPage(nextPageCount);
+    }
+  }, [currentPage, value.length]);
+
+  const paginatedSelectedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+    return value.slice(startIndex, startIndex + USERS_PER_PAGE);
+  }, [currentPage, value]);
+
+  const selectedUsersPageCount = Math.max(1, Math.ceil(value.length / USERS_PER_PAGE));
 
   return (
     <div className="space-y-4 rounded-[20px] border border-[#DCDCE6] bg-[#FBFBFD] p-4">
@@ -176,7 +192,7 @@ export function AllowedUsersField({
             Пока не выбрано ни одного пользователя.
           </div>
         ) : (
-          value.map((user) => (
+          paginatedSelectedUsers.map((user) => (
             <div
               key={user.id}
               className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3"
@@ -200,6 +216,37 @@ export function AllowedUsersField({
               </button>
             </div>
           ))
+        )}
+
+        {value.length > USERS_PER_PAGE && (
+          <div className="flex items-center justify-between gap-3 px-1 pt-2">
+            <div className="text-[13px] text-[#8E8E93]">
+              {currentPage} / {selectedUsersPageCount}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-[#111111] transition-colors hover:bg-[#F6F6FA] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Назад
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) =>
+                    Math.min(selectedUsersPageCount, page + 1),
+                  )
+                }
+                disabled={currentPage === selectedUsersPageCount}
+                className="rounded-lg bg-white px-3 py-1.5 text-[13px] font-medium text-[#111111] transition-colors hover:bg-[#F6F6FA] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Вперед
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

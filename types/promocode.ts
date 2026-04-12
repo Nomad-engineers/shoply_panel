@@ -7,7 +7,8 @@ export interface PromocodeShop {
 }
 
 export interface PromocodeAllowedUser {
-  id: number;
+  userId?: number | null;
+  id?: number | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
