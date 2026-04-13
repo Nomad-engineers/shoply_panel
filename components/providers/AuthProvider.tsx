@@ -335,7 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
         const profile = await refreshProfile();
-        router.push(profile?.isAdmin ? "/reports/couriers" : "/categories");
+        router.push(profile?.isAdmin ? "/orders" : "/categories");
       }
     } catch (err) {
       setError("Ошибка при входе.");
