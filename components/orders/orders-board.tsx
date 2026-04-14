@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircleDollarSign, ClipboardList, CreditCard, Package, Truck } from "lucide-react";
+import { useMemo } from "react";
+import { ChevronDown, ClipboardList, Package, Truck } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { cn } from "@/lib/theme";
+import { Spinner } from "@/components/ui";
+import { useAdminOrders } from "@/components/hooks/useAdminOrders";
+import type { AdminOrder, AdminOrderStatus } from "@/types/admin-order";
 
-type PeriodOption = "День" | "Неделя" | "Месяц";
 type BoardColumnTone = "new" | "progress" | "picked" | "delivery" | "done" | "return";
 
 interface OrderCardData {
@@ -39,159 +41,13 @@ const tabs = [
   { id: "promo", label: "Промо компании", disabled: true },
 ];
 
-const summaryCards: SummaryCardData[] = [
-  { id: "active", label: "Активные", value: "12 заказов", icon: ClipboardList },
-  { id: "finished", label: "Завершены", value: "5 заказа", icon: Package },
-  { id: "cancelled", label: "Отмены", value: "2 заказа", icon: Truck },
-  { id: "total", label: "Всего", value: "17 заказов", icon: Package },
-  { id: "revenue", label: "Выручка", value: "15 750 ₽", icon: CircleDollarSign },
-  { id: "fee", label: "Доход", value: "1 575 ₽", icon: CreditCard },
-  { id: "payout", label: "Выплаты", value: "1 930 ₽", icon: CircleDollarSign },
-];
-
-const initialBoardColumns: BoardColumnData[] = [
-  {
-    id: "new",
-    title: "Новые заказы",
-    tone: "new",
-    orders: [
-      {
-        cardId: "new-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Новый",
-        tone: "new",
-      },
-    ],
-  },
-  {
-    id: "progress",
-    title: "В работе",
-    tone: "progress",
-    orders: [
-      {
-        cardId: "progress-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "В работе",
-        tone: "progress",
-      },
-      {
-        cardId: "progress-64-2",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "В работе",
-        tone: "progress",
-      },
-    ],
-  },
-  {
-    id: "picked",
-    title: "Собраны",
-    tone: "picked",
-    orders: [
-      {
-        cardId: "picked-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Собраны",
-        tone: "picked",
-      },
-    ],
-  },
-  {
-    id: "delivery",
-    title: "На доставке",
-    tone: "delivery",
-    orders: [
-      {
-        cardId: "delivery-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Доставка",
-        tone: "delivery",
-      },
-      {
-        cardId: "delivery-64-2",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Доставка",
-        tone: "delivery",
-      },
-      {
-        cardId: "delivery-picked-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Собраны",
-        tone: "picked",
-      },
-    ],
-  },
-  {
-    id: "done",
-    title: "Завершены",
-    tone: "done",
-    orders: [
-      {
-        cardId: "done-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Завершен",
-        tone: "done",
-      },
-      {
-        cardId: "done-64-2",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Завершен",
-        tone: "done",
-      },
-    ],
-  },
-  {
-    id: "return",
-    title: "Возврат",
-    tone: "return",
-    orders: [
-      {
-        cardId: "return-64-1",
-        id: 64,
-        customer: "Болашак",
-        address: "Королева 25, кв 28",
-        total: "1 750 ₽",
-        items: "12 товар",
-        status: "Возврат",
-        tone: "return",
-      },
-    ],
-  },
+const boardColumnTemplate: Omit<BoardColumnData, "orders">[] = [
+  { id: "new", title: "Новые заказы", tone: "new" },
+  { id: "progress", title: "В работе", tone: "progress" },
+  { id: "picked", title: "Собраны", tone: "picked" },
+  { id: "delivery", title: "На доставке", tone: "delivery" },
+  { id: "done", title: "Завершение", tone: "done" },
+  { id: "return", title: "Возврат", tone: "return" },
 ];
 
 const toneClassNames: Record<BoardColumnTone, string> = {
@@ -208,9 +64,86 @@ const statusLabelsByColumnId: Record<BoardColumnData["id"], string> = {
   progress: "В работе",
   picked: "Собраны",
   delivery: "Доставка",
-  done: "Завершен",
+  done: "Завершение",
   return: "Возврат",
 };
+
+const columnIdByOrderStatus: Record<AdminOrderStatus, BoardColumnData["id"]> = {
+  pending: "new",
+  assembling: "progress",
+  ready: "picked",
+  delivery: "delivery",
+  completing: "done",
+  completed: "done",
+  cancelled: "return",
+};
+
+function formatCurrency(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    }).format(value);
+  } catch {
+    return `${value.toLocaleString("ru-RU")} ${currency}`;
+  }
+}
+
+function formatOrderCount(count: number) {
+  const noun =
+    count % 10 === 1 && count % 100 !== 11
+      ? "заказ"
+      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
+        ? "заказа"
+        : "заказов";
+
+  return `${count} ${noun}`;
+}
+
+function formatItemCount(count: number) {
+  const noun =
+    count % 10 === 1 && count % 100 !== 11
+      ? "товар"
+      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
+        ? "товара"
+        : "товаров";
+
+  return `${count} ${noun}`;
+}
+
+function getOrderAddress(order: AdminOrder) {
+  if (order.addressSnapshot.fullAddress?.trim()) {
+    return order.addressSnapshot.fullAddress.trim();
+  }
+
+  const addressParts = [
+    order.addressSnapshot.streetType,
+    order.addressSnapshot.street,
+    order.addressSnapshot.house,
+  ].filter(Boolean);
+
+  return addressParts.join(" ") || order.addressSnapshot.city || "Адрес не указан";
+}
+
+function mapOrderToCard(order: AdminOrder): OrderCardData {
+  const tone = order.isCancelled ? "return" : boardColumnTemplate.find(
+    (column) => column.id === (order.isCancelled ? "return" : columnIdByOrderStatus[order.status]),
+  )?.tone ?? "progress";
+  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const columnId = order.isCancelled ? "return" : columnIdByOrderStatus[order.status];
+
+  return {
+    cardId: `order-${order.id}`,
+    id: order.id,
+    customer: order.shop.name,
+    address: getOrderAddress(order),
+    total: formatCurrency(order.totalPrice, order.currency),
+    items: formatItemCount(itemCount),
+    status: statusLabelsByColumnId[columnId],
+    tone,
+  };
+}
 
 function OrdersHeader() {
   return (
@@ -259,25 +192,11 @@ function SummaryCard({ icon: Icon, label, value }: SummaryCardData) {
 
 function OrderCard({
   order,
-  onDragStart,
-  onDragEnd,
-  isDragging,
 }: {
   order: OrderCardData;
-  onDragStart: (order: OrderCardData) => void;
-  onDragEnd: () => void;
-  isDragging: boolean;
 }) {
   return (
-    <article
-      draggable
-      onDragStart={() => onDragStart(order)}
-      onDragEnd={onDragEnd}
-      className={cn(
-        "cursor-grab rounded-[16px] border border-[#E9E9F1] bg-white px-4 py-3 shadow-[0_8px_22px_rgba(17,19,34,0.04)]",
-        isDragging && "scale-[0.98] opacity-60",
-      )}
-    >
+    <article className="rounded-[16px] border border-[#E9E9F1] bg-white px-4 py-3 shadow-[0_8px_22px_rgba(17,19,34,0.04)]">
       <div className="mb-4 flex items-center gap-3">
         <span className="text-[16px] font-extrabold tracking-[-0.03em] text-[#36394A]">№ {order.id}</span>
         <span className={cn("text-[15px] font-bold", toneClassNames[order.tone])}>{order.status}</span>
@@ -296,20 +215,8 @@ function OrderCard({
 
 function BoardColumn({
   column,
-  onDragStart,
-  onDropOrder,
-  onDragEnd,
-  onDragEnterColumn,
-  isDropTarget,
-  draggingCardId,
 }: {
   column: BoardColumnData;
-  onDragStart: (order: OrderCardData, columnId: string) => void;
-  onDropOrder: (columnId: string) => void;
-  onDragEnd: () => void;
-  onDragEnterColumn: (columnId: string) => void;
-  isDropTarget: boolean;
-  draggingCardId: string | null;
 }) {
   return (
     <div className="flex min-w-[230px] flex-1 flex-col rounded-[18px] bg-[#F2F2F8] p-1">
@@ -319,29 +226,9 @@ function BoardColumn({
           {column.orders.length}
         </span>
       </div>
-      <div
-        onDragOver={(event) => {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-        }}
-        onDragEnter={() => onDragEnterColumn(column.id)}
-        onDrop={(event) => {
-          event.preventDefault();
-          onDropOrder(column.id);
-        }}
-        className={cn(
-          "flex min-h-[540px] flex-1 flex-col gap-3 rounded-[16px] bg-[#F7F7FB] p-2",
-          isDropTarget && "bg-[#EDF8E8] ring-2 ring-[#55CB00]/35",
-        )}
-      >
+      <div className="flex min-h-[540px] flex-1 flex-col gap-3 rounded-[16px] bg-[#F7F7FB] p-2">
         {column.orders.map((order) => (
-          <OrderCard
-            key={order.cardId}
-            order={order}
-            onDragStart={(dragOrder) => onDragStart(dragOrder, column.id)}
-            onDragEnd={onDragEnd}
-            isDragging={draggingCardId === order.cardId}
-          />
+          <OrderCard key={order.cardId} order={order} />
         ))}
       </div>
     </div>
@@ -349,92 +236,50 @@ function BoardColumn({
 }
 
 export function OrdersBoard() {
-  const [periodLabel, setPeriodLabel] = useState<PeriodOption>("Месяц");
-  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
-  const [columns, setColumns] = useState(initialBoardColumns);
-  const [dragState, setDragState] = useState<{
-    order: OrderCardData;
-    sourceColumnId: string;
-  } | null>(null);
-  const [dropColumnId, setDropColumnId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { orders, meta, loading, error } = useAdminOrders({
+    page: 1,
+    pageSize: 100,
+  });
 
   const header = <OrdersHeader />;
 
-  const handleDragStart = (order: OrderCardData, sourceColumnId: string) => {
-    setDragState({ order, sourceColumnId });
-  };
+  const columns = useMemo<BoardColumnData[]>(() => {
+    const groupedOrders = new Map<BoardColumnData["id"], OrderCardData[]>();
 
-  const handleDropOrder = (targetColumnId: string) => {
-    if (!dragState) {
-      return;
-    }
+    boardColumnTemplate.forEach((column) => {
+      groupedOrders.set(column.id, []);
+    });
 
-    const { order, sourceColumnId } = dragState;
+    orders.forEach((order) => {
+      const columnId = order.isCancelled ? "return" : columnIdByOrderStatus[order.status];
+      groupedOrders.get(columnId)?.push(mapOrderToCard(order));
+    });
 
-    if (sourceColumnId === targetColumnId) {
-      setDragState(null);
-      setDropColumnId(null);
-      return;
-    }
+    return boardColumnTemplate.map((column) => ({
+      ...column,
+      orders: groupedOrders.get(column.id) ?? [],
+    }));
+  }, [orders]);
 
-    setColumns((currentColumns) =>
-      currentColumns.map((column) => {
-        if (column.id === sourceColumnId) {
-          return {
-            ...column,
-            orders: column.orders.filter((item) => item.cardId !== order.cardId),
-          };
-        }
-
-        if (column.id === targetColumnId) {
-          return {
-            ...column,
-            orders: [
-              ...column.orders,
-              {
-                ...order,
-                tone: column.tone,
-                status: statusLabelsByColumnId[column.id],
-              },
-            ],
-          };
-        }
-
-        return column;
-      }),
-    );
-
-    setDragState(null);
-    setDropColumnId(null);
-  };
-
-  const handleDragEnd = () => {
-    setDragState(null);
-    setDropColumnId(null);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsPeriodOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const summaryCards = useMemo<SummaryCardData[]>(() => {
+    return [
+      { id: "active", label: "Активные", value: formatOrderCount(meta.total), icon: ClipboardList },
+      { id: "new", label: "Новые", value: formatOrderCount(columns[0]?.orders.length ?? 0), icon: Package },
+      { id: "progress", label: "В работе", value: formatOrderCount(columns[1]?.orders.length ?? 0), icon: Package },
+      { id: "picked", label: "Собраны", value: formatOrderCount(columns[2]?.orders.length ?? 0), icon: Package },
+      { id: "delivery", label: "Доставка", value: formatOrderCount(columns[3]?.orders.length ?? 0), icon: Truck },
+      { id: "done", label: "Завершение", value: formatOrderCount(columns[4]?.orders.length ?? 0), icon: Package },
+      { id: "cancelled", label: "Отмены", value: formatOrderCount(columns[5]?.orders.length ?? 0), icon: Truck },
+    ];
+  }, [columns, meta.total]);
 
   return (
     <DashboardLayout
       header={header}
       headerClassName="pl-4 pr-8"
-      contentClassName="min-h-0 p-0"
+      contentClassName="min-h-0 overflow-hidden p-0"
     >
-      <section className="flex min-h-0 flex-1 flex-col p-4 pt-0">
+      <section className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[#ECECF3] bg-white px-4 py-4 shadow-[0_16px_50px_rgba(17,19,34,0.05)]">
           <div className="flex flex-wrap items-start gap-4 border-b border-[#EFEFF5] pb-5">
             <div className="flex min-w-0 flex-1 flex-wrap gap-3">
@@ -443,71 +288,39 @@ export function OrdersBoard() {
               ))}
             </div>
 
-            <div className="relative ml-auto shrink-0" ref={dropdownRef}>
+            <div className="relative ml-auto shrink-0">
               <button
                 type="button"
-                onClick={() => setIsPeriodOpen((current) => !current)}
-                className="flex items-center gap-2 rounded-[12px] px-4 py-2 text-sm font-medium transition-colors"
+                disabled
+                className="flex items-center gap-2 rounded-[12px] px-4 py-2 text-sm font-medium text-[#4B5062]"
                 style={{ backgroundColor: "rgba(238, 238, 244, 0.5)" }}
               >
-                {periodLabel}
-                <ChevronDown
-                  size={16}
-                  className={cn(
-                    "transition-transform",
-                    isPeriodOpen && "rotate-180",
-                  )}
-                />
+                Активные
+                <ChevronDown size={16} />
               </button>
-
-              {isPeriodOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-[12px] border border-gray-200 bg-white shadow-lg">
-                  {(["День", "Неделя", "Месяц"] as PeriodOption[]).map((option) => {
-                    const isActive = option === periodLabel;
-
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => {
-                          setPeriodLabel(option);
-                          setIsPeriodOpen(false);
-                        }}
-                        className={cn(
-                          "w-full px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50",
-                          isActive
-                            ? "bg-green-50 font-medium text-[#55CB00]"
-                            : "text-gray-700",
-                        )}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden pt-5">
-            <div className="flex min-h-full min-w-max gap-3">
-              {columns.map((column) => (
-                <BoardColumn
-                  key={column.id}
-                  column={column}
-                  onDragStart={handleDragStart}
-                  onDropOrder={handleDropOrder}
-                  onDragEnd={handleDragEnd}
-                  onDragEnterColumn={(columnId) => {
-                    if (dragState) {
-                      setDropColumnId(columnId);
-                    }
-                  }}
-                  isDropTarget={dropColumnId === column.id}
-                  draggingCardId={dragState?.order.cardId ?? null}
-                />
-              ))}
-            </div>
+          <div className="no-scrollbar min-h-0 flex-1 overflow-auto pt-5">
+            {loading ? (
+              <div className="flex min-h-[420px] items-center justify-center">
+                <Spinner size={28} />
+              </div>
+            ) : error ? (
+              <div className="flex min-h-[420px] items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
+                {error}
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="flex min-h-[420px] items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
+                Активных заказов нет
+              </div>
+            ) : (
+              <div className="flex min-h-max min-w-max items-start gap-3">
+                {columns.map((column) => (
+                  <BoardColumn key={column.id} column={column} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
