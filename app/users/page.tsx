@@ -343,9 +343,18 @@ export default function UsersPage() {
     }
   };
 
-  const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handlePasswordSubmit = async () => {
     if (!editingUser) {
+      return;
+    }
+
+    if (!passwordForm.password || !passwordForm.confirmPassword) {
+      toast.error("Заполните оба поля пароля");
+      return;
+    }
+
+    if (passwordForm.password.length < 6) {
+      toast.error("Пароль должен содержать минимум 6 символов");
       return;
     }
 
@@ -879,10 +888,7 @@ export default function UsersPage() {
                   </button>
 
                   {isPasswordAccordionOpen && (
-                    <form
-                      onSubmit={handlePasswordSubmit}
-                      className="grid gap-4 border-t border-border px-5 py-5 md:grid-cols-2"
-                    >
+                    <div className="grid gap-4 border-t border-border px-5 py-5 md:grid-cols-2">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-text-primary">Новый пароль</label>
                         <Input
@@ -918,11 +924,16 @@ export default function UsersPage() {
                       </div>
 
                       <div className="md:col-span-2 flex justify-end">
-                        <Button type="submit" variant="outline" disabled={isUpdatingPassword}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isUpdatingPassword}
+                          onClick={handlePasswordSubmit}
+                        >
                           {isUpdatingPassword ? "Сохранение пароля..." : "Сменить пароль"}
                         </Button>
                       </div>
-                    </form>
+                    </div>
                   )}
                 </div>
               )}
