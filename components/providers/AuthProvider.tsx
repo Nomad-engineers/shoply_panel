@@ -274,14 +274,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await res.json();
       const userData = buildProfile((result.data ?? result) as V2ProfileResponse);
 
-      if (!userData.firstName) {
-        clearCachedProfile();
-        authStorage.clear();
-        router.push("/login");
-        alert("Установите свой профиль в панели Directus");
-        return null;
-      }
-
       if (!userData.isAdmin && userData.businesses.length === 0) {
         clearCachedProfile();
         authStorage.clear();
