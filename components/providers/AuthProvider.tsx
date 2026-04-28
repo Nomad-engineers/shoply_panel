@@ -10,8 +10,15 @@ import React, {
   useRef,
 } from "react";
 import { useRouter } from "next/navigation";
-import { parseJwt } from "@/lib/jwt";
-
+import Cookies from "js-cookie";
+import { authStorage } from "@/lib/utils";
+import { SWRConfig } from "swr";
+import { ROLES } from "@/middleware";
+import type {
+  AuthProfile,
+  AuthProfileBusiness,
+  V2ProfileResponse,
+} from "@/types/auth";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -22,65 +29,182 @@ interface fetchSessionFn {
     url: string,
     getAccessToken: () => string | null,
     refreshSession: () => Promise<string>,
+    options?: RequestInit
   ): Promise<Response>;
 }
 
 interface AuthContextType {
   loading: boolean;
   error: string;
-  adminData: any;
+  adminData: AuthProfile | null;
+  currentShopId: number | null;
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
   fetchWithSession: fetchSessionFn;
+  setCurrentShopId: (shopId: number | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_PROFILE_STORAGE_KEY = "auth_profile_cache_v1";
+
+function readCachedProfile(): AuthProfile | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const hasAccessToken = Boolean(localStorage.getItem("access_token"));
+  if (!hasAccessToken) {
+    return null;
+  }
+
+  try {
+    const rawValue = localStorage.getItem(AUTH_PROFILE_STORAGE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsedProfile = JSON.parse(rawValue) as Partial<AuthProfile>;
+    if (
+      typeof parsedProfile.role !== "string" ||
+      !Array.isArray(parsedProfile.businesses)
+    ) {
+      return null;
+    }
+
+    return parsedProfile as AuthProfile;
+  } catch (error) {
+    console.warn(`Failed to read cached auth profile: ${error}`);
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL;
-
-  const [loading, setLoading] = useState(true); // Start as loading to prevent flickering
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [adminData, setAdminData] = useState<any>(null);
+  const [adminData, setAdminData] = useState<AuthProfile | null>(null);
+  const [currentShopId, setCurrentShopIdState] = useState<number | null>(null);
+
+  const resolveShopId = useCallback(
+    (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
+      if (isAdmin || businesses.length === 0) {
+        return null;
+      }
+
+      const allowedIds = businesses.map((business) => business.id);
+      const cookieId = Number(Cookies.get("current_shop_id"));
+
+      if (cookieId && allowedIds.includes(cookieId)) {
+        return cookieId;
+      }
+
+      return allowedIds[0] ?? null;
+    },
+    []
+  );
+
+  const buildProfile = useCallback(
+    (rawProfile: V2ProfileResponse): AuthProfile => {
+      const businesses = Array.isArray(rawProfile.businesses)
+        ? rawProfile.businesses
+        : [];
+      const isAdmin = rawProfile.role === ROLES.ADMIN;
+
+      return {
+        ...rawProfile,
+        businesses,
+        isAdmin,
+        shopId: resolveShopId(businesses, isAdmin),
+      };
+    },
+    [resolveShopId]
+  );
+
+  const syncProfileCookies = useCallback((profile: AuthProfile) => {
+    Cookies.set("user_role", profile.role || "");
+
+    if (profile.isAdmin || !profile.shopId) {
+      Cookies.remove("current_shop_id");
+      return;
+    }
+
+    Cookies.set("current_shop_id", String(profile.shopId));
+  }, []);
+
+  const cacheProfile = useCallback((profile: AuthProfile) => {
+    try {
+      localStorage.setItem(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    } catch (error) {
+      console.warn(`Failed to save auth profile cache: ${error}`);
+    }
+  }, []);
+
+  const clearCachedProfile = useCallback(() => {
+    try {
+      localStorage.removeItem(AUTH_PROFILE_STORAGE_KEY);
+    } catch (error) {
+      console.warn(`Failed to clear auth profile cache: ${error}`);
+    }
+  }, []);
 
   const fetchWithSession: fetchSessionFn = useCallback(
-    async (url, getAccessToken, refreshSessionFn) => {
+    async (url, getAccessToken, refreshSessionFn, options) => {
       let token = getAccessToken();
 
-      let res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const requestConfig = (token: string | null) => ({
+        ...options,
+        headers: {
+          ...options?.headers,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
+      let res = await fetch(url, requestConfig(token));
 
       if (res.status === 401) {
         token = await refreshSessionFn();
         res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          ...options,
+          headers: {
+            ...options?.headers,
+            Authorization: `Bearer ${token}`,
+          },
         });
       }
 
       return res;
     },
-    [],
+    []
   );
 
   const logout = useCallback(() => {
+    clearCachedProfile();
     try {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      authStorage.clear();
     } catch {}
 
+    Cookies.remove("user_role");
+    Cookies.remove("current_shop_id");
+    setCurrentShopIdState(null);
     setAdminData(null);
     router.push("/login");
-  }, [router]);
+  }, [clearCachedProfile, router]);
+
+  const setCurrentShopId = useCallback((shopId: number | null) => {
+    if (shopId) {
+      Cookies.set("current_shop_id", String(shopId));
+    } else {
+      Cookies.remove("current_shop_id");
+    }
+
+    setCurrentShopIdState(shopId);
+  }, []);
 
   const refreshPromise = useRef<Promise<string> | null>(null);
 
   const refreshSession = useCallback(async (): Promise<string> => {
-    if (!directusUrl) throw new Error("DIRECTUS_URL не определён");
-
     // If a refresh is already in progress, return the existing promise
     if (refreshPromise.current) {
       return refreshPromise.current;
@@ -93,14 +217,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     refreshPromise.current = (async () => {
       try {
-        const res = await fetch(`${directusUrl}/auth/refresh`, {
+        const res = await fetch(`${apiUrl}/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh_token: refresh, mode: "json" }),
+          body: JSON.stringify({ refreshToken: refresh }),
         });
 
         if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
+          if (res.status === 400 || res.status === 401 || res.status === 403) {
             logout();
           }
           throw new Error(`Auth refresh failed: ${res.status}`);
@@ -108,15 +232,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const result = await res.json();
         const tokens = result.data || result;
-
-        if (!tokens.access_token || !tokens.refresh_token) {
+        if (!tokens.accessToken || !tokens.refreshToken) {
           throw new Error("Некорректный ответ от API");
         }
+        authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
-        localStorage.setItem("access_token", tokens.access_token);
-        localStorage.setItem("refresh_token", tokens.refresh_token);
-
-        return tokens.access_token;
+        return tokens.accessToken;
       } catch (err) {
         throw err;
       } finally {
@@ -125,25 +246,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
 
     return refreshPromise.current;
-  }, [directusUrl, logout]);
+  }, [apiUrl, logout]);
 
-  const refreshProfile = useCallback(async () => {
-    if (!directusUrl) {
+  const refreshProfile = useCallback(async (): Promise<AuthProfile | null> => {
+    if (!apiUrl) {
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
         setLoading(false);
-        return;
+        return null;
       }
 
       const res = await fetchWithSession(
-        `${directusUrl}/users/me`,
+        `${apiUrl}/v2/profile`,
         () => token,
-        refreshSession,
+        refreshSession
       );
 
       if (!res.ok) {
@@ -151,151 +272,133 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await res.json();
-      let userData = result.data ?? result;
+      const userData = buildProfile((result.data ?? result) as V2ProfileResponse);
 
-      // Check Admin Access via JWT
-      const payload = parseJwt(token);
-      userData.isAdmin = payload?.admin_access === true;
-
-      // If NOT Admin and NO Shop, try to find the shop via members
-      if (!userData.isAdmin && !userData.shop && userData.email) {
-        try {
-          // Build search query to filter shops by member email
-          const searchParams = {
-            members: {
-              email: userData.email,
-            },
-          };
-
-          const queryParams = new URLSearchParams();
-          queryParams.set("relations", "members,photo");
-          queryParams.set("search", JSON.stringify(searchParams));
-          queryParams.set("page", "1");
-          queryParams.set("pageSize", "10");
-          queryParams.set("isPublic", "true");
-
-          const shopsRes = await fetchWithSession(
-            `${process.env.NEXT_PUBLIC_API_URL}/shops?${queryParams.toString()}`,
-            () => token,
-            refreshSession,
-          );
-
-          if (shopsRes.ok) {
-            const result = await shopsRes.json();
-            const shopsList = result.data || result;
-
-            if (Array.isArray(shopsList) && shopsList.length > 0) {
-              userData.shop = shopsList[0];
-              console.log(
-                "[Auth] Found user shop via search:",
-                shopsList[0].name,
-              );
-            } else {
-              console.warn(
-                "[Auth] No shop found for user email:",
-                userData.email,
-              );
-            }
-          } else {
-            console.error("[Auth] /shops failed:", shopsRes.status);
-          }
-        } catch (e) {
-          console.error("[Auth] Failed to fetch user shop", e);
-        }
+      if (!userData.isAdmin && userData.businesses.length === 0) {
+        clearCachedProfile();
+        authStorage.clear();
+        router.push("/login");
+        alert("У вас нет связанного магазина.");
+        return null;
       }
 
+      syncProfileCookies(userData);
+      cacheProfile(userData);
       setAdminData(userData);
+      setCurrentShopIdState(userData.isAdmin ? null : (userData.shopId ?? null));
+      return userData;
     } catch (err) {
-      console.error("Profile refresh failed", err);
+      console.error(err);
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [directusUrl, fetchWithSession, refreshSession]);
+  }, [
+    apiUrl,
+    buildProfile,
+    cacheProfile,
+    clearCachedProfile,
+    fetchWithSession,
+    refreshSession,
+    router,
+    syncProfileCookies,
+  ]);
 
-  const login = async (
-    form: LoginFormValues,
-    redirectTo: string = "/reports",
-  ) => {
-    if (!directusUrl) {
-      setError("DIRECTUS_URL не определён");
-      return;
-    }
-
+  const login = async (form: LoginFormValues, redirectTo: string = "/") => {
     setLoading(true);
     setError("");
 
     try {
-      const res = await fetch(`${directusUrl}/auth/login`, {
+      const res = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      const result = await res.json();
-
       if (!res.ok) {
         setError("Неверный логин или пароль");
+        setLoading(false);
         return;
       }
 
+      const result = await res.json();
       const tokens = result.data || result;
-      if (tokens.access_token && tokens.refresh_token) {
-        localStorage.setItem("access_token", tokens.access_token);
-        localStorage.setItem("refresh_token", tokens.refresh_token);
-      } else {
-        console.error("[Auth] Invalid login response - missing tokens", tokens);
-        setError("Ошибка авторизации: токены не получены");
-        return;
-      }
+      if (tokens.accessToken && tokens.refreshToken) {
+        authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
-      await refreshProfile();
-
-      // Role-based redirection
-      if (redirectTo === "/reports") {
-        const token = localStorage.getItem("access_token");
-        const payload = token ? parseJwt(token) : null;
-        const isAdmin = payload?.admin_access === true;
-        const target = isAdmin ? "/reports/couriers" : "/promotions";
-        router.push(target);
-      } else {
-        router.push(redirectTo);
+        const profile = await refreshProfile();
+        router.push(profile?.isAdmin ? "/orders" : "/categories");
       }
     } catch (err) {
-      console.error("[Auth] Login exception:", err);
-      setError("Ошибка при входе. Попробуйте позже.");
+      setError("Ошибка при входе.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshProfile();
-  }, [refreshProfile]);
+    const cachedProfile = readCachedProfile();
+    const cookieShopId = Number(Cookies.get("current_shop_id"));
+    const token = localStorage.getItem("access_token");
+
+    if (cachedProfile) {
+      setAdminData(cachedProfile);
+      setCurrentShopIdState(cookieShopId || cachedProfile.shopId || null);
+      setLoading(false);
+    }
+
+    if (token) {
+      refreshProfile();
+    } else if (!token) {
+      clearCachedProfile();
+      setLoading(false);
+      setAdminData(null);
+    }
+  }, [clearCachedProfile, refreshProfile]);
 
   const value = useMemo(
     () => ({
       loading,
       error,
       adminData,
+      currentShopId,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
+      setCurrentShopId,
     }),
     [
       loading,
       error,
       adminData,
+      currentShopId,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
-    ],
+      setCurrentShopId,
+    ]
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <SWRConfig
+      value={{
+        revalidateOnFocus: false,
+        revalidateOnReconnect: true,
+        dedupingInterval: 10000, 
+        fetcher: (url: string) =>
+          fetchWithSession(
+            url,
+            () => localStorage.getItem("access_token"),
+            refreshSession
+          ).then((res) => res.json()),
+      }}
+    >
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    </SWRConfig>
+  );
 }
 
 export function useAuthContext() {

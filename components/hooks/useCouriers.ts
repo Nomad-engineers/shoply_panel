@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { CourierStats } from "@/types/courier";
 import { useAuth } from "./useLogin";
 
 interface UseCouriersProps {
-    page?: number;
     pageSize?: number;
     search?: string;
     activeOnly?: boolean;
@@ -17,23 +16,28 @@ interface UseCouriersProps {
 export const useCouriers = (initialProps: UseCouriersProps = {}) => {
     const [data, setData] = useState<CourierStats[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { fetchWithSession, refreshSession } = useAuth(
-        process.env.NEXT_PUBLIC_DIRECTUS_URL,
-    );
+    const { fetchWithSession, refreshSession } = useAuth();
     const [meta, setMeta] = useState({ totalCount: 0, totalPages: 0 });
+    const currentPageRef = useRef(1);
+    const hasMoreRef = useRef(true);
 
-    const fetchCouriers = useCallback(
-        async (props: UseCouriersProps = {}) => {
-            setLoading(true);
+    const fetchPage = useCallback(
+        async (props: UseCouriersProps, page: number, append: boolean) => {
+            if (append) {
+                setLoadingMore(true);
+            } else {
+                setLoading(true);
+            }
             setError(null);
-            try {
-                const queryParams = new URLSearchParams();
-                queryParams.set("page", String(props.page || 1));
-                queryParams.set("pageSize", String(props.pageSize || 20));
-                queryParams.set("relations", "orders,user");
 
-                // Default sort by ID descending to show new couriers first
+            try {
+                const pageSize = props.pageSize || 50;
+                const queryParams = new URLSearchParams();
+                queryParams.set("page", String(page));
+                queryParams.set("pageSize", String(pageSize));
+                queryParams.set("relations", "orders,user");
                 queryParams.set("sort", JSON.stringify({ id: "DESC" }));
 
                 if (props.search) {
@@ -65,38 +69,23 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                 const json = await res.json();
                 const rawUsers = (json.data || json) as any[];
 
-                // Helper to check if date is in range
                 const isInRange = (dateStr: string) => {
                     if (!props.dateFrom && !props.dateTo) return true;
                     const d = new Date(dateStr).getTime();
                     const from = props.dateFrom ? new Date(props.dateFrom).getTime() : 0;
-                    // If dateTo is provided, use it; otherwise, if it's a specific day (like 'day' period), 
-                    // effective end is start of next day or just check logic. 
-                    // However, `dateTo` is usually passed for range. 
-                    // For single 'dateFrom' (like 'month' start), logic depends on how app uses it.
-                    // Let's assume standard inclusive check if param exists.
-
                     if (props.dateFrom && d < from) return false;
-
                     if (props.dateTo) {
                         const to = new Date(props.dateTo).getTime();
-                        // Usually dateTo is inclusive or end of day. 
-                        // To be safe, let's assume strict comparison if provided.
                         if (d > to) return false;
                     }
-
                     return true;
                 };
 
-                // Filter orders first, then map stats
                 const couriers: CourierStats[] = rawUsers.map((user) => {
                     const allOrders = (user.orders || []) as any[];
-                    // Filter orders by date range if provided
                     const orders = allOrders.filter(o => isInRange(o.createdAt));
-
                     const completedOrders = orders.filter((o: any) => o.status === 'completed');
                     const canceledOrders = orders.filter((o: any) => o.isCancelled || o.status === 'canceled');
-
                     const totalEarnings = completedOrders.reduce((sum: number, order: any) => {
                         return sum + (Number(order.deliveryRate) || 0);
                     }, 0);
@@ -105,36 +94,67 @@ export const useCouriers = (initialProps: UseCouriersProps = {}) => {
                         id: user.id,
                         username: user.user?.firstName || user.firstName,
                         lastname: user.user?.lastName || user.lastName,
-                        totaldeliverymansum: String(totalEarnings), // This is now period-specific earnings
-                        completedorderscount: String(completedOrders.length), // Period-specific count
-                        canceledorderscount: String(canceledOrders.length), // Period-specific count
+                        totaldeliverymansum: String(totalEarnings),
+                        completedorderscount: String(completedOrders.length),
+                        canceledorderscount: String(canceledOrders.length),
                         onShift: !!user.onShift,
                         ordersLength: orders.length
                     };
                 });
 
-                setData(couriers);
-
                 if (json.meta) {
                     const totalCount = json.meta.totalCount || json.meta.total || 0;
-                    const pSize = props.pageSize || 20;
-                    setMeta({
-                        totalCount,
-                        totalPages: json.meta.totalPages || json.meta.pages || Math.ceil(totalCount / pSize),
-                    });
+                    const pSize = pageSize;
+                    const totalPages = json.meta.totalPages || json.meta.pages || Math.ceil(totalCount / pSize);
+                    setMeta({ totalCount, totalPages });
+                    hasMoreRef.current = page < totalPages;
+                } else {
+                    // If no meta, check if we got less than pageSize items
+                    hasMoreRef.current = couriers.length >= pageSize;
                 }
+
+                if (append) {
+                    setData(prev => [...prev, ...couriers]);
+                } else {
+                    setData(couriers);
+                }
+
+                currentPageRef.current = page;
             } catch (err: any) {
                 setError(err.message || "Something went wrong");
             } finally {
                 setLoading(false);
+                setLoadingMore(false);
             }
         },
         [fetchWithSession, refreshSession],
     );
 
+    // Reset and fetch first page when filters change
     useEffect(() => {
-        fetchCouriers(initialProps);
-    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.page, initialProps.pageSize, initialProps.search]);
+        currentPageRef.current = 1;
+        hasMoreRef.current = true;
+        fetchPage(initialProps, 1, false);
+    }, [initialProps.dateFrom, initialProps.dateTo, initialProps.periodType, initialProps.pageSize, initialProps.search]);
 
-    return { couriers: data, meta, loading, error, refetch: fetchCouriers };
+    const loadMore = useCallback(() => {
+        if (loadingMore || loading || !hasMoreRef.current) return;
+        const nextPage = currentPageRef.current + 1;
+        fetchPage(initialProps, nextPage, true);
+    }, [fetchPage, initialProps, loadingMore, loading]);
+
+    return {
+        couriers: data,
+        meta,
+        loading,
+        loadingMore,
+        error,
+        hasMore: hasMoreRef.current,
+        loadMore,
+        refetch: () => {
+            currentPageRef.current = 1;
+            hasMoreRef.current = true;
+            fetchPage(initialProps, 1, false);
+        },
+    };
 };

@@ -2,35 +2,50 @@ export type PromocodeType = "fixed" | "percent";
 
 export interface PromocodeShop {
   id: number;
-  createdAt: string;
-  shop?: {
-    id: number;
-    name?: string;
-    photo?: { id?: string; url?: string | null } | null;
-  } | null;
-}
-
-export interface PromocodeOrder {
-  id: number;
-  subtotalPrice?: number;
-  createdAt?: string;
-}
-
-export interface Promocode {
-  id: number;
-  createdAt: string;
-  type: PromocodeType;
-  valueForType: number;
-  usageLimit: number | null;
-  validUntil: string | null;
-  useMultiple: boolean;
-  payFromShop: boolean;
   name: string;
-  technicalName: string;
-  minSum: number;
-  orders: PromocodeOrder[];
-  promocodeShop: PromocodeShop[];
+  photoId?: string | null;
 }
+
+export interface PromocodeRegion {
+  id: number;
+  name: string;
+}
+
+export interface PromocodeAllowedUser {
+  userId?: number | null;
+  id?: number | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone?: string | null;
+  email?: string | null;
+  photoId?: string | null;
+}
+
+export interface V2AdminPromocodeDto {
+  id: number;
+  createdAt: string;
+  name: string;
+  technicalName?: string | null;
+  shopId?: number | null;
+  shop?: PromocodeShop | null;
+  regionIds?: number[] | null;
+  regions: PromocodeRegion[];
+  allowedUsers: PromocodeAllowedUser[];
+  turnover: number;
+  usageLimit?: number | null;
+  validUntil?: string | null;
+  type: PromocodeType;
+  valueForType?: number | null;
+  activationCount: number;
+  minSum: number;
+  payFromShop: boolean;
+  useMultiple: boolean;
+  onlyOneActivation: boolean;
+  oneActivation?: boolean | null;
+  allowedUserIds?: number[] | null;
+}
+
+export type Promocode = V2AdminPromocodeDto;
 
 export interface PaginatedMeta {
   total: number;

@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import { mutate } from "swr";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 
+import {
+  AllowedUsersField,
+  type AllowedUserOption,
+} from "@/components/promotions/allowed-users-field";
+import { attachAllowedUsersToPromocode } from "@/lib/promocode-allowed-users";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
+import { useShops } from "@/components/hooks/useShops";
+import type { Promocode } from "@/types/promocode";
 import type { Shop } from "@/types/shop";
 import { getImageUrl } from "@/lib/utils";
 
+import { DashboardLayout } from "@/components/layout";
 import { Button, Input, Switch, Spinner } from "@/components/ui";
 
 type DiscountType = "fixed" | "percent" | "freeDelivery";
@@ -28,23 +36,29 @@ const generateCode = () => {
 export default function PromotionsCreateIndexPage() {
   const router = useRouter();
 
-  const { adminData, refreshSession, fetchWithSession } = useAuth(
-    process.env.NEXT_PUBLIC_DIRECTUS_URL,
-  );
+  const {
+    adminData,
+    refreshSession,
+    loading: authLoading,
+  } = useAuth();
+  const derivedShopId = adminData?.shopId;
 
-  const derivedShopId =
-    (adminData as any)?.shopId ??
-    (adminData as any)?.shop?.id ??
-    (adminData as any)?.shop_id;
+  const isAdmin = adminData?.isAdmin ?? false;
 
-  const isAdmin = !derivedShopId;
-
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    shops,
+    loading: shopsLoading,
+    error: shopsError,
+  } = useShops({
+    isAdmin,
+    dateFrom: new Date().toISOString().split("T")[0],
+    dateTo: new Date(new Date().getTime() + 86400000).toISOString().split("T")[0],
+    skip: authLoading || !adminData,
+  });
 
   const [open, setOpen] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
+  const [selectedRegionIds] = useState<number[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -61,6 +75,8 @@ export default function PromotionsCreateIndexPage() {
   const [minSum, setMinSum] = useState<number>(0);
 
   const [payFromShop, setPayFromShop] = useState(false);
+  const [oneActivation, setOneActivation] = useState(false);
+  const [allowedUsers, setAllowedUsers] = useState<AllowedUserOption[]>([]);
 
   const [validUntilEnabled, setValidUntilEnabled] = useState(false);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -73,39 +89,6 @@ export default function PromotionsCreateIndexPage() {
       router.replace(`/promotions/create/${derivedShopId}`);
     }
   }, [derivedShopId, router]);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams();
-        query.set("relations", "photo");
-        query.set("isPublic", "true");
-        query.set("sort", JSON.stringify({ createdAt: "DESC" }));
-
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/shops?${query.toString()}`;
-        const res = await fetchWithSession(
-          url,
-          () => localStorage.getItem("access_token"),
-          refreshSession,
-        );
-
-        if (!res.ok) throw new Error("Ошибка при получении магазинов");
-
-        const json = await res.json();
-        const list = (json.data ?? json) as Shop[];
-        setShops(Array.isArray(list) ? list : []);
-      } catch (e: any) {
-        setError(e.message ?? "Ошибка");
-        setShops([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [fetchWithSession, refreshSession]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -155,7 +138,10 @@ export default function PromotionsCreateIndexPage() {
 
     try {
       const shopId = selectedShopId;
-      if (!shopId) throw new Error("Выберите магазин");
+      if (shopId === null) throw new Error("Выберите магазин");
+      const regionIds = shopId === -1 && selectedRegionIds.length === 0
+        ? [1]
+        : selectedRegionIds;
 
       const body = {
         technicalName: technicalName.trim(),
@@ -168,13 +154,15 @@ export default function PromotionsCreateIndexPage() {
             ? new Date(validUntil).toISOString()
             : null,
         type,
-        shopId,
+        shopId: shopId === -1 ? null : shopId,
+        regionIds,
 
         payFromShop: isAdmin ? payFromShop : false,
+        onlyOneActivation: oneActivation,
       };
 
       const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/promocode`, {
+        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -203,6 +191,27 @@ export default function PromotionsCreateIndexPage() {
         throw new Error("Не удалось создать промокод");
       }
 
+      const postJson = (await postRes.json().catch(() => null)) as
+        | { data?: Promocode }
+        | Promocode
+        | null;
+      const createdPromocodeId =
+        postJson && typeof postJson === "object" && "id" in postJson
+          ? postJson.id
+          : postJson?.data?.id ?? null;
+
+      if (isAdmin && createdPromocodeId && allowedUsers.length > 0) {
+        await attachAllowedUsersToPromocode({
+          promocodeId: createdPromocodeId,
+          userIds: allowedUsers.map((user) => user.id),
+          accessToken: token,
+          refreshSession,
+        });
+      }
+
+      // Clear SWR cache for promocodes list
+      mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
+      
       router.push("/promotions");
     } catch (e: any) {
       setSubmitError(e.message ?? "Ошибка");
@@ -211,508 +220,524 @@ export default function PromotionsCreateIndexPage() {
     }
   };
 
+  const header = (
+    <div className="flex w-full items-center gap-8">
+      <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
+        Акции и промокоды
+      </h1>
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-3xl">
-      <div
-        className="flex items-center justify-between px-6 py-4 border-b"
-        style={{ borderColor: "rgba(220, 220, 230, 1)" }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            className="inline-flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-50"
-            onClick={() => router.back()}
-            type="button"
-          >
-            <ChevronLeft className="w-5 h-5 text-[#111111]" />
-          </button>
-          <div className="text-[16px] font-semibold text-[#111111]">
-            Создание промокода
-          </div>
-
-          <div className="relative ml-4">
+    <DashboardLayout
+      header={header}
+      headerClassName="pl-4 pr-8"
+      contentClassName="min-h-0 p-0"
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "rgba(220, 220, 230, 1)" }}
+        >
+          <div className="flex items-center gap-3">
             <button
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-50"
+              onClick={() => router.back()}
               type="button"
-              onClick={() => setOpen(!open)}
-              className="h-10 px-3 border border-input rounded-md flex items-center gap-2 min-w-[260px] justify-between"
-              disabled={loading || Boolean(error)}
             >
-              <span className="text-sm text-[#111111] font-medium truncate">
-                {selectedShopId === -1
-                  ? "Региональный"
-                  : selectedShop
-                    ? selectedShop.name
-                    : loading
-                      ? "Загрузка..."
-                      : "Выберите магазин"}
-              </span>
-              <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+              <ChevronLeft className="w-5 h-5 text-[#111111]" />
             </button>
+            <div className="text-[16px] font-semibold text-[#111111]">
+              Создание промокода
+            </div>
 
-            {open && !loading && !error && (
-              <div className="absolute z-20 mt-2 w-[320px] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-h-[400px] overflow-y-auto">
-                <button
-                  type="button"
-                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                  onClick={() => {
-                    setSelectedShopId(-1);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#5AC800] flex items-center justify-center flex-shrink-0">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M7 13c1.5 1.5 5 2.5 10 0" />
-                      </svg>
-                    </div>
-                    <span className="text-[#111111] font-medium text-[15px]">
-                      Региональный
-                    </span>
-                  </div>
+            <div className="relative ml-4">
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                disabled={shopsLoading || Boolean(shopsError)}
+              >
+                <span className="max-w-[200px] truncate">
+                  {selectedShopId === -1
+                    ? "Региональный"
+                    : selectedShop
+                      ? selectedShop.name
+                      : shopsLoading
+                        ? "Загрузка..."
+                        : "Выберите магазин"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+              </button>
 
+              {open && !shopsLoading && !shopsError && (
+                <>
                   <div
-                    className={cn(
-                      "w-5 h-5 rounded-full border flex items-center justify-center transition-colors flex-shrink-0",
-                      selectedShopId === -1
-                        ? "bg-[#5AC800] border-[#5AC800]"
-                        : "bg-white border-[#DCDCE6]",
-                    )}
-                  >
-                    {selectedShopId === -1 && (
-                      <div className="w-2 h-2 rounded-full bg-white" />
-                    )}
-                  </div>
-                </button>
-
-                <div className="h-px bg-gray-100 my-1" />
-
-                {(shops || []).map((s) => (
+                    className="fixed inset-0 z-10 cursor-default"
+                    onClick={() => setOpen(false)}
+                  />
+                  <div className="absolute z-20 top-[-8px] left-[-8px] w-80 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar">
                   <button
-                    key={s.id}
                     type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                    className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
                     onClick={() => {
-                      setSelectedShopId(s.id);
+                      setSelectedShopId(-1);
                       setOpen(false);
                     }}
                   >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      {getImageUrl(s.photo) ? (
-                        <img
-                          src={getImageUrl(s.photo, {
-                            width: 32,
-                            height: 32,
-                            fit: "cover",
-                          })}
-                          alt={s.name}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs text-gray-500">
-                            {s.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-
-                      <span className="text-[#111111] truncate text-[15px]">
-                        {s.name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 pl-2 flex-shrink-0">
-                      <span className="text-xs text-[#C7C7CC]">ID {s.id}</span>
-                      <div
-                        className={cn(
-                          "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                          selectedShopId === s.id
-                            ? "bg-[#5AC800] border-[#5AC800]"
-                            : "bg-white border-[#DCDCE6]",
-                        )}
-                      >
-                        {selectedShopId === s.id && (
-                          <div className="w-2 h-2 rounded-full bg-white" />
-                        )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#5AC800] flex items-center justify-center">
+                        <Check className="w-6 h-6 text-white" />
                       </div>
+                      <span className="text-[#111111] font-medium">Региональный</span>
                     </div>
+                    <div
+                      className={cn(
+                        "w-6 h-6 rounded-full transition-all",
+                        selectedShopId === -1
+                          ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                          : "bg-[#F2F2F7]",
+                      )}
+                    />
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {selectedShop || selectedShopId === -1 ? (
-            <div className="flex items-center gap-2">
-              {selectedShopId === -1 ? null : selectedShop?.photo?.url ? (
-                <img
-                  src={getImageUrl(selectedShop.photo, {
-                    width: 40,
-                    height: 40,
-                    fit: "cover",
-                  })}
-                  alt={selectedShop.name}
-                  className="w-5 h-5 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-[gray-200]" />
-              )}
-              {selectedShopId !== -1 && (
+                  {(shops || []).map((shop) => (
+                    <div key={shop.id}>
+                      <div className="mx-5 h-px bg-[#F2F2F7]" />
+                      <button
+                        type="button"
+                        className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors"
+                        onClick={() => {
+                          setSelectedShopId(shop.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          {shop.photo ? (
+                            <img
+                              src={getImageUrl(shop.photo, {
+                                width: 40,
+                                height: 40,
+                                fit: "cover",
+                              })}
+                              alt={shop.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#F6F6FA] flex items-center justify-center text-[#111111] font-bold text-sm">
+                              {shop.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-[#111111] font-medium truncate max-w-[140px]">
+                              {shop.name}
+                            </span>
+                            <span className="text-[11px] text-[#8E8E93]">
+                              ID {shop.id}
+                            </span>
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-full transition-all",
+                            selectedShopId === shop.id
+                              ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                              : "bg-[#F2F2F7]",
+                          )}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            </div>
+
+            {(selectedShop || selectedShopId === -1) && (
+              <div className="flex items-center gap-2">
+                {selectedShopId === -1 ? (
+                  <div className="w-6 h-6 rounded-full bg-[#5AC800] flex items-center justify-center">
+                    <div className="w-3 h-1.5 border-b-2 border-l-2 border-white -rotate-45 mb-0.5" />
+                  </div>
+                ) : selectedShop?.photo?.url ? (
+                  <img
+                    src={getImageUrl(selectedShop.photo, {
+                      width: 40,
+                      height: 40,
+                      fit: "cover",
+                    })}
+                    alt={selectedShop.name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold border border-gray-200">
+                    {selectedShop?.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <Lock className="w-4 h-4 text-[#C7C7CC]" />
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        <Button
-          variant="secondary"
-          className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
-          disabled={isSaveDisabled || saving}
-          onClick={submit}
-        >
-          Сохранить
-          <Check className="w-4 h-4" />
-        </Button>
-      </div>
-
-      <div className="px-6 py-6">
-        {(loading || error) && (
-          <div className="mb-6">
-            {loading && <Spinner size={24} />}
-            {!loading && error && (
-              <div className="text-red-500">Ошибка: {error}</div>
+              </div>
             )}
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">
-              Техническое название
-            </div>
-            <Input
-              placeholder="Поле ввода"
-              value={technicalName}
-              onChange={(e) => setTechnicalName(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Промокод</div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Поле ввода"
-                  value={promocodeName}
-                  onChange={(e) => setPromocodeName(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const code = generateCode();
-                  setPromocodeName(code);
-                  if (!technicalName) setTechnicalName(code);
-                }}
-                className="text-sm text-[#2F80ED] font-medium"
-              >
-                Сгенерировать
-              </button>
-            </div>
-          </div>
+          <Button
+            variant="secondary"
+            className={cn("rounded-xl gap-2", isSaveDisabled && "opacity-60")}
+            disabled={isSaveDisabled || saving}
+            onClick={submit}
+          >
+            Сохранить
+            {saving ? <Spinner size={16} /> : <Check className="w-4 h-4" />}
+          </Button>
         </div>
 
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {(shopsLoading || shopsError) && (
+            <div className="mb-2">
+              {shopsLoading && <Spinner size={24} />}
+              {!shopsLoading && shopsError && (
+                <div className="text-red-500 text-sm font-medium">Ошибка: {shopsError}</div>
+              )}
+            </div>
+          )}
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Содержание</div>
-            <div className="relative">
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium">
+                Техническое название
+              </div>
               <Input
-                type="number"
-                value={String(valueForType)}
-                onChange={(e) => setValueForType(Number(e.target.value))}
-                className="pr-16"
-                disabled={type === "freeDelivery"}
+                placeholder="Поле ввода"
+                value={technicalName}
+                onChange={(e) => setTechnicalName(e.target.value)}
+                className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                {type === "percent" ? "%" : type === "fixed" ? "руб" : ""}
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium">
+                Промокод
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Поле ввода"
+                    value={promocodeName}
+                    onChange={(e) => setPromocodeName(e.target.value)}
+                    className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = generateCode();
+                    setPromocodeName(code);
+                    if (!technicalName) setTechnicalName(code);
+                  }}
+                  className="text-[15px] text-[#2F80ED] font-semibold"
+                >
+                  Сгенерировать
+                </button>
               </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">&nbsp;</div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setTypeOpen(!typeOpen);
-                  setUsageOpen(false);
-                }}
-                className="w-full h-10 px-3 border border-input rounded-md flex items-center justify-between text-sm"
-              >
-                <span className="text-[#111111]">
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="space-y-2">
+            <div className="text-[13px] text-[#8E8E93] font-medium">
+              Содержание
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="relative w-[340px]">
+                <Input
+                  type="number"
+                  value={String(valueForType)}
+                  onChange={(e) => setValueForType(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12"
+                  disabled={type === "freeDelivery"}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  {type === "percent" ? "%" : type === "fixed" ? "руб" : ""}
+                </div>
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeOpen(!typeOpen);
+                    setUsageOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                >
                   {type === "fixed"
                     ? "Фиксированный"
                     : type === "percent"
                       ? "Процент"
                       : "Бесплатная доставка"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
+                  <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+                </button>
 
-              {typeOpen && (
-                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("fixed");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Фиксированный
+                {typeOpen && (
+                  <>
                     <div
-                      className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                        type === "fixed"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                      className="fixed inset-0 z-10 cursor-default"
+                      onClick={() => setTypeOpen(false)}
+                    />
+                    <div className="absolute z-20 top-[-8px] left-[-8px] w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden no-scrollbar">
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("fixed");
+                        setTypeOpen(false);
+                      }}
                     >
-                      {type === "fixed" && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("percent");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Процент
-                    <div
-                      className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                        type === "percent"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                      <span className="text-[#111111] font-normal">Фиксированный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "fixed"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("percent");
+                        setTypeOpen(false);
+                      }}
                     >
-                      {type === "percent" && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setType("freeDelivery");
-                      setTypeOpen(false);
-                    }}
-                  >
-                    Бесплатная доставка
-                    <div
-                      className={cn(
-                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
-                        type === "freeDelivery"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                      <span className="text-[#111111] font-normal">Процент</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "percent"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setType("freeDelivery");
+                        setTypeOpen(false);
+                      }}
                     >
-                      {type === "freeDelivery" && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </button>
-                </div>
+                      <span className="text-[#111111] font-normal">Бесплатная доставка</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          type === "freeDelivery"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                  </div>
+                </>
               )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
-
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">Условия</div>
-            <div className="relative">
-              <Input
-                type="number"
-                value={String(usageLimit)}
-                onChange={(e) => setUsageLimit(Number(e.target.value))}
-                className="pr-16"
-                disabled={usageMode !== "quantity"}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                шт.
               </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">&nbsp;</div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsageOpen(!usageOpen);
-                  setTypeOpen(false);
-                }}
-                className="w-full h-10 px-3 border border-input rounded-md flex items-center justify-between text-sm"
-              >
-                <span className="text-[#111111]">
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="space-y-2">
+            <div className="text-[13px] text-[#8E8E93] font-medium">
+              Условия
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="relative w-[340px]">
+                <Input
+                  type="number"
+                  value={String(usageLimit)}
+                  onChange={(e) => setUsageLimit(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12 focus:ring-1 focus:ring-[#5AC800]"
+                  disabled={usageMode !== "quantity"}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  шт.
+                </div>
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsageOpen(!usageOpen);
+                    setTypeOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-[15px] font-normal text-[#111111]"
+                >
                   {usageMode === "quantity"
-                    ? "Заданное количество"
+                    ? "Количество"
                     : usageMode === "infinite"
                       ? "Бесконечный"
                       : "Временный"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
+                  <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+                </button>
 
-              {usageOpen && (
-                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("quantity");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Заданное количество
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "quantity"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
+                {usageOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10 cursor-default"
+                      onClick={() => setUsageOpen(false)}
                     />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("infinite");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Бесконечный
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "infinite"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => {
-                      setUsageMode("temporary");
-                      setUsageOpen(false);
-                    }}
-                  >
-                    Временный
-                    <span
-                      className={cn(
-                        "w-4 h-4 rounded-full border",
-                        usageMode === "temporary"
-                          ? "bg-[#5AC800] border-[#5AC800]"
-                          : "bg-white border-[#DCDCE6]",
-                      )}
-                    />
-                  </button>
-                </div>
+                    <div className="absolute z-20 top-[-8px] left-[-8px] w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden no-scrollbar">
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("quantity");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Заданное количество</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "quantity"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("infinite");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Бесконечный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "infinite"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                    <div className="mx-5 h-px bg-[#F2F2F7]" />
+                    <button
+                      type="button"
+                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
+                      onClick={() => {
+                        setUsageMode("temporary");
+                        setUsageOpen(false);
+                      }}
+                    >
+                      <span className="text-[#111111] font-normal">Временный</span>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full transition-all",
+                          usageMode === "temporary"
+                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
+                            : "bg-[#F2F2F7]",
+                        )}
+                      />
+                    </button>
+                  </div>
+                </>
               )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
-
-        <div className="grid grid-cols-2 gap-6 items-end">
-          <div>
-            <div className="text-xs text-[#8E8E93] mb-2">
-              Минимальная сумма для активации промокода
-            </div>
-            <div className="relative">
-              <Input
-                type="number"
-                value={String(minSum)}
-                onChange={(e) => setMinSum(Number(e.target.value))}
-                className="pr-16"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
-                руб
               </div>
             </div>
           </div>
 
-          <div>
-            {validUntilEnabled && (
-              <div>
-                <div className="text-xs text-[#8E8E93] mb-2">
-                  Дата окончания
-                </div>
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="grid grid-cols-2 gap-8 items-end">
+            <div className="space-y-2">
+              <div className="text-[13px] text-[#8E8E93] font-medium leading-tight max-w-[280px]">
+                Минимальная сумма для активации промокода
+              </div>
+              <div className="relative">
                 <Input
-                  type="datetime-local"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  type="number"
+                  value={String(minSum)}
+                  onChange={(e) => setMinSum(Number(e.target.value))}
+                  className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium pr-12"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#8E8E93]">
+                  руб
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {validUntilEnabled && (
+                <>
+                  <div className="text-[13px] text-[#8E8E93] font-medium">
+                    Дата окончания
+                  </div>
+                  <Input
+                    type="datetime-local"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    className="bg-[#F6F6FA] border-none rounded-xl h-[46px] px-4 font-medium"
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="h-px bg-[#DCDCE6]/60" />
+
+          <div className="space-y-6">
+            <div className="flex items-start gap-3">
+              <Switch
+                checked={oneActivation}
+                onCheckedChange={(v) => setOneActivation(Boolean(v))}
+                className="mt-1"
+              />
+              <div className="space-y-0.5">
+                <div className="text-[16px] font-semibold text-[#111111]">
+                  Одна активация
+                </div>
+                <div className="text-[14px] text-[#8E8E93]">
+                  Активировать можно одному пользователю только один раз
+                </div>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={payFromShop}
+                    onCheckedChange={(v) => setPayFromShop(Boolean(v))}
+                  />
+                  <div className="text-[16px] font-semibold text-[#111111]">
+                    За счет магазина
+                  </div>
+                </div>
+
+                <AllowedUsersField
+                  value={allowedUsers}
+                  onChange={setAllowedUsers}
                 />
               </div>
             )}
           </div>
-        </div>
 
-        <div
-          className="h-px my-6"
-          style={{ backgroundColor: "rgba(220, 220, 230, 0.6)" }}
-        />
-
-        <div className="flex flex-col gap-6">
-          {isAdmin && (
-            <div className="flex flex-row-reverse items-center justify-end gap-2">
-              <div className="text-sm font-medium text-[#111111]">
-                За счет магазина
-              </div>
-              <Switch
-                checked={payFromShop}
-                onCheckedChange={(v) => setPayFromShop(Boolean(v))}
-              />
+          {submitError && (
+            <div className="mt-6 text-sm text-red-600 font-medium">
+              {submitError}
             </div>
           )}
         </div>
-
-        {submitError && (
-          <div className="mt-6 text-sm text-red-600">{submitError}</div>
-        )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
