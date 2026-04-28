@@ -4,6 +4,7 @@ import { Button } from "../ui";
 
 type Props = { onClick: () => void; disabled: boolean; isLoading: boolean };
 
+
 const CalculateButton: React.FC<Props> = ({ onClick, disabled, isLoading }) => (
   <Button
     onClick={onClick}
