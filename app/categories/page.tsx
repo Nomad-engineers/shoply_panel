@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, Suspense } from "react";
+import React, { useMemo, useState, useEffect, Suspense, useCallback } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Category } from "@/types/category.types";
@@ -19,6 +19,8 @@ import { useViewMode } from "@/hooks/use-view-mode";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { getImageUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { FlattenedProduct } from "./[categoryId]/components/products/types";
+import { ProductsList } from "./[categoryId]/components/products/ProductsList";
 
 interface SearchCategoryResponse {
   id: number;
@@ -37,6 +39,10 @@ function CategoryPageContent() {
   const [viewMode, setViewMode] = useViewMode("CATEGORIES", "grid");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [archivedSelectedKeys, setArchivedSelectedKeys] = useState<string[]>([]);
+  const [productInlineOverrides, setProductInlineOverrides] = useState<
+    Record<string, FlattenedProduct>
+  >({});
   const { mutate } = useApiMutation();
 
   const activeTab =
@@ -49,24 +55,11 @@ function CategoryPageContent() {
   };
   const shopId = currentShopId ? String(currentShopId) : undefined;
 
-  const params = useMemo(() => {
-    let searchParams = {};
-    if (userRole === ROLES.SHOP_OWNER && shopId) {
-      searchParams = { search: JSON.stringify({ "shop.id": shopId }) };
-    }
-    return searchParams;
-  }, [shopId, userRole]);
-
-  const {
-    data: categories,
-    loading,
-    refetch,
-  } = useApiData<Category>(
-    activeTab === "archived" ? "category/archived" : null,
-    {
-      relations: ["photo", "subCategory"],
-      searchParams: params,
-    }
+  const { data: archivedProductsRaw, loading: archivedLoading, refetch: refetchArchived } = useApiData<any>(
+    activeTab === "archived" && shopId
+      ? `v2/shop/${shopId}/product/archive`
+      : null,
+    {}
   );
 
   const { data: searchedCategories, loading: searchLoading } =
@@ -77,20 +70,62 @@ function CategoryPageContent() {
       },
     );
 
-  const filteredArchivedCategories = useMemo(() => {
-    if (!categories) return [];
-
-    return categories.filter((cat: any) => {
-      if (activeTab === "archived") {
-        return cat.hasArchive || cat.isArchived;
-      }
-      return cat.hasActive || !cat.isArchived;
+  const archivedFlattened: FlattenedProduct[] = useMemo(() => {
+    if (!archivedProductsRaw) return [];
+    return archivedProductsRaw.map((p: any): FlattenedProduct => {
+      const override = productInlineOverrides[String(p.productId)];
+      if (override) return override;
+      return {
+        uniqueKey: String(p.productId),
+        createdAt: p.createdAt ?? "",
+        name: p.name,
+        barcodes: p.barcodes || [],
+        weight: p.weight ?? 0,
+        measure: p.measure ?? null,
+        photos: p.photos?.map((fileId: string, index: number) => ({
+          id: index,
+          fileId,
+          file: fileId
+            ? { url: getImageUrl({ id: fileId }, { width: 120, height: 120, fit: "cover" }) }
+            : undefined,
+        })) || [],
+        subCategoryId: p.subCategoryId,
+        subCategoryName: p.subCategoryName ?? "",
+        activeShopProduct: {
+          id: p.productId,
+          price: p.price ?? 0,
+          inStock: p.inStock ?? false,
+          archivedAt: p.archivedAt ?? new Date().toISOString(),
+          shop: { id: p.shopId, name: "" },
+        },
+      };
     });
-  }, [categories, activeTab]);
+  }, [archivedProductsRaw, productInlineOverrides]);
+
+  const isArchivedAllSelected =
+    archivedFlattened.length > 0 &&
+    archivedSelectedKeys.length === archivedFlattened.length;
+
+  const toggleArchivedProduct = useCallback((key: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setArchivedSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  }, []);
+
+  const toggleArchivedAll = useCallback(() => {
+    setArchivedSelectedKeys(
+      isArchivedAllSelected ? [] : archivedFlattened.map((p) => p.uniqueKey)
+    );
+  }, [isArchivedAllSelected, archivedFlattened]);
+
+  useEffect(() => {
+    setArchivedSelectedKeys([]);
+  }, [activeTab]);
 
   const filteredCategories = useMemo(() => {
     if (activeTab === "archived" || !shopId) {
-      return filteredArchivedCategories;
+      return [];
     }
 
     return (searchedCategories ?? []).map((category) => ({
@@ -110,7 +145,7 @@ function CategoryPageContent() {
       subCategory: [],
       isArchived: false,
     })) as Category[];
-  }, [activeTab, filteredArchivedCategories, searchedCategories, shopId]);
+  }, [activeTab, searchedCategories, shopId]);
 
   const { selectedIds, isAllSelected, toggleCategory, toggleAll } =
     useCategorySelection({ categories: filteredCategories });
@@ -121,50 +156,26 @@ function CategoryPageContent() {
     }
   }, [activeTab]);
 
-  const handleArchiveSelected = async () => {
-    if (selectedIds.length === 0) return;
+  const handleUnarchiveProducts = async () => {
+    if (archivedSelectedKeys.length === 0) return;
+    const keysToRemove = [...archivedSelectedKeys];
     try {
       await Promise.all(
-        selectedIds.map((id) =>
-          mutate(`category/archive/${id}`, {
-            method: "PATCH",
-            body: { shopId },
+        keysToRemove.map((key) =>
+          mutate(`v2/shop/${shopId}/product/${key}/unarchive`, {
+            method: "POST",
           })
         )
       );
-      await refetch();
+      setArchivedSelectedKeys([]);
+      await refetchArchived();
+      toast.success("Товары восстановлены");
     } catch (e: any) {
-      toast.error(
-        e.message?.includes("400")
-          ? "Нет товаров для архивации"
-          : "Ошибка: " + e.message
-      );
-    }
-  };
-
-  const handleUnarchiveSelected = async () => {
-    if (selectedIds.length === 0) return;
-    try {
-      await Promise.all(
-        selectedIds.map((id) =>
-          mutate(`category/unArchive/${id}`, {
-            method: "PATCH",
-            body: { shopId },
-          })
-        )
-      );
-      await refetch();
-    } catch (e: any) {
-      toast.error(
-        e.message?.includes("400")
-          ? "Нет товаров для восстановления"
-          : "Ошибка: " + e.message
-      );
+      toast.error("Ошибка при восстановлении: " + e.message);
     }
   };
 
   const handleExport = async () => {
-    console.log("handleExport called, selectedIds:", selectedIds);
     if (selectedIds.length === 0) {
       toast.error("Выберите хотя бы одну категорию для экспорта");
       return;
@@ -172,8 +183,6 @@ function CategoryPageContent() {
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      console.log("Fetching export from:", `${baseUrl}/shop/shopProducts/export`);
-
       const response = await fetch(`${baseUrl}/shop/shopProducts/export`, {
         method: "POST",
         headers: {
@@ -218,7 +227,7 @@ function CategoryPageContent() {
   };
 
   const isPageLoading =
-    activeTab === "archived" ? loading : shopId ? searchLoading : loading;
+    activeTab === "archived" ? archivedLoading : shopId ? searchLoading : false;
 
   if (isPageLoading) {
     return (
@@ -268,13 +277,13 @@ function CategoryPageContent() {
 
         <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
           <button
-            onClick={toggleAll}
+            onClick={activeTab === "archived" ? toggleArchivedAll : toggleAll}
             className="flex items-center gap-[18px] text-sm font-medium transition-colors"
           >
             <span
               className={cn(
                 "inline-flex h-5 w-5 items-center justify-center rounded-full border transition-colors",
-                isAllSelected
+                (activeTab === "archived" ? isArchivedAllSelected : isAllSelected)
                   ? "border-[#55CB00] bg-[#55CB00]/10"
                   : "border-[#b8bdcc] bg-white"
               )}
@@ -282,28 +291,62 @@ function CategoryPageContent() {
               <span
                 className={cn(
                   "h-2.5 w-2.5 rounded-full transition-colors",
-                  isAllSelected ? "bg-[#55CB00]" : "bg-transparent"
+                  (activeTab === "archived" ? isArchivedAllSelected : isAllSelected) ? "bg-[#55CB00]" : "bg-transparent"
                 )}
               />
             </span>
-            {isAllSelected ? `Выбрано: ${selectedIds.length}` : "Выбрать все"}
+            {activeTab === "archived"
+              ? isArchivedAllSelected
+                ? `Выбрано: ${archivedSelectedKeys.length}`
+                : "Выбрать все"
+              : isAllSelected
+                ? `Выбрано: ${selectedIds.length}`
+                : "Выбрать все"}
           </button>
 
           <SelectionButtons
-            selectedCount={selectedIds.length}
-            onExport={handleExport}
+            selectedCount={
+              activeTab === "archived"
+                ? archivedSelectedKeys.length
+                : selectedIds.length
+            }
+            onExport={activeTab === "archived" ? undefined : handleExport}
             activeTab={activeTab}
             onArchive={
               activeTab === "archived"
-                ? handleUnarchiveSelected
-                : handleArchiveSelected
+                ? handleUnarchiveProducts
+                : async () => {}
             }
             onEditMenu={() => {}}
             modal="allCategories"
           />
         </div>
 
-        {filteredCategories.length > 0 ? (
+        {activeTab === "archived" ? (
+          archivedFlattened.length > 0 ? (
+            <ProductsList
+              products={archivedFlattened}
+              selectedUniqueKeys={archivedSelectedKeys}
+              shopId={shopId}
+              onUpdated={(product) =>
+                setProductInlineOverrides((prev) => ({
+                  ...prev,
+                  [product.uniqueKey]: product,
+                }))
+              }
+              onToggle={toggleArchivedProduct}
+              onClick={() => {}}
+              onCopyBarcode={(text, e) => {
+                e.stopPropagation();
+                if (!text) return;
+                navigator.clipboard.writeText(text);
+                toast.success("Штрихкод скопирован");
+              }}
+            />
+          ) : (
+            <div className="py-20 text-center text-gray-400">Архив пуст</div>
+          )
+        ) : filteredCategories.length > 0 ? (
           viewMode === "grid" ? (
             <CategoryGridView
               categories={filteredCategories}
@@ -321,7 +364,7 @@ function CategoryPageContent() {
           )
         ) : (
           <div className="py-20 text-center text-gray-400">
-            {activeTab === "active" ? "Нет активных категорий" : "Архив пуст"}
+            Нет активных категорий
           </div>
         )}
       </div>

@@ -19,6 +19,10 @@ function CategoryLayoutContent({
     (searchParams.get("tab") as "active" | "archived") || "active";
 
   const setActiveTab = (tab: "active" | "archived") => {
+    if (tab === "archived") {
+      router.replace(`/categories?tab=archived`);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`);
