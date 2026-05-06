@@ -14,6 +14,7 @@ import Cookies from "js-cookie";
 import { authStorage } from "@/lib/utils";
 import { SWRConfig } from "swr";
 import { ROLES } from "@/middleware";
+import { toast } from "sonner";
 import type {
   AuthProfile,
   AuthProfileBusiness,
@@ -278,7 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearCachedProfile();
         authStorage.clear();
         router.push("/login");
-        alert("У вас нет связанного магазина.");
+        toast.error("У вас нет связанного магазина.");
         return null;
       }
 

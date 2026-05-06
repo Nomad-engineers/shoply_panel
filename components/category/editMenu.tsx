@@ -8,6 +8,7 @@ import { MeasureDropDown } from "../ui/category/dropdown";
 import { CategoryBaseDropdown } from "../ui/category/commonDropdown";
 import { useBulkProductUpdate } from "../hooks/category/useBulkProductUpdate";
 import { SearchFilter } from "./search";
+import { toast } from "sonner";
 
 const calculatePrice = (purchasePrice: number, markup: number) => {
   return Math.ceil(purchasePrice + (purchasePrice * markup) / 100);
@@ -37,7 +38,7 @@ export const EditMenu = ({
     },
     onError: (err) => {
       console.error(err);
-      alert("Ошибка при сохранении");
+      toast.error("Ошибка при сохранении");
     },
   });
 

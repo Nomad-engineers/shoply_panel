@@ -19,6 +19,7 @@ import { StockToggle } from "./components/StockToggle";
 import { Category, measureLabels } from "@/types/category.types";
 import { Shop } from "@/types/shop";
 import { ROLES } from "@/middleware";
+import { toast } from "sonner";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -90,10 +91,10 @@ export default function AddProductPage() {
         typeof window !== "undefined"
           ? localStorage.getItem("access_token")
           : null;
-      if (!token) return alert("Ошибка авторизации");
-      if (!selectedShopId) return alert("Выберите магазин");
-      if (!formData.name) return alert("Введите название товара"); // Важная проверка
-      if (!formData.subCategoryId) return alert("Выберите подкатегорию");
+      if (!token) return toast.error("Ошибка авторизации");
+      if (!selectedShopId) return toast.error("Выберите магазин");
+      if (!formData.name) return toast.error("Введите название товара");
+      if (!formData.subCategoryId) return toast.error("Выберите подкатегорию");
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
       const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(
@@ -157,11 +158,11 @@ export default function AddProductPage() {
         );
       }
 
-      alert("Товар успешно создан");
+      toast.success("Товар успешно создан");
       router.back();
     } catch (error) {
       console.error("Save error:", error);
-      alert("Ошибка при создании товара");
+      toast.error("Ошибка при создании товара");
     }
   };
 

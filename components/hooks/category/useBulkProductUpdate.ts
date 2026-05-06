@@ -70,7 +70,7 @@ export const useBulkProductUpdate = ({ onSuccess, onError }: UseBulkUpdateProps 
           };
 
           return fetchWithSession(
-            `${process.env.NEXT_PUBLIC_API_URL}/shop/update/shopProduct/${sp.id}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/v2/shop/${sp.shop.id}/product/${sp.id}`,
             () => localStorage.getItem("access_token"),
             refreshSession,
             {

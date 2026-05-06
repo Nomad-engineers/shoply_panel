@@ -12,6 +12,7 @@ import {
 import { MainSection } from "@/components/layout";
 import { EditMenu } from "@/components/category/editMenu";
 import { SearchFilter } from "@/components/category/search";
+import { SelectionButtons } from "@/components/category/selectionButtons";
 import Cookies from "js-cookie";
 import { useProductData } from "./components/products/hooks/useProductData";
 import { useProductSelection } from "./components/products/hooks/useProductSelection";
@@ -24,7 +25,8 @@ import { ViewModeToggle } from "../components/category/ViewModeToggle";
 import { FlattenedProduct } from "./components/products/types";
 import { toast } from "sonner";
 import { EditableProductData } from "@/components/hooks/category/useEditProduct";
-import { ProductMeasure } from "@/types/category.types";
+import { measureLabels, ProductMeasure } from "@/types/category.types";
+import * as XLSX from "xlsx";
 
 export default function SubCategoryPage() {
   const router = useRouter();
@@ -205,22 +207,56 @@ export default function SubCategoryPage() {
     router.push(`${pathname}/subCategory/${subId}/product/${shopProductId}`);
   };
 
+  const handleExportSelected = () => {
+    if (selectedProducts.length === 0) {
+      toast.error("Выберите хотя бы один товар для экспорта");
+      return;
+    }
+
+    const rows = selectedProducts.map((product) => ({
+      Название: product.name,
+      Остаток: product.activeShopProduct.inStock ? 1 : 0,
+      "Единица измерения": product.measure ? measureLabels[product.measure] : "шт",
+      "Цена продажи": product.activeShopProduct.price || 0,
+      Артикул: product.uniqueKey,
+      Штрихкод: product.barcodes.join(", "),
+      "Цена закупки": 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Экспорт");
+    XLSX.writeFile(
+      workbook,
+      `export_products_${new Date().toLocaleDateString()}.xlsx`
+    );
+  };
+
   const handleArchiveSelected = async () => {
     if (selectedUniqueKeys.length === 0) return;
 
     const subCategoryIdsToArchive: number[] = [];
-    const individualProductKeysToArchive: string[] = [];
+    const individualProductsToArchive: Array<{
+      uniqueKey: string;
+      shopProductId: number;
+    }> = [];
 
     filteredSubCategories.forEach((sub) => {
-      const allKeys = sub.products?.map((p: any) => p.uniqueKey) || [];
-      const selectedInSub = allKeys.filter((key) =>
-        selectedUniqueKeys.includes(key)
+      const allProducts = sub.products || [];
+      const allKeys = allProducts.map((product) => product.uniqueKey);
+      const selectedInSub = allProducts.filter((product) =>
+        selectedUniqueKeys.includes(product.uniqueKey)
       );
 
       if (allKeys.length > 0 && allKeys.length === selectedInSub.length) {
         subCategoryIdsToArchive.push(sub.id);
       } else {
-        individualProductKeysToArchive.push(...selectedInSub);
+        individualProductsToArchive.push(
+          ...selectedInSub.map((product) => ({
+            uniqueKey: product.uniqueKey,
+            shopProductId: product.activeShopProduct.id,
+          }))
+        );
       }
     });
 
@@ -232,10 +268,9 @@ export default function SubCategoryPage() {
             body: { shopId },
           })
         ),
-        ...individualProductKeysToArchive.map((id) =>
-          mutate(`shop/shopProduct/${id}/archive`, {
+        ...individualProductsToArchive.map((product) =>
+          mutate(`v2/shop/${shopId}/product/${product.shopProductId}/archive`, {
             method: "POST",
-            body: { shopId },
           })
         ),
       ];
@@ -256,15 +291,14 @@ export default function SubCategoryPage() {
             next[product.uniqueKey] = true;
           });
         });
-        individualProductKeysToArchive.forEach((key) => {
-          next[key] = true;
+        individualProductsToArchive.forEach((product) => {
+          next[product.uniqueKey] = true;
         });
         return next;
       });
       clearSelection();
-      alert("Архивация успешно выполнена");
     } catch (e: any) {
-      alert("Ошибка при архивации: " + e.message);
+      toast.error("Ошибка при архивации: " + e.message);
     }
   };
 
@@ -272,18 +306,27 @@ export default function SubCategoryPage() {
     if (selectedUniqueKeys.length === 0) return;
 
     const subCategoryIdsToUnarchive: number[] = [];
-    const individualProductKeysToUnarchive: string[] = [];
+    const individualProductsToUnarchive: Array<{
+      uniqueKey: string;
+      shopProductId: number;
+    }> = [];
 
     filteredSubCategories.forEach((sub) => {
-      const allKeys = sub.products?.map((p: any) => p.uniqueKey) || [];
-      const selectedInSub = allKeys.filter((key) =>
-        selectedUniqueKeys.includes(key)
+      const allProducts = sub.products || [];
+      const allKeys = allProducts.map((product) => product.uniqueKey);
+      const selectedInSub = allProducts.filter((product) =>
+        selectedUniqueKeys.includes(product.uniqueKey)
       );
 
       if (allKeys.length > 0 && allKeys.length === selectedInSub.length) {
         subCategoryIdsToUnarchive.push(sub.id);
       } else {
-        individualProductKeysToUnarchive.push(...selectedInSub);
+        individualProductsToUnarchive.push(
+          ...selectedInSub.map((product) => ({
+            uniqueKey: product.uniqueKey,
+            shopProductId: product.activeShopProduct.id,
+          }))
+        );
       }
     });
 
@@ -295,10 +338,9 @@ export default function SubCategoryPage() {
             body: { shopId },
           })
         ),
-        ...individualProductKeysToUnarchive.map((id) =>
-          mutate(`shop/shopProduct/${id}/unArchive`, {
-            method: "PATCH",
-            body: { shopId },
+        ...individualProductsToUnarchive.map((product) =>
+          mutate(`v2/shop/${shopId}/product/${product.shopProductId}/unarchive`, {
+            method: "POST",
           })
         ),
       ];
@@ -319,15 +361,14 @@ export default function SubCategoryPage() {
             next[product.uniqueKey] = false;
           });
         });
-        individualProductKeysToUnarchive.forEach((key) => {
-          next[key] = false;
+        individualProductsToUnarchive.forEach((product) => {
+          next[product.uniqueKey] = false;
         });
         return next;
       });
       clearSelection();
-      alert("Восстановление успешно выполнено");
     } catch (e: any) {
-      alert("Ошибка при восстановлении: " + e.message);
+      toast.error("Ошибка при восстановлении: " + e.message);
     }
   };
 
@@ -379,7 +420,7 @@ export default function SubCategoryPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <button
             onClick={toggleAll}
             className="flex items-center gap-3 text-[16px] font-normal transition-colors"
@@ -403,6 +444,19 @@ export default function SubCategoryPage() {
               ? `Выбрано товаров: ${selectedUniqueKeys.length}`
               : "Выбрать все"}
           </button>
+
+          <SelectionButtons
+            selectedCount={selectedUniqueKeys.length}
+            activeTab={activeTab}
+            onExport={handleExportSelected}
+            onArchive={
+              activeTab === "archived"
+                ? handleUnarchiveSelected
+                : handleArchiveSelected
+            }
+            onEditMenu={() => setIsEditMenuOpen(true)}
+            modal="singleCategory"
+          />
         </div>
 
         {filteredSubCategories.length > 0 ? (

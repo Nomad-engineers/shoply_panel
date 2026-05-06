@@ -13,10 +13,12 @@ import { useCategorySelection } from "./components/category/hooks/useCategorySel
 import { ViewModeToggle } from "./components/category/ViewModeToggle";
 import { CategoryGridView } from "./components/category/CategoryGridView";
 import { CategoryListView } from "./components/category/CategoryListView";
+import { SelectionButtons } from "@/components/category/selectionButtons";
 import { useApiMutation } from "@/components/hooks/useApiMutation";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { getImageUrl } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SearchCategoryResponse {
   id: number;
@@ -131,9 +133,8 @@ function CategoryPageContent() {
         )
       );
       await refetch();
-      alert("Категории успешно перемещены в архив");
     } catch (e: any) {
-      alert(
+      toast.error(
         e.message?.includes("400")
           ? "Нет товаров для архивации"
           : "Ошибка: " + e.message
@@ -153,9 +154,8 @@ function CategoryPageContent() {
         )
       );
       await refetch();
-      alert("Категории успешно возвращены из архива");
     } catch (e: any) {
-      alert(
+      toast.error(
         e.message?.includes("400")
           ? "Нет товаров для восстановления"
           : "Ошибка: " + e.message
@@ -164,13 +164,15 @@ function CategoryPageContent() {
   };
 
   const handleExport = async () => {
+    console.log("handleExport called, selectedIds:", selectedIds);
     if (selectedIds.length === 0) {
-      alert("Выберите хотя бы одну категорию для экспорта");
+      toast.error("Выберите хотя бы одну категорию для экспорта");
       return;
     }
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      console.log("Fetching export from:", `${baseUrl}/shop/shopProducts/export`);
 
       const response = await fetch(`${baseUrl}/shop/shopProducts/export`, {
         method: "POST",
@@ -185,9 +187,9 @@ function CategoryPageContent() {
 
       if (!response.ok) {
         if (response.status === 404) {
-          alert("В выбранных категориях нет товаров для экспорта");
+          toast.error("В выбранных категориях нет товаров для экспорта");
         } else {
-          alert(`Ошибка сервера: ${response.status} ${response.statusText}`);
+          toast.error(`Ошибка сервера: ${response.status} ${response.statusText}`);
         }
         return;
       }
@@ -207,7 +209,7 @@ function CategoryPageContent() {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert("Ошибка при экспорте: " + e.message);
+      toast.error("Ошибка при экспорте: " + e.message);
     }
   };
 
@@ -286,6 +288,19 @@ function CategoryPageContent() {
             </span>
             {isAllSelected ? `Выбрано: ${selectedIds.length}` : "Выбрать все"}
           </button>
+
+          <SelectionButtons
+            selectedCount={selectedIds.length}
+            onExport={handleExport}
+            activeTab={activeTab}
+            onArchive={
+              activeTab === "archived"
+                ? handleUnarchiveSelected
+                : handleArchiveSelected
+            }
+            onEditMenu={() => {}}
+            modal="allCategories"
+          />
         </div>
 
         {filteredCategories.length > 0 ? (
