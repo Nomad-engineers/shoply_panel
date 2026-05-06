@@ -16,36 +16,30 @@ import { ProductFinanceInfo } from "./components/ProductFinanceInfo";
 import { ProductAttributes } from "./components/ProductAttributes";
 import { StockToggle } from "./components/StockToggle";
 
-import { Category, measureLabels } from "@/types/category.types";
-import { Shop } from "@/types/shop";
-import { ROLES } from "@/middleware";
+import { measureLabels } from "@/types/category.types";
 import { toast } from "sonner";
 
 export default function AddProductPage() {
   const router = useRouter();
   const { refreshSession, fetchWithSession } = useAuthContext();
-  const userRole = Cookies.get("user_role");
   const [isMounted, setIsMounted] = useState(false);
   const [isMeasureOpen, setIsMeasureOpen] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState("");
   const [articleError, setArticleError] = useState("");
 
-  const { data: shops = [] } = useApiData<Shop>("shops");
+  const { adminData } = useAuthContext();
+  const shops = adminData?.businesses || [];
 
-  const params = useMemo<Record<string, string> | undefined>(() => {
-    if (userRole === ROLES.SHOP_OWNER) {
-      const shopId = Cookies.get("current_shop_id");
-      return {
-        search: JSON.stringify({ "shop.id": shopId }),
-      };
-    }
-    return undefined;
-  }, [userRole]);
+  const { data: rawCategories = [] } = useApiData<any>(
+    selectedShopId ? `v2/shop/${selectedShopId}/search/categories?withSubCategories=true` : null
+  );
 
-  const { data: categories = [] } = useApiData<Category>("category", {
-    relations: ["subCategory"],
-    searchParams: params,
-  });
+  const categories = useMemo(() => {
+    return rawCategories.map((cat: any) => ({
+      ...cat,
+      subCategory: cat.subCategories || [],
+    }));
+  }, [rawCategories]);
 
   useEffect(() => {
     const shopIdFromCookie = Cookies.get("current_shop_id");
@@ -97,30 +91,29 @@ export default function AddProductPage() {
       if (!formData.subCategoryId) return toast.error("Выберите подкатегорию");
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
-      const barcodes = [formData.mainBarcode, ...formData.extraBarcodes].filter(
-        (b) => String(b).trim() !== ""
-      );
+      const createPayload = new FormData();
+      createPayload.append("name", formData.name);
+      createPayload.append("subCategoryId", String(Number(formData.subCategoryId)));
+      createPayload.append("purchasePrice", String(Number(formData.purchasePrice) || 0));
+      createPayload.append("price", String(Number(formData.price) || 0));
+      createPayload.append("weight", String(Number(formData.weight) || 0));
+      createPayload.append("measure", String(formData.measure));
 
-      const createPayload = {
-        name: formData.name,
-        article: formData.article,
-        subCategoryId: Number(formData.subCategoryId),
-        purchasePrice: Number(formData.purchasePrice) || 0,
-        price: Number(formData.price) || 0,
-        weight: Number(formData.weight) || 0,
-        measure: formData.measure,
-        inStock: formData.inStock,
-        barcodes: barcodes,
-        shopId: Number(selectedShopId),
-      };
+      [formData.mainBarcode, ...formData.extraBarcodes]
+        .filter((barcode) => barcode.trim() !== "")
+        .forEach((barcode) => createPayload.append("barcodes", barcode.trim()));
+
+      photos
+        .filter((photo) => photo.file)
+        .forEach((photo) => createPayload.append("photos", photo.file as File));
+
       const res = await fetchWithSession(
-        `${apiBase}/shop/shopProduct`,
+        `${apiBase}/v2/shop/${selectedShopId}/product`,
         () => token,
         refreshSession,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(createPayload),
+          body: createPayload,
         }
       );
 
@@ -136,26 +129,6 @@ export default function AddProductPage() {
           return;
         }
         throw new Error(errorData.message || "Failed to create product");
-      }
-
-      const responseData = await res.json();
-      const baseProductId = responseData.data.product.id;
-      const newFiles = photos.filter((p) => p.file).map((p) => p.file as File);
-
-      if (newFiles.length > 0 && baseProductId) {
-        const photoFormData = new FormData();
-        photoFormData.append("productId", String(baseProductId));
-        newFiles.forEach((file) => photoFormData.append("photos", file));
-
-        await fetchWithSession(
-          `${apiBase}/shop/product/photos`,
-          () => token,
-          refreshSession,
-          {
-            method: "POST",
-            body: photoFormData,
-          }
-        );
       }
 
       toast.success("Товар успешно создан");

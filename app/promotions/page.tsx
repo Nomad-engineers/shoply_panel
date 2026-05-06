@@ -257,14 +257,8 @@ export default function PromotionsPage() {
             {/* Create button */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (derivedShopId) {
-                    router.push(`/promotions/create/${derivedShopId}`);
-                  } else {
-                    router.push("/promotions/create");
-                  }
-                }}
-                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white transition-all hover:bg-[#4abb00] shadow-[0_10px_20px_rgba(85,203,0,0.15)] active:scale-95"
+                disabled
+                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white opacity-50 cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Создать промокод
@@ -458,11 +452,7 @@ export default function PromotionsPage() {
                           return (
                             <tr
                               key={p.id}
-                              className="group cursor-pointer transition-colors hover:bg-[#fafafe]"
-                              onClick={() => {
-                                sessionStorage.setItem(`shoply:edit-promocode:${p.id}`, JSON.stringify(p));
-                                router.push(`/promotions/edit/${p.id}`);
-                              }}
+                              className="group transition-colors opacity-50 cursor-not-allowed"
                             >
                               <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary">
                                 {p.id}

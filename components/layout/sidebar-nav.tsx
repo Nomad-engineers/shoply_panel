@@ -194,8 +194,9 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           },
           {
             title: "Акции и промокоды",
-            href: "/promotions",
+            href: undefined,
             icon: "/panel-icons/nav-promotions.png",
+            disabled: true,
           },
         ];
 
@@ -229,6 +230,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
               href={item.href}
               icon={item.icon}
               isCollapsed={isCollapsed}
+              disabled={item.disabled}
             >
               {item.title}
             </NavItem>
