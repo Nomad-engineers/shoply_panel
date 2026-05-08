@@ -14,6 +14,13 @@ import type { AuthProfileBusiness } from "@/types/auth";
 
 type NavIcon = React.ElementType | string;
 
+type NavigationItem = {
+  title: string;
+  href?: string;
+  icon: NavIcon;
+  disabled?: boolean;
+};
+
 interface NavItemProps {
   href?: string;
   icon: NavIcon;
@@ -162,7 +169,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       setCurrentShopId(shopId);
     };
 
-    const navigationItems = isAdminArea
+    const navigationItems: NavigationItem[] = isAdminArea
       ? [
           { title: "Заказы", href: "/orders", icon: "/panel-icons/nav-orders.png" },
           {
