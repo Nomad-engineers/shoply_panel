@@ -113,7 +113,7 @@ export default function EditPromocodePage() {
     isAdmin,
     dateFrom: new Date().toISOString().split("T")[0],
     dateTo: new Date(new Date().getTime() + 86400000).toISOString().split("T")[0],
-    skip: authLoading || !adminData,
+    skip: authLoading || !adminData || !isAdmin,
   });
 
   const selectedShop = useMemo(() => {
@@ -170,6 +170,36 @@ export default function EditPromocodePage() {
     }
   };
 
+  const resolvedShopId = shopId ?? adminData?.shopId ?? null;
+
+  const getPromocodeApiUrl = (action: string = "") => {
+    const base = isAdmin
+      ? `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`
+      : `${process.env.NEXT_PUBLIC_API_URL}/v2/shop/${resolvedShopId}/promocode`;
+    return `${base}/${promocodeId}${action}`;
+  };
+
+  const getPromocodeListCachePattern = () => {
+    return isAdmin
+      ? "/v2/admin/promocode"
+      : `/v2/shop/${resolvedShopId}/promocode`;
+  };
+
+  const fetchPromocodeFromApi = async (token: string): Promise<void> => {
+    const res = await fetch(
+      getPromocodeApiUrl(),
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) throw new Error("Failed to fetch");
+    const json = await res.json();
+    const data: Promocode = json.data ?? json;
+    mapPromocodeToState(data);
+    sessionStorage.setItem(
+      listSnapshotCacheKey,
+      JSON.stringify(data),
+    );
+  };
+
   useLayoutEffect(() => {
     const cachedPromocode = readPromocodeFromStorage([
       detailCacheKey,
@@ -185,6 +215,8 @@ export default function EditPromocodePage() {
   }, [detailCacheKey, listSnapshotCacheKey]);
 
   useEffect(() => {
+    if (authLoading || !adminData) return;
+
     const cachedPromocode = readPromocodeFromStorage([
       detailCacheKey,
       listSnapshotCacheKey,
@@ -197,9 +229,27 @@ export default function EditPromocodePage() {
       return;
     }
 
-    setSubmitError("Не удалось загрузить данные промокода");
-    setLoading(false);
-  }, [detailCacheKey, listSnapshotCacheKey]);
+    const loadFromApi = async () => {
+      try {
+        let token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Не авторизован");
+        await fetchPromocodeFromApi(token);
+        setSubmitError(null);
+      } catch {
+        try {
+          const newToken = await refreshSession();
+          await fetchPromocodeFromApi(newToken);
+          setSubmitError(null);
+        } catch {
+          setSubmitError("Не удалось загрузить данные промокода");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFromApi();
+  }, [detailCacheKey, listSnapshotCacheKey, authLoading, adminData]);
 
   useEffect(() => {
     if (usageMode === "quantity") {
@@ -263,7 +313,7 @@ export default function EditPromocodePage() {
       };
 
       const doPatch = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`, {
+        return fetch(getPromocodeApiUrl(), {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -306,8 +356,8 @@ export default function EditPromocodePage() {
 
       toast.success("Промокод обновлен");
       // Clear SWR cache for promocodes list
-      mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
-      
+      mutate((key) => typeof key === "string" && key.includes(getPromocodeListCachePattern()));
+
       router.push("/promotions");
     } catch (e: any) {
       setSubmitError(e.message ?? "Ошибка");
@@ -321,7 +371,7 @@ export default function EditPromocodePage() {
     setDeleting(true);
     try {
       const doDelete = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode/${promocodeId}`, {
+        return fetch(getPromocodeApiUrl(), {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -344,8 +394,8 @@ export default function EditPromocodePage() {
 
       toast.success("Промокод удален");
       // Clear SWR cache for promocodes list
-      mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
-      
+      mutate((key) => typeof key === "string" && key.includes(getPromocodeListCachePattern()));
+
       router.push("/promotions");
     } catch (e: any) {
       toast.error(e.message);
@@ -397,119 +447,29 @@ export default function EditPromocodePage() {
 
             <div className="h-4 w-px bg-[#DCDCE6] mx-2" />
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShopOpen(!shopOpen)}
-                className="flex items-center gap-2 text-[15px] font-medium text-[#111111]"
-                disabled={shopsLoading || Boolean(shopsError)}
-              >
-                {shopId === -1 ? (
-                  <div className="w-6 h-6 rounded-full bg-[#5AC800] flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                ) : selectedShop?.photo?.url ? (
-                  <img
-                    src={getImageUrl(selectedShop.photo, {
-                      width: 40,
-                      height: 40,
-                      fit: "cover",
-                    })}
-                    alt={selectedShop.name}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold border border-gray-200">
-                    {selectedShop?.name?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                )}
-                <span className="max-w-[150px] truncate">
-                  {shopId === -1 ? "Региональный" : selectedShop?.name || "Загрузка..."}
-                </span>
-                <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
-              </button>
-
-              {shopOpen && !shopsLoading && !shopsError && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => setShopOpen(false)}
-                  />
-                  <div className="absolute z-20 top-[40px] left-0 w-80 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar border border-border">
-                    <button
-                      type="button"
-                      className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors whitespace-nowrap"
-                      onClick={() => {
-                        setShopId(-1);
-                        setShopOpen(false);
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#5AC800] flex items-center justify-center">
-                          <Check className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-[#111111] font-medium">Региональный</span>
-                      </div>
-                      <div
-                        className={cn(
-                          "w-6 h-6 rounded-full transition-all",
-                          shopId === -1
-                            ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
-                            : "bg-[#F2F2F7]",
-                        )}
-                      />
-                    </button>
-
-                    {(shops || []).map((s) => (
-                      <div key={s.id}>
-                        <div className="mx-5 h-px bg-[#F2F2F7]" />
-                        <button
-                          type="button"
-                          className="w-full px-5 py-3.5 text-left text-[15px] hover:bg-gray-50/50 flex items-center justify-between transition-colors"
-                          onClick={() => {
-                            setShopId(s.id);
-                            setShopOpen(false);
-                          }}
-                        >
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            {s.photo ? (
-                              <img
-                                src={getImageUrl(s.photo, {
-                                  width: 40,
-                                  height: 40,
-                                  fit: "cover",
-                                })}
-                                alt={s.name}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-[#F6F6FA] flex items-center justify-center text-[#111111] font-bold text-sm">
-                                {s.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <div className="flex flex-col">
-                              <span className="text-[#111111] font-medium truncate max-w-[140px]">
-                                {s.name}
-                              </span>
-                              <span className="text-[11px] text-[#8E8E93]">
-                                ID {s.id}
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            className={cn(
-                              "w-6 h-6 rounded-full transition-all",
-                              shopId === s.id
-                                ? "bg-[#5AC800] border-[1px] border-white ring-[2.5px] ring-[#5AC800]"
-                                : "bg-[#F2F2F7]",
-                            )}
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </>
+            <div className="flex items-center gap-2">
+              {shopId === -1 ? (
+                <div className="w-6 h-6 rounded-full bg-[#5AC800] flex items-center justify-center">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              ) : selectedShop?.photo?.url ? (
+                <img
+                  src={getImageUrl(selectedShop.photo, {
+                    width: 40,
+                    height: 40,
+                    fit: "cover",
+                  })}
+                  alt={selectedShop.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold border border-gray-200">
+                  {selectedShop?.name?.charAt(0).toUpperCase() || "?"}
+                </div>
               )}
+              <span className="max-w-[150px] truncate text-[15px] font-medium text-[#111111]">
+                {shopId === -1 ? "Региональный" : selectedShop?.name || "Загрузка..."}
+              </span>
             </div>
           </div>
 

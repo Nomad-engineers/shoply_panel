@@ -79,11 +79,11 @@ export default function PromotionsPage() {
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-  const { shops: allShops, loading: shopsLoading } = useShops({ 
-    isAdmin, 
+  const { shops: allShops, loading: shopsLoading } = useShops({
+    isAdmin,
     dateFrom: today,
     dateTo: tomorrow,
-    skip: authLoading
+    skip: authLoading || !isAdmin,
   });
   const filteredShops = useMemo(() => {
     if (!shopSearchQuery) return allShops || [];
@@ -100,6 +100,7 @@ export default function PromotionsPage() {
       shopId: selectedFilterShopId || shopIdForFilter,
       skip: authLoading || (!shopIdForFilter && !isAdmin),
       filter: { search },
+      isAdmin,
     }),
     [
       page,
@@ -257,8 +258,8 @@ export default function PromotionsPage() {
             {/* Create button */}
             <div className="flex items-center gap-2">
               <button
-                disabled
-                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white opacity-50 cursor-not-allowed"
+                onClick={() => router.push("/promotions/create")}
+                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white hover:bg-[#4db800] transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Создать промокод
@@ -452,7 +453,14 @@ export default function PromotionsPage() {
                           return (
                             <tr
                               key={p.id}
-                              className="group transition-colors opacity-50 cursor-not-allowed"
+                              className="group transition-colors cursor-pointer hover:bg-gray-50/50"
+                              onClick={() => {
+                                sessionStorage.setItem(
+                                  `shoply:edit-promocode:${p.id}`,
+                                  JSON.stringify(p),
+                                );
+                                router.push(`/promotions/edit/${p.id}`);
+                              }}
                             >
                               <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary">
                                 {p.id}

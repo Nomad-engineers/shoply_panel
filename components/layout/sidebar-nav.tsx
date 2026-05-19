@@ -201,9 +201,8 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           },
           {
             title: "Акции и промокоды",
-            href: undefined,
+            href: "/promotions",
             icon: "/panel-icons/nav-promotions.png",
-            disabled: true,
           },
         ];
 

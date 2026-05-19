@@ -47,6 +47,18 @@ export default function CreatePromocodePage() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLoading, setShopLoading] = useState(false);
 
+  useEffect(() => {
+    if (isAdmin || !adminData) return;
+    const business = (adminData.businesses || []).find((b) => b.id === shopId);
+    if (business) {
+      setShop({
+        id: business.id,
+        name: business.name,
+        photoId: business.photoId,
+      } as unknown as Shop);
+    }
+  }, [adminData, shopId, isAdmin]);
+
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -72,18 +84,16 @@ export default function CreatePromocodePage() {
   const [usageOpen, setUsageOpen] = useState(false);
 
   useEffect(() => {
+    if (!isAdmin) return;
     const loadShop = async () => {
       if (!shopId || Number.isNaN(shopId)) return;
       setShopLoading(true);
       try {
         const query = new URLSearchParams();
         query.set("relations", "photo");
-        if (!isAdmin) {
-          query.set("isPublic", "true");
-        }
         query.set("dateFrom", new Date().toISOString().split("T")[0]);
         query.set("dateTo", new Date(new Date().getTime() + 86400000).toISOString().split("T")[0]);
-        const url = `${process.env.NEXT_PUBLIC_API_URL}${isAdmin ? "/admin" : ""}/shops/${shopId}?${query.toString()}`;
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/shops/${shopId}?${query.toString()}`;
         const res = await fetchWithSession(
           url,
           () => localStorage.getItem("access_token"),
@@ -163,7 +173,10 @@ export default function CreatePromocodePage() {
       };
 
       const doPost = async (token: string) => {
-        return fetch(`${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`, {
+        const url = isAdmin
+          ? `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/promocode`
+          : `${process.env.NEXT_PUBLIC_API_URL}/v2/shop/${shopId}/promocode`;
+        return fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
