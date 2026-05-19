@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
-import { ProductIcon } from "./icons";
+import { ProductIcon, UserIcon } from "./icons";
 import { useMemo } from "react";
 import { ShopSwitcher } from "../ui/shops.dropdown";
 import type { AuthProfileBusiness } from "@/types/auth";
@@ -192,6 +192,11 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             href: "/reports/couriers",
             icon: "/panel-icons/nav-reports.png",
           },
+          {
+            title: "Профиль",
+            href: "/profile",
+            icon: UserIcon,
+          },
         ]
       : [
           {
@@ -203,6 +208,11 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             title: "Акции и промокоды",
             href: "/promotions",
             icon: "/panel-icons/nav-promotions.png",
+          },
+          {
+            title: "Профиль",
+            href: "/profile",
+            icon: UserIcon,
           },
         ];
 
