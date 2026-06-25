@@ -21,7 +21,7 @@ import type {
   V2ProfileResponse,
 } from "@/types/auth";
 interface LoginFormValues {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -310,10 +310,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError("");
 
     try {
-      const res = await fetch(`${apiUrl}/auth/login`, {
+      const isEmail = form.identifier.includes("@");
+      const endpoint = isEmail ? "/auth/login" : "/auth/login-by-id";
+      const body = isEmail
+        ? { email: form.identifier, password: form.password }
+        : { userId: Number(form.identifier), password: form.password };
+
+      const res = await fetch(`${apiUrl}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {

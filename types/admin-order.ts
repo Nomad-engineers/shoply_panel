@@ -119,3 +119,7 @@ export interface AdminOrdersResponse {
   data: AdminOrder[];
   meta: AdminOrdersMeta;
 }
+
+export interface AdminOrderResponse {
+  data: AdminOrder;
+}

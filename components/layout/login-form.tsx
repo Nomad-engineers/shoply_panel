@@ -10,7 +10,7 @@ import { Input } from '../ui/input'
 
 export const LoginForm = () => {
   const { login, loading, error } = useAuth()
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(true)
 
@@ -53,17 +53,17 @@ export const LoginForm = () => {
 
       <div className='grid gap-[18px]'>
         <div>
-          <label htmlFor='email' className='mb-2 flex justify-between text-[13px] font-bold text-[#17171C]'>
-            Email
+          <label htmlFor='identifier' className='mb-2 flex justify-between text-[13px] font-bold text-[#17171C]'>
+            Email или ID
           </label>
           <Input
-            id='email'
-            type='email'
-            name='email'
-            value={form.email}
+            id='identifier'
+            type='text'
+            name='identifier'
+            value={form.identifier}
             onChange={handleChange}
-            placeholder='manager@shoply.kz'
-            autoComplete='email'
+            placeholder='manager@shoply.kz или 42'
+            autoComplete='username'
             dir='ltr'
             icon={<Mail className='h-5 w-5' aria-hidden='true' />}
             iconPosition='right'

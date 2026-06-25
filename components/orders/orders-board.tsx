@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { ChevronDown, ClipboardList, Package, Truck } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { cn } from "@/lib/theme";
 import { Spinner } from "@/components/ui";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
+import { useOrderSocket } from "@/components/hooks/useOrderSocket";
 import type { AdminOrder, AdminOrderStatus } from "@/types/admin-order";
 
 type BoardColumnTone = "new" | "progress" | "picked" | "delivery" | "done" | "return";
@@ -236,9 +237,46 @@ function BoardColumn({
 }
 
 export function OrdersBoard() {
-  const { orders, meta, loading, error } = useAdminOrders({
+  const { orders, meta, loading, error, refetch, fetchOrder } = useAdminOrders({
     page: 1,
     pageSize: 100,
+  });
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingOrderIdsRef = useRef<Set<number>>(new Set());
+
+  // Debounced drain: collapse a burst of socket events into a single refetch,
+  // but only for the order ids we couldn't patch individually (or if the board
+  // needs a full resync). Individual order updates go through fetchOrder and
+  // never trigger the spinner.
+  const debouncedRefetch = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      pendingOrderIdsRef.current.clear();
+      refetch();
+    }, 2000);
+  }, [refetch]);
+
+  useOrderSocket({
+    onOrderEvent: (event) => {
+      const orderId = event?.orderId;
+      if (!orderId) {
+        // No id in payload — fall back to full refresh.
+        debouncedRefetch();
+        return;
+      }
+
+      // Dedupe rapid bursts for the same order.
+      if (pendingOrderIdsRef.current.has(orderId)) return;
+      pendingOrderIdsRef.current.add(orderId);
+
+      // Seamless single-order patch (no loading state).
+      fetchOrder(orderId).finally(() => {
+        pendingOrderIdsRef.current.delete(orderId);
+      });
+    },
   });
 
   const header = <OrdersHeader />;
