@@ -59,19 +59,17 @@ export function middleware(request: NextRequest) {
 
     return NextResponse.redirect(
       new URL(
-        userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",
+        userRole === ROLES.ADMIN ? "/" : "/categories",
         request.url
       )
     );
   }
 
   if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(
-        userRole === ROLES.ADMIN ? "/reports/couriers" : "/categories",
-        request.url
-      )
-    );
+    if (userRole === ROLES.ADMIN) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/categories", request.url));
   }
 
   if (userRole === ROLES.ADMIN) {

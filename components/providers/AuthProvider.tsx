@@ -39,7 +39,7 @@ interface AuthContextType {
   error: string;
   adminData: AuthProfile | null;
   currentShopId: number | null;
-  login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
+  login: (form: LoginFormValues) => Promise<AuthProfile | null>;
   logout: () => void;
   refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
@@ -305,7 +305,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncProfileCookies,
   ]);
 
-  const login = async (form: LoginFormValues, redirectTo: string = "/") => {
+  const login = async (
+    form: LoginFormValues
+  ): Promise<AuthProfile | null> => {
     setLoading(true);
     setError("");
 
@@ -325,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) {
         setError("Неверный логин или пароль");
         setLoading(false);
-        return;
+        return null;
       }
 
       const result = await res.json();
@@ -333,11 +335,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (tokens.accessToken && tokens.refreshToken) {
         authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
-        const profile = await refreshProfile();
-        router.push(profile?.isAdmin ? "/orders" : "/categories");
+        return await refreshProfile();
       }
+      return null;
     } catch (err) {
       setError("Ошибка при входе.");
+      return null;
     } finally {
       setLoading(false);
     }

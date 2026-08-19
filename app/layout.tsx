@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Toaster } from "sonner";
@@ -9,6 +9,12 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
 }); 
+
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 const jetBrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -29,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${interTight.variable} ${jetBrainsMono.variable} font-sans antialiased`}
       >
         <AuthProvider>
           {children}

@@ -13,7 +13,7 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex h-screen w-full gap-4 overflow-hidden bg-background-main p-4",
+          "flex h-screen w-full overflow-hidden bg-background-main",
           className,
         )}
       >
@@ -36,8 +36,8 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative z-10 flex h-full flex-col overflow-hidden rounded-[24px] bg-white transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-[88px]" : "w-[240px]",
+          "relative z-10 flex h-full flex-col overflow-hidden bg-white transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-[72px]" : "w-[280px]",
           className,
         )}
       >
@@ -59,7 +59,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "relative flex h-full flex-1 flex-col overflow-hidden rounded-[24px] bg-background-surface",
+          "relative flex h-full flex-1 flex-col overflow-hidden bg-background-surface",
           className,
         )}
       >
@@ -102,7 +102,7 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(
     return (
       <div
         ref={ref}
-        className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", className)}
+        className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto max-w-[1400px] mx-auto", className)}
       >
         {children}
       </div>

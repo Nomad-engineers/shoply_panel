@@ -1,19 +1,89 @@
-"use client";
+'use client'
 
-import React from "react";
-import { LoginForm } from "@/components/layout/login-form";
+import React, { useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { LoginForm } from '@/components/layout/login-form'
+import { ShopSelection, type ShopOption } from '@/components/layout/shop-selection'
+import { useAuth } from '@/components/hooks/useLogin'
+import type { AuthProfile } from '@/types/auth'
+
+type Step = 'form' | 'select'
+
+function needsShopSelection(profile: AuthProfile): boolean {
+  return profile.businesses.length > 1
+}
+
+function displayName(profile: AuthProfile): string {
+  return [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Пользователь'
+}
 
 const LoginPage: React.FC = () => {
-  return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_50%_18%,rgba(85,203,0,0.13),transparent_26%),radial-gradient(circle_at_18%_78%,rgba(85,203,0,0.08),transparent_24%),#EFEFF4] p-8 max-[560px]:p-[18px]">
-      <section
-        className="w-full max-w-[468px] rounded-[28px] border border-[#ECECF3]/[0.92] bg-white/[0.94] p-9 shadow-[0_20px_58px_rgba(17,19,34,0.08)] backdrop-blur-[20px] max-[560px]:rounded-[24px] max-[560px]:px-[22px] max-[560px]:py-7"
-        aria-labelledby="login-title"
-      >
-        <LoginForm />
-      </section>
-    </main>
-  );
-};
+  const router = useRouter()
+  const { setCurrentShopId, logout } = useAuth()
 
-export default LoginPage;
+  const [step, setStep] = useState<Step>('form')
+  const [profile, setProfile] = useState<AuthProfile | null>(null)
+  const [shops, setShops] = useState<ShopOption[]>([])
+
+  const redirectToDefault = (p: AuthProfile) => {
+    router.push(p.isAdmin ? '/' : '/categories')
+  }
+
+  const handleSuccess = (p: AuthProfile) => {
+    setProfile(p)
+
+    if (needsShopSelection(p)) {
+      setShops(p.businesses.map((b) => ({ id: b.id, name: b.name })))
+      setStep('select')
+    } else {
+      redirectToDefault(p)
+    }
+  }
+
+  const handleConfirm = (shopId: number) => {
+    setCurrentShopId(shopId)
+    if (profile) redirectToDefault(profile)
+  }
+
+  const handleLogout = () => {
+    setStep('form')
+    setProfile(null)
+    setShops([])
+    logout()
+  }
+
+  return (
+    <main className='flex min-h-screen items-center justify-center bg-[#EDEDF4] p-[24px]'>
+      <div className='w-full max-w-[480px]'>
+        <section
+          className='rounded-[26px] bg-white p-[18px] shadow-[0_18px_42px_rgba(17,23,41,0.08)]'
+          aria-labelledby='login-title'
+        >
+          {step === 'form' ? (
+            <LoginForm onSuccess={handleSuccess} />
+          ) : (
+            <ShopSelection
+              userName={profile ? displayName(profile) : ''}
+              shops={shops}
+              initialShopId={profile?.shopId ?? null}
+              onConfirm={handleConfirm}
+              onLogout={handleLogout}
+            />
+          )}
+        </section>
+
+        <footer className='mt-[24px] flex flex-col gap-[10px]'>
+          <Image src='/footer-logo-mark.svg' alt='Shoply' width={93} height={16} className='block h-[16px] w-[93px]' />
+          <p className='text-[12px] font-normal leading-[14px] text-[#0E0F27]/50'>
+            Все авторские права защищены
+            <br />
+            2024-2026 ©
+          </p>
+        </footer>
+      </div>
+    </main>
+  )
+}
+
+export default LoginPage

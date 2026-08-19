@@ -1,249 +1,294 @@
 "use client";
 
-import { useMemo, useCallback, useRef } from "react";
-import { ChevronDown, ClipboardList, Package, Truck } from "lucide-react";
-import { DashboardLayout } from "@/components/layout";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDown,
+  MapPin,
+  ShoppingBasket,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { AppShell, Main } from "@/components/layout";
+import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { cn } from "@/lib/theme";
 import { Spinner } from "@/components/ui";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
 import { useOrderSocket } from "@/components/hooks/useOrderSocket";
-import type { AdminOrder, AdminOrderStatus } from "@/types/admin-order";
+import { MOCK_ACTIVE_ORDERS, MOCK_FINISHED_ORDERS } from "./mock-orders";
+import { OrderViewPanel } from "./order-view-panel";
+import { IconRefresh } from "./status-icons";
+import {
+  columnIdByOrder,
+  formatCardTime,
+  formatCurrency,
+  getOrderAddress,
+  statusStyles,
+  type BoardColumnId,
+} from "./order-utils";
+import type { AdminOrder } from "@/types/admin-order";
 
-type BoardColumnTone = "new" | "progress" | "picked" | "delivery" | "done" | "return";
-
-interface OrderCardData {
-  cardId: string;
-  id: number;
-  customer: string;
-  address: string;
-  total: string;
-  items: string;
-  status: string;
-  tone: BoardColumnTone;
-}
-
-interface BoardColumnData {
-  id: string;
-  title: string;
-  tone: BoardColumnTone;
-  orders: OrderCardData[];
-}
-
-interface SummaryCardData {
-  id: string;
-  label: string;
-  value: string;
-  icon: React.ElementType;
-}
-
-const tabs = [
-  { id: "active", label: "Активные заказы", disabled: false },
-  { id: "history", label: "История заказов", disabled: true },
-  { id: "promo", label: "Промо компании", disabled: true },
+const boardColumns: { id: BoardColumnId; title: string }[] = [
+  { id: "new", title: "Новые заказы" },
+  { id: "assembling", title: "На сборке" },
+  { id: "pickup", title: "Выдача" },
+  { id: "delivery", title: "На доставке" },
+  { id: "done", title: "Завершенные" },
 ];
 
-const boardColumnTemplate: Omit<BoardColumnData, "orders">[] = [
-  { id: "new", title: "Новые заказы", tone: "new" },
-  { id: "progress", title: "В работе", tone: "progress" },
-  { id: "picked", title: "Собраны", tone: "picked" },
-  { id: "delivery", title: "На доставке", tone: "delivery" },
-  { id: "done", title: "Завершение", tone: "done" },
-  { id: "return", title: "Возврат", tone: "return" },
-];
+const SOUND_STORAGE_KEY = "orders-sound-enabled";
 
-const toneClassNames: Record<BoardColumnTone, string> = {
-  new: "text-[#76C84F]",
-  progress: "text-[#76C84F]",
-  picked: "text-[#76C84F]",
-  delivery: "text-[#76C84F]",
-  done: "text-[#76C84F]",
-  return: "text-[#F26A4B]",
-};
-
-const statusLabelsByColumnId: Record<BoardColumnData["id"], string> = {
-  new: "Новый",
-  progress: "В работе",
-  picked: "Собраны",
-  delivery: "Доставка",
-  done: "Завершение",
-  return: "Возврат",
-};
-
-const columnIdByOrderStatus: Record<AdminOrderStatus, BoardColumnData["id"]> = {
-  pending: "new",
-  assembling: "progress",
-  ready: "picked",
-  delivery: "delivery",
-  completing: "done",
-  completed: "done",
-  cancelled: "return",
-};
-
-function formatCurrency(value: number, currency: string) {
+function playBeep() {
   try {
-    return new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    }).format(value);
+    const AudioCtx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+    osc.onended = () => void ctx.close();
   } catch {
-    return `${value.toLocaleString("ru-RU")} ${currency}`;
+    // Audio is best-effort only.
   }
 }
 
-function formatOrderCount(count: number) {
-  const noun =
-    count % 10 === 1 && count % 100 !== 11
-      ? "заказ"
-      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
-        ? "заказа"
-        : "заказов";
+function formatToolbarDate() {
+  const now = new Date();
+  const day = now.getDate();
+  const month = now.toLocaleDateString("ru-RU", { month: "long" });
 
-  return `${count} ${noun}`;
+  return `${day} ${month}, ${now.getFullYear()}`;
 }
 
-function formatItemCount(count: number) {
-  const noun =
-    count % 10 === 1 && count % 100 !== 11
-      ? "товар"
-      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)
-        ? "товара"
-        : "товаров";
-
-  return `${count} ${noun}`;
-}
-
-function getOrderAddress(order: AdminOrder) {
-  if (order.addressSnapshot.fullAddress?.trim()) {
-    return order.addressSnapshot.fullAddress.trim();
-  }
-
-  const addressParts = [
-    order.addressSnapshot.streetType,
-    order.addressSnapshot.street,
-    order.addressSnapshot.house,
-  ].filter(Boolean);
-
-  return addressParts.join(" ") || order.addressSnapshot.city || "Адрес не указан";
-}
-
-function mapOrderToCard(order: AdminOrder): OrderCardData {
-  const tone = order.isCancelled ? "return" : boardColumnTemplate.find(
-    (column) => column.id === (order.isCancelled ? "return" : columnIdByOrderStatus[order.status]),
-  )?.tone ?? "progress";
-  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-  const columnId = order.isCancelled ? "return" : columnIdByOrderStatus[order.status];
-
-  return {
-    cardId: `order-${order.id}`,
-    id: order.id,
-    customer: order.shop.name,
-    address: getOrderAddress(order),
-    total: formatCurrency(order.totalPrice, order.currency),
-    items: formatItemCount(itemCount),
-    status: statusLabelsByColumnId[columnId],
-    tone,
-  };
-}
-
-function OrdersHeader() {
+function ToolbarPill({
+  children,
+  onClick,
+  active = true,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+}) {
   return (
-    <div className="flex w-full items-center gap-8 overflow-x-auto">
-      <h1 className="shrink-0 text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
-        Заказы
-      </h1>
-      <div className="flex min-w-max items-center gap-7">
-        {tabs.map((tab) => {
-          const isActive = tab.id === "active";
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-[34px] items-center gap-2 rounded-[17px] border border-[#FFFFFF80] bg-[#FFFFFF80] py-2 pl-[18px] pr-2 text-[14px] leading-[18px] text-[#0E0F27] transition hover:bg-white/90",
+        !active && "opacity-50",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              disabled={tab.disabled}
-              className={cn(
-                "rounded-full px-4 py-2 text-[14px] font-semibold transition",
-                isActive
-                  ? "bg-[#55CB00] text-[#FFFFFF] shadow-[0_8px_18px_rgba(85,203,0,0.26)]"
-                  : tab.disabled
-                    ? "cursor-default text-[#23263A]/60"
-                    : "text-[#23263A]/60 hover:text-[#111322]",
-              )}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+function OrdersToolbar({
+  soundEnabled,
+  onToggleSound,
+  onRefresh,
+  refreshing,
+}: {
+  soundEnabled: boolean;
+  onToggleSound: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2">
+        <ToolbarPill>
+          <span>Регион:</span>
+          <span className="text-[#0E0F2780]">Байконур</span>
+          <ChevronDown size={16} color="#0E0F27" />
+        </ToolbarPill>
+        <ToolbarPill>
+          <span>Магазины:</span>
+          <span className="text-[#0E0F2780]">Все</span>
+          <ChevronDown size={16} color="#0E0F27" />
+        </ToolbarPill>
+        <ToolbarPill onClick={onToggleSound} active={soundEnabled}>
+          {soundEnabled ? (
+            <Volume2 size={18} color="#0E0F27" />
+          ) : (
+            <VolumeX size={18} color="#0E0F27" />
+          )}
+          Звуковое уведомление
+        </ToolbarPill>
+        <button
+          type="button"
+          aria-label="Обновить"
+          onClick={onRefresh}
+          className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-[#FFFFFF80] bg-[#FFFFFF80] transition hover:bg-white/90"
+        >
+          <span className={cn("flex h-[18px] w-[18px] items-center justify-center", refreshing && "animate-spin")}>
+            <IconRefresh />
+          </span>
+        </button>
       </div>
+      <span className="ml-auto whitespace-nowrap text-[20px] font-semibold text-[#0E0F27]">
+        {formatToolbarDate()}
+      </span>
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, label, value }: SummaryCardData) {
+function CardRow({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="w-[156px] shrink-0 rounded-[18px] border border-[#ECECF3] bg-white px-4 py-3 shadow-[0_6px_18px_rgba(17,19,34,0.04)]">
-      <div className="mb-2 flex items-center gap-2 text-[#A0A5B5]">
-        <Icon className="h-4 w-4" strokeWidth={1.75} />
-        <span className="whitespace-nowrap text-[12px] font-medium">{label}</span>
-      </div>
-      <p className="whitespace-nowrap text-[17px] font-semibold tracking-[-0.03em] text-[#1A1D29]">{value}</p>
+    <div className="flex items-center gap-1.5 text-[12px] leading-[14px] text-[#0E0F27]">
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center">{icon}</span>
+      <span className="truncate">{children}</span>
     </div>
   );
 }
 
 function OrderCard({
   order,
+  finished = false,
+  onOpen,
 }: {
-  order: OrderCardData;
+  order: AdminOrder;
+  finished?: boolean;
+  onOpen: () => void;
 }) {
+  const status = statusStyles(order);
+
   return (
-    <article className="rounded-[16px] border border-[#E9E9F1] bg-white px-4 py-3 shadow-[0_8px_22px_rgba(17,19,34,0.04)]">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-[16px] font-extrabold tracking-[-0.03em] text-[#36394A]">№ {order.id}</span>
-        <span className={cn("text-[15px] font-bold", toneClassNames[order.tone])}>{order.status}</span>
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "flex w-full flex-col gap-2 rounded-[18px] p-3 text-left transition",
+        finished
+          ? "bg-[#FFFFFF80] hover:bg-white"
+          : "bg-white hover:bg-[#FAFAFD]",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 text-[12px] leading-[14px]">
+        <span className="whitespace-nowrap text-[#0E0F2780]">
+          № {order.dailyOrderNumber}, {formatCardTime(order.createdAt)}
+        </span>
+        <span className="whitespace-nowrap text-[#0E0F27]">
+          {formatCurrency(order.totalPrice, order.currency)}
+        </span>
       </div>
-      <div className="space-y-2 text-[14px] leading-[1.25] text-[#4B5062]">
-        <p className="font-semibold text-[#575C6D]">{order.customer}</p>
-        <p>{order.address}</p>
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3 text-[13px] text-[#9CA2B3]">
-        <span className="text-[20px] font-bold tracking-[-0.03em] text-[#45495C]">{order.total}</span>
-        <span>{order.items}</span>
-      </div>
-    </article>
+
+      <div className="h-px bg-[#DCDCE6]" />
+
+      <CardRow icon={<ShoppingBasket size={18} color="#AAAAB8" />}>{order.shop.name}</CardRow>
+      <CardRow
+        icon={
+          <MapPin size={18} color="#0E0F27" strokeWidth={1.75} fill="#AAAAB8" fillOpacity={0.4} />
+        }
+      >
+        {getOrderAddress(order)}
+      </CardRow>
+
+      <div className="h-px bg-[#DCDCE6]" />
+
+      <CardRow
+        icon={
+          status.icon ?? (
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: status.color }}
+            />
+          )
+        }
+      >
+        {status.label}
+      </CardRow>
+    </button>
   );
 }
 
 function BoardColumn({
-  column,
+  title,
+  orders,
+  finished = false,
+  onOpen,
 }: {
-  column: BoardColumnData;
+  title: string;
+  orders: AdminOrder[];
+  finished?: boolean;
+  onOpen: (order: AdminOrder) => void;
 }) {
   return (
-    <div className="flex min-w-[230px] flex-1 flex-col rounded-[18px] bg-[#F2F2F8] p-1">
-      <div className="flex items-center gap-2 px-3 py-3">
-        <h2 className="text-[14px] font-semibold text-[#52576A]">{column.title}</h2>
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#111322] px-1.5 text-[11px] font-semibold text-white">
-          {column.orders.length}
+    <section className="flex h-full min-w-0 flex-1 flex-col gap-2.5 rounded-[18px] bg-[#09091D40] p-1">
+      <header className="flex items-center gap-2.5 px-3 py-2">
+        <h2 className="whitespace-nowrap text-[16px] font-medium text-white">{title}</h2>
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[14px] font-semibold leading-none text-[#0E0F27]">
+          {orders.length}
         </span>
-      </div>
-      <div className="flex min-h-[540px] flex-1 flex-col gap-3 rounded-[16px] bg-[#F7F7FB] p-2">
-        {column.orders.map((order) => (
-          <OrderCard key={order.cardId} order={order} />
+      </header>
+      <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-1 pt-0">
+        {orders.map((order) => (
+          <OrderCard key={order.id} order={order} finished={finished} onOpen={() => onOpen(order)} />
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
+const useMockOrders = process.env.NEXT_PUBLIC_USE_MOCK_ORDERS === "true";
+
 export function OrdersBoard() {
-  const { orders, meta, loading, error, refetch, fetchOrder } = useAdminOrders({
+  const live = useAdminOrders({
     page: 1,
     pageSize: 100,
+    skip: useMockOrders,
   });
 
+  const orders = useMockOrders ? MOCK_ACTIVE_ORDERS : live.orders;
+  const finishedOrders = useMockOrders ? MOCK_FINISHED_ORDERS : live.finishedOrders;
+  const loading = useMockOrders ? false : live.loading;
+  const error = useMockOrders ? null : live.error;
+  const refetch = live.refetch;
+  const fetchOrder = live.fetchOrder;
+
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const soundEnabledRef = useRef(true);
+  const knownIdsRef = useRef<Set<number>>(new Set());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingOrderIdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    const stored = localStorage.getItem(SOUND_STORAGE_KEY) !== "off";
+    setSoundEnabled(stored);
+    soundEnabledRef.current = stored;
+  }, []);
+
+  const toggleSound = useCallback(() => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      soundEnabledRef.current = next;
+      localStorage.setItem(SOUND_STORAGE_KEY, next ? "on" : "off");
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    knownIdsRef.current = new Set([...orders, ...finishedOrders].map((order) => order.id));
+  }, [orders, finishedOrders]);
 
   // Debounced drain: collapse a burst of socket events into a single refetch,
   // but only for the order ids we couldn't patch individually (or if the board
@@ -260,12 +305,17 @@ export function OrdersBoard() {
   }, [refetch]);
 
   useOrderSocket({
+    enabled: !useMockOrders,
     onOrderEvent: (event) => {
       const orderId = event?.orderId;
       if (!orderId) {
         // No id in payload — fall back to full refresh.
         debouncedRefetch();
         return;
+      }
+
+      if (soundEnabledRef.current && !knownIdsRef.current.has(orderId)) {
+        playBeep();
       }
 
       // Dedupe rapid bursts for the same order.
@@ -279,89 +329,74 @@ export function OrdersBoard() {
     },
   });
 
-  const header = <OrdersHeader />;
-
-  const columns = useMemo<BoardColumnData[]>(() => {
-    const groupedOrders = new Map<BoardColumnData["id"], OrderCardData[]>();
-
-    boardColumnTemplate.forEach((column) => {
-      groupedOrders.set(column.id, []);
-    });
+  const columns = useMemo(() => {
+    const grouped = new Map<BoardColumnId, AdminOrder[]>(boardColumns.map((c) => [c.id, []]));
 
     orders.forEach((order) => {
-      const columnId = order.isCancelled ? "return" : columnIdByOrderStatus[order.status];
-      groupedOrders.get(columnId)?.push(mapOrderToCard(order));
+      grouped.get(columnIdByOrder(order))?.push(order);
+    });
+    finishedOrders.forEach((order) => {
+      const column = grouped.get(columnIdByOrder(order));
+      if (column && !column.some((o) => o.id === order.id)) column.push(order);
     });
 
-    return boardColumnTemplate.map((column) => ({
-      ...column,
-      orders: groupedOrders.get(column.id) ?? [],
-    }));
-  }, [orders]);
+    return boardColumns.map((column) => ({ ...column, orders: grouped.get(column.id) ?? [] }));
+  }, [orders, finishedOrders]);
 
-  const summaryCards = useMemo<SummaryCardData[]>(() => {
-    return [
-      { id: "active", label: "Активные", value: formatOrderCount(meta.total), icon: ClipboardList },
-      { id: "new", label: "Новые", value: formatOrderCount(columns[0]?.orders.length ?? 0), icon: Package },
-      { id: "progress", label: "В работе", value: formatOrderCount(columns[1]?.orders.length ?? 0), icon: Package },
-      { id: "picked", label: "Собраны", value: formatOrderCount(columns[2]?.orders.length ?? 0), icon: Package },
-      { id: "delivery", label: "Доставка", value: formatOrderCount(columns[3]?.orders.length ?? 0), icon: Truck },
-      { id: "done", label: "Завершение", value: formatOrderCount(columns[4]?.orders.length ?? 0), icon: Package },
-      { id: "cancelled", label: "Отмены", value: formatOrderCount(columns[5]?.orders.length ?? 0), icon: Truck },
-    ];
-  }, [columns, meta.total]);
+  const allOrders = useMemo(() => [...orders, ...finishedOrders], [orders, finishedOrders]);
+  const selectedOrder = useMemo(
+    () =>
+      selectedOrderId === null
+        ? null
+        : (allOrders.find((order) => order.id === selectedOrderId) ?? null),
+    [allOrders, selectedOrderId],
+  );
 
   return (
-    <DashboardLayout
-      header={header}
-      headerClassName="pl-4 pr-8"
-      contentClassName="min-h-0 overflow-hidden p-0"
-    >
-      <section className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[#ECECF3] bg-white px-4 py-4 shadow-[0_16px_50px_rgba(17,19,34,0.05)]">
-          <div className="flex flex-wrap items-start gap-4 border-b border-[#EFEFF5] pb-5">
-            <div className="flex min-w-0 flex-1 flex-wrap gap-3">
-              {summaryCards.map((card) => (
-                <SummaryCard key={card.id} {...card} />
-              ))}
-            </div>
+    <AppShell>
+      <AdminSidebar
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+      />
+      <Main className="bg-[#EDEDF4]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/wallpaper.png')" }}
+          >
+            <div className="mx-auto m-4 flex w-full max-w-[1400px] min-h-0 flex-1 flex-col gap-6 rounded-[20px] bg-transparent p-6">
+              <OrdersToolbar
+                soundEnabled={soundEnabled}
+                onToggleSound={toggleSound}
+                onRefresh={refetch}
+                refreshing={loading}
+              />
 
-            <div className="relative ml-auto shrink-0">
-              <button
-                type="button"
-                disabled
-                className="flex items-center gap-2 rounded-[12px] px-4 py-2 text-sm font-medium text-[#4B5062]"
-                style={{ backgroundColor: "rgba(238, 238, 244, 0.5)" }}
-              >
-                Активные
-                <ChevronDown size={16} />
-              </button>
+              {loading ? (
+                <div className="flex min-h-[420px] flex-1 items-center justify-center">
+                  <Spinner size={28} />
+                </div>
+              ) : error ? (
+                <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
+                  {error}
+                </div>
+              ) : (
+                <div className="no-scrollbar flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto pb-1">
+                  {columns.map((column) => (
+                    <BoardColumn
+                      key={column.id}
+                      title={column.title}
+                      orders={column.orders}
+                      finished={column.id === "done"}
+                      onOpen={(order) => setSelectedOrderId(order.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-
-          <div className="no-scrollbar min-h-0 flex-1 overflow-auto pt-5">
-            {loading ? (
-              <div className="flex min-h-[420px] items-center justify-center">
-                <Spinner size={28} />
-              </div>
-            ) : error ? (
-              <div className="flex min-h-[420px] items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
-                {error}
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="flex min-h-[420px] items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
-                Активных заказов нет
-              </div>
-            ) : (
-              <div className="flex min-h-max min-w-max items-start gap-3">
-                {columns.map((column) => (
-                  <BoardColumn key={column.id} column={column} />
-                ))}
-              </div>
-            )}
           </div>
         </div>
-      </section>
-    </DashboardLayout>
+      </Main>
+    </AppShell>
   );
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import LoginPage from "./login/page";
-import { OrdersBoard } from "@/components/orders/orders-board";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { Spinner } from "@/components/ui";
 import { useAuth } from "@/components/hooks/useLogin";
 
@@ -20,5 +20,5 @@ export default function Home() {
     return <LoginPage />;
   }
 
-  return <OrdersBoard />;
+  return <AdminDashboard />;
 }

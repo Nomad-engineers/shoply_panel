@@ -30,12 +30,18 @@ const ACTIVE_STATUSES = new Set<AdminOrder["status"]>([
   "completing",
 ]);
 
+const FINISHED_LIMIT = 30;
+
 export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
   const { refreshSession, fetchWithSession } = useAuth();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   // Synchronous mirror of `orders` so single-order patches can read the current
   // list outside of React's deferred render phase (for reliable meta delta).
   const ordersRef = useRef<AdminOrder[]>([]);
+  // Completed/cancelled orders that left the active board, kept for the
+  // "Завершенные" column (the /active endpoint does not return them).
+  const [finishedOrders, setFinishedOrders] = useState<AdminOrder[]>([]);
+  const finishedRef = useRef<AdminOrder[]>([]);
   const [meta, setMeta] = useState<AdminOrdersMeta>(EMPTY_META);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,11 +136,20 @@ export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
         let delta = 0;
 
         if (!isActive) {
-          // Order left the active board — drop it.
+          // Order left the active board — drop it, but keep it in the
+          // finished list (completed/cancelled) so it can be shown in the
+          // "Завершенные" column.
           if (idx === -1) return;
           next = prev.slice();
           next.splice(idx, 1);
           delta = -1;
+
+          const finishedNext = [order, ...finishedRef.current.filter((o) => o.id !== order.id)].slice(
+            0,
+            FINISHED_LIMIT,
+          );
+          finishedRef.current = finishedNext;
+          setFinishedOrders(finishedNext);
         } else if (idx === -1) {
           // New active order not yet on the board — prepend.
           next = [order, ...prev];
@@ -163,6 +178,7 @@ export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
 
   return {
     orders,
+    finishedOrders,
     meta,
     loading,
     error,
