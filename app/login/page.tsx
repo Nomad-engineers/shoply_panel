@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { LoginForm } from '@/components/layout/login-form'
 import { ShopSelection, type ShopOption } from '@/components/layout/shop-selection'
+import { FooterLogoMark } from '@/components/icons/FooterLogoMark'
 import { useAuth } from '@/components/hooks/useLogin'
 import type { AuthProfile } from '@/types/auth'
 
@@ -74,7 +74,7 @@ const LoginPage: React.FC = () => {
         </section>
 
         <footer className='mt-[24px] flex flex-col gap-[10px]'>
-          <Image src='/footer-logo-mark.svg' alt='Shoply' width={93} height={16} className='block h-[16px] w-[93px]' />
+          <FooterLogoMark className='block h-[16px] w-[93px]' />
           <p className='text-[12px] font-normal leading-[14px] text-[#0E0F27]/50'>
             Все авторские права защищены
             <br />

@@ -15,6 +15,11 @@ interface UseAdminOrdersParams {
   skip?: boolean;
 }
 
+interface AdminOrdersHistoryResponse {
+  data: AdminOrder[];
+  meta: AdminOrdersMeta;
+}
+
 const EMPTY_META: AdminOrdersMeta = {
   total: 0,
   pageCount: 1,
@@ -46,6 +51,44 @@ export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchFinishedOrders = useCallback(async () => {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const queryParams = new URLSearchParams();
+      queryParams.set("from", startOfDay.toISOString());
+      queryParams.set("to", new Date().toISOString());
+      queryParams.set("page", "1");
+      queryParams.set("pageSize", String(FINISHED_LIMIT));
+
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/v2/admin/order/history?${queryParams.toString()}`;
+      const res = await fetchWithSession(
+        url,
+        () => localStorage.getItem("access_token"),
+        refreshSession,
+      );
+
+      if (!res.ok) return;
+
+      const json = (await res.json()) as AdminOrdersHistoryResponse;
+      const history = json.data ?? [];
+      // Keep session-tracked finished orders (socket) that fell outside the
+      // today window, prepend fresh history.
+      const outsideSession = finishedRef.current.filter(
+        (order) => !history.some((h) => h.id === order.id),
+      );
+      const merged = [...history, ...outsideSession]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, FINISHED_LIMIT);
+
+      finishedRef.current = merged;
+      setFinishedOrders(merged);
+    } catch {
+      // History is supplementary — never fail the whole board over it.
+    }
+  }, [fetchWithSession, refreshSession]);
+
   const fetchOrders = useCallback(async () => {
     if (params.skip) {
       return;
@@ -75,6 +118,10 @@ export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
       ordersRef.current = next;
       setOrders(next);
       setMeta(json.meta ?? EMPTY_META);
+
+      // "Завершенные" column source: today's completed/cancelled orders from
+      // history + any orders that left the board during this session.
+      await fetchFinishedOrders();
     } catch (e: any) {
       setError(e.message ?? "Ошибка при получении активных заказов");
       ordersRef.current = [];
@@ -83,7 +130,7 @@ export const useAdminOrders = (params: UseAdminOrdersParams = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchWithSession, params.page, params.pageSize, params.skip, refreshSession]);
+  }, [fetchFinishedOrders, fetchWithSession, params.page, params.pageSize, params.skip, refreshSession]);
 
   /**
    * Seamless single-order refresh: fetch one order by id and patch it into the

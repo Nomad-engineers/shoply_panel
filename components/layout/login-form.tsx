@@ -1,9 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import Image from 'next/image'
 import { useState } from 'react'
 
+import { ShoplyLogo } from '@/components/icons/ShoplyLogo'
+import { UserIcon } from '@/components/icons/UserIcon'
+import { KeyIcon } from '@/components/icons/KeyIcon'
 import { useAuth } from '../hooks/useLogin'
 import type { AuthProfile } from '@/types/auth'
 
@@ -37,14 +39,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} method='post' autoComplete='on'>
-      <Image
-        src='/shoply-logo.svg'
-        alt='Shoply Panel'
-        width={147}
-        height={48}
-        priority
-        className='block h-[48px] w-[147px]'
-      />
+      <ShoplyLogo className='block h-[48px] w-[147px]' />
 
       <h1 className='mt-[24px] text-[20px] font-semibold leading-none tracking-[-0.02em] text-[#0E0E27]'>
         Авторизация
@@ -72,14 +67,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
               required
               className={`${inputBase} pr-[48px] ${error ? 'bg-[#FEEFEC]' : ''}`}
             />
-            <Image
-              src='/icon-user.svg'
-              alt=''
-              width={24}
-              height={24}
-              aria-hidden='true'
-              className='pointer-events-none absolute right-[12px] top-1/2 h-[24px] w-[24px] -translate-y-1/2'
-            />
+            <UserIcon className='pointer-events-none absolute right-[12px] top-1/2 h-[24px] w-[24px] -translate-y-1/2' />
           </div>
         </div>
 
@@ -97,14 +85,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
               required
               className={`${inputBase} pr-[48px] ${error ? 'bg-[#FEEFEC]' : ''}`}
             />
-            <Image
-              src='/icon-key.svg'
-              alt=''
-              width={24}
-              height={24}
-              aria-hidden='true'
-              className='pointer-events-none absolute right-[12px] top-1/2 h-[24px] w-[24px] -translate-y-1/2'
-            />
+            <KeyIcon className='pointer-events-none absolute right-[12px] top-1/2 h-[24px] w-[24px] -translate-y-1/2' />
           </div>
         </div>
       </div>

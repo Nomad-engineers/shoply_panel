@@ -1,0 +1,8 @@
+import React from 'react'
+
+export const KeyIcon = ({ className }: { className?: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+    <path d="M15.0312 9.34275C15.0312 9.13575 14.8633 8.96875 14.6562 8.96875C14.4492 8.96975 14.2812 9.13775 14.2812 9.34475C14.2812 9.55175 14.4492 9.71975 14.6562 9.71875C14.8633 9.71875 15.0312 9.55075 15.0312 9.34375" stroke="#AAAAB8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path fillRule="evenodd" clipRule="evenodd" d="M12.499 14.7847L11.469 15.8168H9.637V17.2858H8.172V19.1217L6.798 20.4998H3.5V17.1947L9.223 11.4588C8.417 9.36475 8.849 6.90275 10.534 5.21375C12.814 2.92875 16.511 2.92875 18.791 5.21375C21.071 7.49875 21.071 11.2037 18.791 13.4897C17.089 15.1937 14.601 15.6237 12.499 14.7847Z" stroke="#AAAAB8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)

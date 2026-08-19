@@ -1,11 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '../hooks/useLogin'
 import { MenuIcon } from '@/components/icons/menu-icons'
+import { FooterLogoMark } from '@/components/icons/FooterLogoMark'
 
 interface AdminNavItem {
   label: string
@@ -259,7 +259,7 @@ export const AdminSidebar = ({ isCollapsed = false, onToggleCollapse }: AdminSid
           </div>
         ) : (
           <div className='flex flex-col gap-2.5'>
-            <Image src='/footer-logo-mark.svg' alt='Shoply' width={92} height={16} className='h-[16px] w-[92px]' />
+            <FooterLogoMark className='h-[16px] w-[92px]' />
             <p className='mt-[6px] text-[12px] leading-[14px] text-[#0E0F27]/50'>
               Все авторские права защищены
               <br />

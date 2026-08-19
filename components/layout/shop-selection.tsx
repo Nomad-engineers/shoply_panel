@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import Image from 'next/image'
 import { useState } from 'react'
+
+import { ShoplyLogo } from '@/components/icons/ShoplyLogo'
 
 export interface ShopOption {
   id: number
@@ -32,14 +33,7 @@ export const ShopSelection = ({
 
   return (
     <div>
-      <Image
-        src='/shoply-logo.svg'
-        alt='Shoply Panel'
-        width={147}
-        height={48}
-        priority
-        className='block h-[48px] w-[147px]'
-      />
+      <ShoplyLogo className='block h-[48px] w-[147px]' />
 
       <div className='mt-[24px]'>
         <h1 className='m-0 text-[20px] font-semibold leading-none tracking-[-0.02em] text-[#0E0E27]'>

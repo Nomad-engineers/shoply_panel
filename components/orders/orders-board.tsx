@@ -11,10 +11,8 @@ import {
 import { AppShell, Main } from "@/components/layout";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { cn } from "@/lib/theme";
-import { Spinner } from "@/components/ui";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
 import { useOrderSocket } from "@/components/hooks/useOrderSocket";
-import { MOCK_ACTIVE_ORDERS, MOCK_FINISHED_ORDERS } from "./mock-orders";
 import { OrderViewPanel } from "./order-view-panel";
 import { IconRefresh } from "./status-icons";
 import {
@@ -246,21 +244,11 @@ function BoardColumn({
   );
 }
 
-const useMockOrders = process.env.NEXT_PUBLIC_USE_MOCK_ORDERS === "true";
-
 export function OrdersBoard() {
-  const live = useAdminOrders({
+  const { orders, finishedOrders, loading, error, refetch, fetchOrder } = useAdminOrders({
     page: 1,
     pageSize: 100,
-    skip: useMockOrders,
   });
-
-  const orders = useMockOrders ? MOCK_ACTIVE_ORDERS : live.orders;
-  const finishedOrders = useMockOrders ? MOCK_FINISHED_ORDERS : live.finishedOrders;
-  const loading = useMockOrders ? false : live.loading;
-  const error = useMockOrders ? null : live.error;
-  const refetch = live.refetch;
-  const fetchOrder = live.fetchOrder;
 
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -305,7 +293,6 @@ export function OrdersBoard() {
   }, [refetch]);
 
   useOrderSocket({
-    enabled: !useMockOrders,
     onOrderEvent: (event) => {
       const orderId = event?.orderId;
       if (!orderId) {
@@ -372,11 +359,7 @@ export function OrdersBoard() {
                 refreshing={loading}
               />
 
-              {loading ? (
-                <div className="flex min-h-[420px] flex-1 items-center justify-center">
-                  <Spinner size={28} />
-                </div>
-              ) : error ? (
+              {error ? (
                 <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
                   {error}
                 </div>
