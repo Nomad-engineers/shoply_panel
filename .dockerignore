@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+
+# Build output
+.next
+tsconfig.tsbuildinfo
+
+# Git
+.git
+.gitignore
+
+# Environment files (injected by Coolify at build/runtime)
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Docs / references
+*.md
+ref
+color-scheme.json
+ui-schema.json
+
+# Test
+coverage
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Misc
+.turbo
+*.tgz
+Dockerfile
+.dockerignore
+.eslintcache
+.playwright-cli
+.opencode
+.mcp.json
