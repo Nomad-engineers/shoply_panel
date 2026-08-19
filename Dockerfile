@@ -1,9 +1,18 @@
-# ── Stage 1: Build ──────────────────────────────────────────────
-FROM node:22-alpine AS builder
+# syntax=docker/dockerfile:1
+#
+# @shoply/panel — Next.js standalone app (not a pnpm workspace).
+# Build context = panel/ directory itself.
+#
+# Coolify settings for this service:
+#   Build Pack:          Dockerfile
+#   Base Directory:      /panel
+#   Dockerfile Location: /Dockerfile
+
+# ---- build ----
+FROM node:22-bookworm-slim AS build
+RUN npm install -g pnpm@10.25.0
 WORKDIR /app
-RUN corepack enable
-ENV NEXT_TELEMETRY_DISABLED=1 \
-    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # NEXT_PUBLIC_* vars are inlined into the bundle at build time
 ARG NEXT_PUBLIC_API_URL
@@ -18,21 +27,19 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-# ── Stage 2: Production image ───────────────────────────────────
-FROM node:22-alpine AS production
+# ---- runtime ----
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
-RUN apk add --no-cache dumb-init
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
     HOSTNAME=0.0.0.0
 
 # Next.js standalone output (server.js + minimal node_modules)
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --retries=3 --start-period=15s \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "server.js"]
