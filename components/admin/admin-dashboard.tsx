@@ -5,10 +5,60 @@ import { ChevronDown } from 'lucide-react'
 import { AppShell, Main, Content } from '@/components/layout'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
 import { DashboardCard } from './dashboard-card'
+import { useAuth } from '@/components/hooks/useLogin'
+import {
+  useDashboardData,
+  type DashboardStatusCounts,
+  type DashboardRevenue,
+  type DashboardPaymentMethods,
+  type DashboardAvgTimes,
+  type DashboardDayStat,
+  type DashboardClientsMonth,
+  type DashboardUsersQuarter,
+} from '@/components/hooks/useDashboardData'
+import {
+  useDashboardLists,
+  type ReviewFilter,
+  type SellersSort,
+  type CouriersSort,
+} from '@/components/hooks/useDashboardLists'
 
 const NOW = new Date()
-const DAYS_IN_MONTH = new Date(NOW.getFullYear(), NOW.getMonth() + 1, 0).getDate()
-const TODAY = NOW.getDate()
+
+const daysAgoLocal = (daysAgo: number) => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - daysAgo)
+  return d
+}
+
+const fmtNum = (n: number | null | undefined) => (n == null ? '—' : n.toLocaleString('ru-RU'))
+
+const fmtMoney = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('ru-RU')} ₽`)
+
+const fmtCompact = (n: number | null | undefined) => {
+  if (n == null) return '—'
+  if (n >= 1000000) return `${(n / 1000000).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} млн`
+  if (n >= 1000) return `${(n / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} к`
+  return n.toLocaleString('ru-RU')
+}
+
+const fmtPct = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`)
+
+const fmtMinutes = (n: number | null | undefined) => (n == null ? '—' : `${Math.round(n)} мин`)
+
+function Trend({ value, invert = false }: { value: number | null | undefined; invert?: boolean }) {
+  if (value == null || !Number.isFinite(value)) return null
+  const rounded = Math.round(value * 10) / 10
+  const up = rounded >= 0
+  const good = invert ? !up : up
+  return (
+    <span className={`mt-[4px] text-[12px] font-medium ${good ? 'text-[#55CB00]' : 'text-[#F4462B]'}`}>
+      {up ? '↗' : '↘'} {up ? '+' : '-'}
+      {Math.abs(rounded).toLocaleString('ru-RU')}%
+    </span>
+  )
+}
 
 const MONTHS_RU = [
   'января',
@@ -26,55 +76,6 @@ const MONTHS_RU = [
 ]
 
 const CURRENT_DATE_LABEL = `${NOW.getDate()} ${MONTHS_RU[NOW.getMonth()]}, ${NOW.getFullYear()}`
-
-const weekdayShort = (day: number) =>
-  new Intl.DateTimeFormat('ru-RU', { weekday: 'short' })
-    .format(new Date(NOW.getFullYear(), NOW.getMonth(), day))
-    .replace('.', '')
-
-const ORDERS_CHART_RAW = [
-  { day: 2, completed: 52, cancelled: 3 },
-  { day: 3, completed: 62, cancelled: 0 },
-  { day: 4, completed: 28, cancelled: 5 },
-  { day: 5, completed: 80, cancelled: 0 },
-  { day: 6, completed: 58, cancelled: 0 },
-  { day: 7, completed: 85, cancelled: 0 },
-  { day: 8, completed: 70, cancelled: 0 },
-  { day: 9, completed: 78, cancelled: 0 },
-  { day: 10, completed: 49, cancelled: 3 },
-  { day: 11, completed: 90, cancelled: 0 },
-  { day: 12, completed: 72, cancelled: 0 },
-  { day: 13, completed: 60, cancelled: 0 },
-  { day: 14, completed: 82, cancelled: 0 },
-  { day: 15, completed: 65, cancelled: 3 },
-  { day: 16, completed: 88, cancelled: 0 },
-  { day: 17, completed: 58, cancelled: 0 },
-  { day: 18, completed: 75, cancelled: 0 },
-  { day: 19, completed: 65, cancelled: 0 },
-  { day: 20, completed: 95, cancelled: 0 },
-  { day: 21, completed: 68, cancelled: 0 },
-  { day: 22, completed: 80, cancelled: 0 },
-  { day: 23, completed: 62, cancelled: 0 },
-  { day: 24, completed: 86, cancelled: 0 },
-  { day: 25, completed: 72, cancelled: 0 },
-  { day: 26, completed: 52, cancelled: 3 },
-  { day: 27, completed: 80, cancelled: 0 },
-  { day: 28, completed: 66, cancelled: 0 },
-  { day: 29, completed: 90, cancelled: 0 },
-  { day: 30, completed: 72, cancelled: 0 },
-  { day: 31, completed: 60, cancelled: 0 },
-]
-
-const ORDERS_CHART_DATA = ORDERS_CHART_RAW.filter((d) => d.day <= DAYS_IN_MONTH).map((d) => ({
-  ...d,
-  weekday: weekdayShort(d.day),
-}))
-
-const DEFAULT_SELECTED_DAY = ORDERS_CHART_DATA.some((d) => d.day === TODAY)
-  ? TODAY
-  : ORDERS_CHART_DATA[ORDERS_CHART_DATA.length - 1].day
-
-const ORDERS_CHART_MAX_TOTAL = Math.max(...ORDERS_CHART_DATA.map((d) => d.completed + d.cancelled))
 
 function RegionIcon({ className }: { className?: string }) {
   return (
@@ -256,17 +257,30 @@ function MoreLink() {
   )
 }
 
-function FilterBadges({ filters }: { filters: string[] }) {
-  const [active, setActive] = React.useState(0)
+function FilterBadges({
+  filters,
+  active,
+  onChange,
+}: {
+  filters: string[]
+  active?: number
+  onChange?: (index: number) => void
+}) {
+  const [internalActive, setInternalActive] = React.useState(0)
+  const currentActive = active ?? internalActive
+
   return (
     <div className='flex gap-[10px] pt-[2px]'>
       {filters.map((f, i) => (
         <button
           key={f}
           type='button'
-          onClick={() => setActive(i)}
+          onClick={() => {
+            setInternalActive(i)
+            onChange?.(i)
+          }}
           className={`flex h-[34px] cursor-pointer items-center justify-center rounded-[18px] border px-[16px] py-[8px] text-[14px] font-medium leading-[18px] transition-colors ${
-            i === active ? 'border-[#55CB00] text-[#5BAF1F]' : 'border-[#E2E2EA] text-[#0E0E27]'
+            i === currentActive ? 'border-[#55CB00] text-[#5BAF1F]' : 'border-[#E2E2EA] text-[#0E0E27]'
           }`}
         >
           {f}
@@ -320,21 +334,21 @@ function TopActionBar() {
   )
 }
 
-function OrdersTodayCard() {
+function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
   return (
     <DashboardCard title='Заказы сегодня'>
       <div className='flex items-start gap-[48px]'>
         <div className='flex flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>В работе</span>
-          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>20</span>
+          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>В работе</span>
+          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>{fmtNum(today?.inWork)}</span>
         </div>
         <div className='flex flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Доставлено</span>
-          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>37</span>
+          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>Доставлено</span>
+          <span className='mt-0.5 text-[20px] font-bold leading-7 text-[#0E0E27]'>{fmtNum(today?.delivered)}</span>
         </div>
         <div className='flex flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Отмен</span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>5</span>
+          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>Отмен</span>
+          <span className='mt-0.5 text-[20px] font-bold leading-7 text-[#0E0E27]'>{fmtNum(today?.cancelled)}</span>
         </div>
       </div>
       <div className='mt-[20px] flex gap-[4px] pb-[4px]'>
@@ -343,7 +357,7 @@ function OrdersTodayCard() {
             <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
               <circle cx='9' cy='9' r='3.75' fill='#55CB00' />
             </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>12</span>
+            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.pending)}</span>
           </div>
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Ожидание</span>
         </div>
@@ -356,7 +370,7 @@ function OrdersTodayCard() {
                 fill='#FFC400'
               />
             </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>12</span>
+            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.assembling)}</span>
           </div>
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Сборка</span>
         </div>
@@ -400,7 +414,7 @@ function OrdersTodayCard() {
                 strokeLinejoin='round'
               />
             </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>12</span>
+            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.ready)}</span>
           </div>
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Готов</span>
         </div>
@@ -455,7 +469,7 @@ function OrdersTodayCard() {
                 strokeLinejoin='round'
               />
             </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>12</span>
+            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.delivery)}</span>
           </div>
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Доставка</span>
         </div>
@@ -464,48 +478,52 @@ function OrdersTodayCard() {
   )
 }
 
-function UsersQuarterCard() {
+function UsersQuarterCard({ stat }: { stat: DashboardUsersQuarter | null }) {
   return (
     <DashboardCard title='Пользователей (квартал)' footer={<MoreLink />}>
       <div className='flex items-start gap-[32px]'>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
-          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>34,3k</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ 34%</span>
+          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>
+            {stat ? fmtCompact(stat.total) : '—'}
+          </span>
+          <Trend value={stat?.totalPercent} />
         </div>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Регистрации</span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>+323</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↘ -12%</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
+            {stat ? `+${fmtNum(stat.newCount)}` : '—'}
+          </span>
+          <Trend value={stat?.newPercent} />
         </div>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Активные</span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>20%</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↘ -2,1%</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
+            {stat ? `${stat.activePercent}%` : '—'}
+          </span>
         </div>
       </div>
     </DashboardCard>
   )
 }
 
-function ClientsMonthCard() {
+function ClientsMonthCard({ clients }: { clients: DashboardClientsMonth | null }) {
   return (
     <DashboardCard title='Клиенты (месяц)' footer={<MoreLink />}>
       <div className='flex items-start gap-[32px]'>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
-          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>120</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ 5%</span>
+          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>
+            {fmtNum(clients?.total)}
+          </span>
         </div>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Новых</span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>12</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↘ -2%</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtNum(clients?.newCount)}</span>
         </div>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Потерянные</span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>12</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ +12%</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtNum(clients?.lost)}</span>
         </div>
       </div>
     </DashboardCard>
@@ -525,13 +543,29 @@ const OrdersChartLegend = () => (
   </div>
 )
 
-function OrdersChartCard() {
-  const [selectedDay, setSelectedDay] = React.useState(DEFAULT_SELECTED_DAY)
+function OrdersChartCard({
+  chart,
+  chartTotals,
+  avgTimes,
+}: {
+  chart: DashboardDayStat[]
+  chartTotals: ReturnType<typeof useDashboardData>['chartTotals']
+  avgTimes: DashboardAvgTimes | null
+}) {
+  const todayDay = NOW.getDate()
+  const chartData = chart.length
+    ? chart
+    : Array.from({ length: 30 }, (_, i) => {
+        const d = daysAgoLocal(29 - i)
+        return { date: '', day: d.getDate(), weekday: '', completed: 0, cancelled: 0, active: 0 }
+      })
   const [hoveredDay, setHoveredDay] = React.useState<number | null>(null)
   const [tooltip, setTooltip] = React.useState<{ x: number; y: number; value: number } | null>(null)
   const barsRef = React.useRef<HTMLDivElement>(null)
 
-  const activeDay = hoveredDay ?? selectedDay
+  const chartMaxTotal = Math.max(1, ...chartData.map((d) => d.completed + d.cancelled))
+
+  const activeDay = hoveredDay
 
   const handleSectionMove = (day: number, value: number, e: React.MouseEvent) => {
     const rect = barsRef.current?.getBoundingClientRect()
@@ -552,17 +586,19 @@ function OrdersChartCard() {
       <div className='flex items-start'>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
-          <span className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>1,560</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ +20</span>
+          <span className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>
+            {fmtNum(chartTotals?.total)}
+          </span>
+
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
+          <span className='min-h-7 text-[12px] leading-3.5 text-[#7F7F8A]'>
             Доставлено
             <br />
             заказов
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>1490</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ +15</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtNum(chartTotals?.completed)}</span>
+
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
@@ -571,9 +607,9 @@ function OrdersChartCard() {
             заказы
           </span>
           <span className='mt-[2px] whitespace-nowrap text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
-            70 (4,4%)
+            {chartTotals ? `${fmtNum(chartTotals.cancelled)} (${fmtPct(chartTotals.cancelledPercent)})` : '—'}
           </span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↘ -12</span>
+
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
@@ -581,18 +617,17 @@ function OrdersChartCard() {
             <br />
             заказов
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>12,4</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ 10,76%</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
+            {chartTotals ? chartTotals.ordersPerDay.toLocaleString('ru-RU') : '—'}
+          </span>
         </div>
-        <div className='h-[60px] w-px flex-shrink-0 bg-[#F0F0F5]' />
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>
             Среднее время
             <br />
             закрытия заказа
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>49 мин</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↗ +3 мин</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.closeMinutes)}</span>
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
@@ -600,8 +635,7 @@ function OrdersChartCard() {
             <br />
             доставки
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>36 мин</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↗ +3 мин</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.deliveryMinutes)}</span>
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
@@ -609,8 +643,7 @@ function OrdersChartCard() {
             <br />
             Сборки
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>11 мин</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#F4462B]'>↗ +5 мин</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.assemblyMinutes)}</span>
         </div>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
@@ -618,25 +651,23 @@ function OrdersChartCard() {
             <br />
             подтверждения
           </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>2 мин</span>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↘ -5 мин</span>
+          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.confirmMinutes)}</span>
         </div>
       </div>
 
       <div ref={barsRef} className='relative mt-[24px]' onMouseLeave={handleChartLeave}>
         <div className='flex items-end gap-[6px]'>
-          {ORDERS_CHART_DATA.map((d) => {
+          {chartData.map((d) => {
             const total = d.completed + d.cancelled
-            const totalPct = (total / ORDERS_CHART_MAX_TOTAL) * 100
+            const totalPct = (total / chartMaxTotal) * 100
             const cancelledPct = total > 0 ? (d.cancelled / total) * 100 : 0
             const completedPct = total > 0 ? (d.completed / total) * 100 : 0
             const isActive = d.day === activeDay
             return (
               <div
-                key={d.day}
+                key={`${d.date}-${d.day}`}
                 className='flex flex-1 cursor-pointer flex-col justify-end'
                 style={{ height: '200px' }}
-                onClick={() => setSelectedDay(d.day)}
               >
                 <div className='flex w-full flex-col gap-[2px]' style={{ height: `${totalPct}%` }}>
                   {d.cancelled > 0 && (
@@ -674,10 +705,11 @@ function OrdersChartCard() {
       </div>
 
       <div className='mt-[8px] flex gap-[6px]'>
-        {ORDERS_CHART_DATA.map((d) => (
+        {chartData.map((d) => (
           <div key={d.day} className='flex flex-1 flex-col items-center'>
             <span className='text-[11px] leading-[16px] text-[#0E0E27]'>{d.day}</span>
             <span className='text-[10px] leading-[14px] text-[#A9A9B7]'>{d.weekday}</span>
+            {d.day === todayDay && <div className='mt-[4px] h-px w-full rounded-[1px] bg-[#55CB00]' />}
           </div>
         ))}
       </div>
@@ -685,55 +717,45 @@ function OrdersChartCard() {
   )
 }
 
-function OperationalRevenueCard() {
+function OperationalRevenueCard({ revenue }: { revenue: DashboardRevenue | null }) {
   const items = [
     {
       label: 'Выплаты курьерам',
-      value: '120,021 ₽',
-      shortValue: '120k',
-      change: '↗ 34%',
-      positive: true,
+      value: revenue?.courierPayouts,
       color: '#6BA4F8',
     },
     {
       label: 'Доход компаний',
-      value: '120,021 ₽',
-      shortValue: '60,5 к',
-      change: '↗ 34%',
-      positive: true,
+      value: revenue?.companyIncome,
       color: '#9747FF',
     },
     {
       label: 'Доход партнеров',
-      value: '120,021 ₽',
-      shortValue: '60,5 к',
-      change: '↘ -34%',
-      positive: false,
+      value: revenue?.partnerIncome,
       color: '#E5A832',
     },
     {
       label: 'Оборот продавцов',
-      value: '210,521 ₽',
-      shortValue: '210,5 к',
-      change: '↗ 34%',
-      positive: true,
+      value: revenue?.sellerTurnover,
       color: '#67C63C',
     },
   ]
 
-  const percents = [10, 20, 20, 70]
+  const percents =
+    revenue && revenue.total > 0
+      ? items.map((item) => Math.round(((item.value ?? 0) / revenue.total) * 100))
+      : [25, 25, 25, 25]
 
   return (
-    <DashboardCard title='Операционная выручка (месяц)' footer={<MoreLink />}>
-      <div className='flex gap-[12px]'>
+    <DashboardCard title='Операционная выручка (месяц)' footer={<MoreLink />} className='flex-1'>
+      <div className='flex h-full gap-[12px]'>
         <div className='flex-1 min-w-0 flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
           <div className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>
-            300,000 ₽
+            {fmtMoney(revenue?.total)}
           </div>
-          <span className='mt-[4px] text-[12px] font-medium text-[#55CB00]'>↗ 34%</span>
 
-          <div className='mt-[12px] flex flex-col'>
+          <div className='mt-[12px] flex flex-1 flex-col justify-center'>
             {items.map((item, i) => (
               <React.Fragment key={item.label}>
                 {i > 0 && <div className='my-[12px] h-px bg-[#F0F0F5]' />}
@@ -747,12 +769,7 @@ function OperationalRevenueCard() {
                       <span className='text-[12px] text-[#7F7F8A]'>{item.label}</span>
                     </div>
                     <span className='mt-[1px] block font-[Inter_Tight] text-[14px] font-semibold leading-[16px] tracking-normal text-[#0E0F27]'>
-                      {item.value}
-                    </span>
-                    <span
-                      className={`mt-[2px] text-[12px] font-medium ${item.positive ? 'text-[#55CB00]' : 'text-[#F4462B]'}`}
-                    >
-                      {item.change}
+                      {fmtMoney(item.value ?? null)}
                     </span>
                   </div>
                 </div>
@@ -761,15 +778,15 @@ function OperationalRevenueCard() {
           </div>
         </div>
 
-        <div className='flex w-[90px] flex-shrink-0 flex-col gap-[2px]'>
+        <div className='flex h-full w-[90px] flex-shrink-0 flex-col gap-[2px]'>
           {items.map((item, i) => (
             <div
               key={item.label}
-              className='flex items-center justify-center rounded-[8px]'
-              style={{ backgroundColor: item.color, flex: percents[i] }}
+              className='flex min-h-[44px] items-center justify-center rounded-[8px]'
+              style={{ backgroundColor: item.color, flex: Math.max(percents[i], 1) }}
             >
               <span className='text-center text-[12px] font-semibold leading-tight text-white'>
-                {item.shortValue}
+                {fmtCompact(item.value ?? null)}
                 <br />
                 {percents[i]}%
               </span>
@@ -781,11 +798,11 @@ function OperationalRevenueCard() {
   )
 }
 
-function PaymentMethodsCard() {
+function PaymentMethodsCard({ payments }: { payments: DashboardPaymentMethods | null }) {
   const methods = [
-    { label: 'Наличными', value: '120', change: '↗ 5%', positive: true },
-    { label: 'СБП', value: '12', change: '↘ -2%', positive: false },
-    { label: 'Kaspi', value: '12', change: '↗ +12%', positive: true },
+    { label: 'Наличными', value: payments?.cash },
+    { label: 'СБП', value: payments?.sbp },
+    { label: 'Kaspi', value: payments?.kaspi },
   ]
 
   return (
@@ -795,10 +812,7 @@ function PaymentMethodsCard() {
           <div key={m.label} className='flex flex-col'>
             <span className='text-[14px] leading-[18px] text-[#0E0F27]/50'>{m.label}</span>
             <span className='mt-[2px] font-[Inter_Tight] text-[14px] font-semibold leading-[16px] text-[#0E0F27]'>
-              {m.value}
-            </span>
-            <span className={`mt-[4px] text-[12px] font-medium ${m.positive ? 'text-[#55CB00]' : 'text-[#F4462B]'}`}>
-              {m.change}
+              {fmtNum(m.value ?? null)}
             </span>
           </div>
         ))}
@@ -818,23 +832,27 @@ function StarIcon() {
   )
 }
 
-function ReviewsCard() {
-  const filters = ['Последние', 'Позитивные', 'Негативные']
-  const reviews = [
-    { date: '18 авг, 26', stars: 5, shop: 'Fresh Market', text: 'Всё свежее, привезли раньше срока' },
-    { date: '18 авг, 26', stars: 4, shop: 'Sushi Wok', text: 'Вкусно, но packaging помялся' },
-    { date: '17 авг, 26', stars: 2, shop: 'Burger Lab', text: 'Заказ приехал холодным' },
-    { date: '17 авг, 26', stars: 5, shop: 'ТехноМаркет', text: 'Курьер вежливый, всё исправно' },
-    { date: '16 авг, 26', stars: 1, shop: 'Кофейня №7', text: 'Ждал час, кофе разлился' },
-    { date: '16 авг, 26', stars: 4, shop: 'Цветочный двор', text: 'Букет свежий, как на фото' },
-  ]
+const REVIEW_FILTERS = ['Последние', 'Позитивные', 'Негативные'] as const
+const REVIEW_FILTER_VALUES = ['latest', 'positive', 'negative'] as const
+
+function ReviewsCard({ state, onFilter }: { state: ReturnType<typeof useDashboardLists>['reviews']; onFilter: (f: ReviewFilter) => void }) {
+  const [active, setActive] = React.useState(0)
 
   return (
     <DashboardCard
       title='Отзывы'
       footer={<MoreLink />}
       className='min-h-[600px]'
-      headerExtra={<FilterBadges filters={filters} />}
+      headerExtra={
+        <FilterBadges
+          filters={[...REVIEW_FILTERS]}
+          active={active}
+          onChange={(i) => {
+            setActive(i)
+            onFilter(REVIEW_FILTER_VALUES[i])
+          }}
+        />
+      }
     >
       <div className='flex flex-col'>
         <div className='flex items-center gap-[8px] pb-[10px]'>
@@ -844,17 +862,19 @@ function ReviewsCard() {
           <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Отзыв</span>
         </div>
 
-        {reviews.map((r, i) => (
-          <React.Fragment key={i}>
+        {state.data.map((r) => (
+          <React.Fragment key={r.id}>
             <div className='h-px bg-[#F0F0F5]' />
             <div className='flex items-start gap-[8px] py-[10px]'>
-              <span className='w-[74px] shrink-0 whitespace-nowrap text-[14px] leading-[18px] text-[#0E0F27]'>{r.date}</span>
+              <span className='w-[74px] shrink-0 whitespace-nowrap text-[14px] leading-[18px] text-[#0E0F27]'>
+                {formatReviewDate(r.createdAt)}
+              </span>
               <span className='flex w-[70px] shrink-0 items-center gap-[4px]'>
                 <StarIcon />
-                <span className='text-[14px] leading-[18px] text-[#0E0F27]'>{r.stars}</span>
+                <span className='text-[14px] leading-[18px] text-[#0E0F27]'>{r.rate}</span>
               </span>
               <span className='line-clamp-4 w-[92px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]'>
-                {r.shop}
+                {r.shopName}
               </span>
               <span className='line-clamp-4 flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{r.text}</span>
             </div>
@@ -865,43 +885,63 @@ function ReviewsCard() {
   )
 }
 
-function SellersCard() {
-  const filters = ['Заказы', 'Выручка', 'Товары']
-  const sellers = [
-    { name: 'ТехноМаркет', rating: 4.9, orders: '1 284' },
-    { name: 'Fresh Market', rating: 4.8, orders: '986' },
-    { name: 'Sushi Wok', rating: 4.6, orders: '754' },
-    { name: 'Burger Lab', rating: 4.5, orders: '612' },
-    { name: 'Цветочный двор', rating: 4.4, orders: '430' },
-    { name: 'Кофейня №7', rating: 4.2, orders: '318' },
-  ]
+const SELLER_FILTERS = ['Заказы', 'Выручка', 'Товары'] as const
+const SELLER_SORT_VALUES = ['id', 'revenue', 'products'] as const
+
+function SellersCard({ state, onSort }: { state: ReturnType<typeof useDashboardLists>['sellers']; onSort: (s: SellersSort) => void }) {
+  const [active, setActive] = React.useState(0)
+
+  const metricLabel = active === 1 ? 'Выручка' : active === 2 ? 'Кол-во\nтоваров' : 'Кол-во\nзаказов'
 
   return (
     <DashboardCard
       title='Продавцы'
       footer={<MoreLink />}
       className='min-h-[600px]'
-      headerExtra={<FilterBadges filters={filters} />}
+      headerExtra={
+        <FilterBadges
+          filters={[...SELLER_FILTERS]}
+          active={active}
+          onChange={(i) => {
+            setActive(i)
+            onSort(SELLER_SORT_VALUES[i])
+          }}
+        />
+      }
     >
       <div className='flex flex-col'>
         <div className='flex items-center gap-[8px] pb-[10px]'>
           <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>№</span>
           <span className='flex-[2] truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Название</span>
-          <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Рейтинг</span>
-          <span className='line-clamp-2 flex-1 text-left text-[14px] leading-[18px] text-[#0E0F27]/50'>Кол-во заказов</span>
+          {active === 0 && (
+            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Рейтинг</span>
+          )}
+          {active === 1 && (
+            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Выручка</span>
+          )}
+          <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0F27]/50'>
+            {metricLabel}
+          </span>
         </div>
 
-        {sellers.map((s, i) => (
-          <React.Fragment key={s.name}>
+        {state.data.slice(0, 6).map((s) => (
+          <React.Fragment key={s.id}>
             <div className='h-px bg-[#F0F0F5]' />
             <div className='flex items-start gap-[8px] py-[10px]'>
-              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]'>{i + 1}</span>
-              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0F27]'>{s.name}</span>
-              <span className='flex flex-1 items-center gap-[4px]'>
-                <StarIcon />
-                <span className='text-[14px] leading-[18px] text-[#0E0F27]'>{s.rating}</span>
+              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27]'>{s.id}</span>
+              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27]'>{s.name}</span>
+              {active === 0 && (
+                <span className='flex flex-1 items-center gap-[4px]'>
+                  <StarIcon />
+                  <span className='text-[14px] leading-[18px] text-[#0E0E27]'>{s.rating || '—'}</span>
+                </span>
+              )}
+              {active === 1 && (
+                <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtMoney(s.revenue)}</span>
+              )}
+              <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0E27]'>
+                {active === 2 ? fmtNum(s.productCount) : fmtNum(s.orderCount)}
               </span>
-              <span className='flex-1 text-left text-[14px] leading-[18px] text-[#0E0F27]'>{s.orders}</span>
             </div>
           </React.Fragment>
         ))}
@@ -910,26 +950,12 @@ function SellersCard() {
   )
 }
 
-function CouriersCard() {
-  const filters = ['На линии', 'Заказы']
-  const couriers = [
-    { name: 'Айдар С.', orders: '24', income: '48 200 ₽', online: true },
-    { name: 'Мадина Ж.', orders: '19', income: '39 500 ₽', online: true },
-    { name: 'Руслан К.', orders: '22', income: '44 100 ₽', online: false },
-    { name: 'Дана Т.', orders: '17', income: '35 800 ₽', online: true },
-    { name: 'Арман Н.', orders: '21', income: '42 300 ₽', online: false },
-    { name: 'Сергей П.', orders: '25', income: '50 000 ₽', online: true },
-    { name: 'Алия Б.', orders: '14', income: '28 400 ₽', online: false },
-    { name: 'Ерасыл А.', orders: '23', income: '46 700 ₽', online: true },
-    { name: 'Ислам М.', orders: '18', income: '36 900 ₽', online: false },
-    { name: 'Никита Л.', orders: '20', income: '40 200 ₽', online: true },
-    { name: 'Зарина Х.', orders: '16', income: '33 100 ₽', online: false },
-    { name: 'Тимур Г.', orders: '15', income: '30 600 ₽', online: true },
-    { name: 'Даниал Ш.', orders: '26', income: '52 400 ₽', online: true },
-    { name: 'Кирилл Ф.', orders: '13', income: '27 500 ₽', online: false },
-    { name: 'Сабина У.', orders: '12', income: '24 800 ₽', online: true },
-    { name: 'Жанна Р.', orders: '11', income: '22 300 ₽', online: false },
-  ]
+const COURIER_FILTERS = ['На линии', 'Заказы'] as const
+const COURIER_SORT_VALUES = ['onShift', 'orders'] as const
+
+function CouriersCard({ state, onSort }: { state: ReturnType<typeof useDashboardLists>['couriers']; onSort: (s: CouriersSort) => void }) {
+  const [active, setActive] = React.useState(1)
+  const onlineCount = state.data.filter((c) => c.onShift).length
 
   return (
     <DashboardCard
@@ -937,11 +963,20 @@ function CouriersCard() {
       footer={
         <div className='flex items-center justify-between'>
           <MoreLink />
-          <span className='text-[14px] font-normal leading-none text-[#5BAF1F]'>На линии 16</span>
+          <span className='text-[14px] font-normal leading-none text-[#5BAF1F]'>На линии {onlineCount}</span>
         </div>
       }
       className='min-h-[600px]'
-      headerExtra={<FilterBadges filters={filters} />}
+      headerExtra={
+        <FilterBadges
+          filters={[...COURIER_FILTERS]}
+          active={active}
+          onChange={(i) => {
+            setActive(i)
+            onSort(COURIER_SORT_VALUES[i])
+          }}
+        />
+      }
     >
       <div className='flex flex-col'>
         <div className='flex items-center gap-[8px] pb-[10px]'>
@@ -952,17 +987,17 @@ function CouriersCard() {
           <span className='w-[8px] shrink-0' />
         </div>
 
-        {couriers.slice(0, 11).map((c, i) => (
-          <React.Fragment key={c.name}>
+        {state.data.slice(0, 11).map((c) => (
+          <React.Fragment key={c.id}>
             <div className='h-px bg-[#F0F0F5]' />
             <div className='flex items-start gap-[8px] py-[10px]'>
-              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]'>{i + 1}</span>
-              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0F27]'>{c.name}</span>
-              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{c.orders}</span>
-              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{c.income}</span>
+              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27]'>{c.id}</span>
+              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27]'>{c.name}</span>
+              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtNum(c.orderCount)}</span>
+              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtMoney(c.income)}</span>
               <span
                 className='mt-[5px] block h-[8px] w-[8px] shrink-0 rounded-full'
-                style={{ backgroundColor: c.online ? '#55CB00' : '#DDDDE2' }}
+                style={{ backgroundColor: c.onShift ? '#55CB00' : '#DDDDE2' }}
               />
             </div>
           </React.Fragment>
@@ -972,8 +1007,17 @@ function CouriersCard() {
   )
 }
 
+function formatReviewDate(iso: string) {
+  const d = new Date(iso)
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()].slice(0, 3)}, ${String(d.getFullYear()).slice(2)}`
+}
+
 export const AdminDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const { adminData } = useAuth()
+  const isAdmin = adminData?.isAdmin ?? false
+  const dashboard = useDashboardData({ skip: !isAdmin })
+  const lists = useDashboardLists({ skip: !isAdmin })
 
   return (
     <AppShell>
@@ -988,16 +1032,20 @@ export const AdminDashboard = () => {
             <div className='mt-[12px] flex gap-[8px]'>
               <div className='flex-1 flex flex-col gap-[8px]'>
                 <div className='grid grid-cols-3 gap-[8px]'>
-                  <OrdersTodayCard />
-                  <UsersQuarterCard />
-                  <ClientsMonthCard />
+                  <OrdersTodayCard today={dashboard.today} />
+                  <UsersQuarterCard stat={dashboard.usersQuarter} />
+                  <ClientsMonthCard clients={dashboard.clientsMonth} />
                 </div>
-                <OrdersChartCard />
+                <OrdersChartCard
+                  chart={dashboard.chart}
+                  chartTotals={dashboard.chartTotals}
+                  avgTimes={dashboard.avgTimes}
+                />
               </div>
 
               <div className='flex w-[320px] flex-col gap-[8px]'>
-                <OperationalRevenueCard />
-                <PaymentMethodsCard />
+                <OperationalRevenueCard revenue={dashboard.revenue} />
+                <PaymentMethodsCard payments={dashboard.payments} />
               </div>
             </div>
           </section>
@@ -1006,9 +1054,9 @@ export const AdminDashboard = () => {
             <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Дополнительные</h2>
 
             <div className='mt-[12px] grid grid-cols-3 gap-[8px]'>
-              <ReviewsCard />
-              <SellersCard />
-              <CouriersCard />
+              <ReviewsCard state={lists.reviews} onFilter={lists.fetchReviews} />
+              <SellersCard state={lists.sellers} onSort={lists.fetchSellers} />
+              <CouriersCard state={lists.couriers} onSort={lists.fetchCouriers} />
             </div>
           </section>
         </Content>

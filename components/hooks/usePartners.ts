@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./useLogin";
+import { useAuthFetcher } from "../providers/QueryProvider";
 
 export type PartnerApiType = "shop" | "restaurant" | "service";
 
@@ -56,13 +57,17 @@ export const usePartners = () => {
     return `${process.env.NEXT_PUBLIC_API_URL}/v2/shop`;
   }, []);
 
-  const { data, error, isLoading, mutate } =
-    useSWR<V2ShopWithCategoriesListResponseDto>(url);
+  const fetcher = useAuthFetcher();
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ["partners"],
+    queryFn: () => fetcher<V2ShopWithCategoriesListResponseDto>(url!),
+    enabled: !!url,
+  });
 
   return {
     partners: data?.data ?? [],
     loading: isLoading || authLoading,
-    error: error?.message ?? null,
-    refetch: mutate,
+    error: (error as Error | null)?.message || null,
+    refetch,
   };
 };

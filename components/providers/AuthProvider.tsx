@@ -12,7 +12,6 @@ import React, {
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { authStorage } from "@/lib/utils";
-import { SWRConfig } from "swr";
 import { ROLES } from "@/middleware";
 import { toast } from "sonner";
 import type {
@@ -392,25 +391,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setCurrentShopId,
     ]
   );
+
   return (
-    <SWRConfig
-      value={{
-        revalidateOnFocus: false,
-        revalidateOnReconnect: true,
-        dedupingInterval: 10000, 
-        fetcher: (url: string) =>
-          fetchWithSession(
-            url,
-            () => localStorage.getItem("access_token"),
-            refreshSession
-          ).then((res) => res.json()),
-      }}
-    >
-      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-    </SWRConfig>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 }
-
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -38,8 +39,10 @@ export default function RootLayout({
         className={`${inter.variable} ${interTight.variable} ${jetBrainsMono.variable} font-sans antialiased`}
       >
         <AuthProvider>
-          {children}
-          <Toaster position="top-right" richColors />
+          <QueryProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>

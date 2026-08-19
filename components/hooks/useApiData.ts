@@ -1,7 +1,8 @@
 "use client";
 
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../providers/AuthProvider";
+import { useAuthFetcher } from "../providers/QueryProvider";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
@@ -35,7 +36,13 @@ export const useApiData = <T>(
     return `${process.env.NEXT_PUBLIC_API_URL}/${path}?${queryParams.toString()}`;
   }, [path, options.relations, options.searchParams]);
 
-  const { data, error, isLoading, mutate } = useSWR(url);
+  const fetcher = useAuthFetcher();
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ["api-data", url],
+    queryFn: () => fetcher<any>(url!),
+    enabled: !!url,
+  });
+
   useEffect(() => {
     if (data?.statusCode === 403 || data?.statusCode === 404) {
       router.push("/not-found");
@@ -53,7 +60,8 @@ export const useApiData = <T>(
     dataCount: data?.meta?.total,
     singleItem: (data?.data ?? data) as T,
     loading: isLoading || authLoading,
-    error: error?.message || null,
-    refetch: mutate,
+    error: (error as Error | null)?.message || null,
+    refetch,
   };
 };
+

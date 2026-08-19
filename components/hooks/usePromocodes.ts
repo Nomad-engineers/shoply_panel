@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
+import { useAuthFetcher } from "../providers/QueryProvider";
 import type { PromocodesResponse } from "@/types/promocode";
 
 export interface FetchPromocodesParams {
@@ -48,12 +49,17 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     initialParams?.isAdmin,
   ]);
 
-  const { data, error, isLoading, mutate } = useSWR<PromocodesResponse>(url);
+  const fetcher = useAuthFetcher();
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ["promocodes", url],
+    queryFn: () => fetcher<PromocodesResponse>(url!),
+    enabled: !!url,
+  });
 
   return {
     data: data || null,
     loading: isLoading,
-    error: error?.message || null,
-    refetch: () => mutate()
+    error: (error as Error | null)?.message || null,
+    refetch: () => refetch(),
   };
 };

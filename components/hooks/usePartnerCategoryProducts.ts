@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./useLogin";
+import { useAuthFetcher } from "../providers/QueryProvider";
 
 export interface V2PartnerCategoryProductDto {
   productId: number;
@@ -71,13 +72,17 @@ export function usePartnerCategoryProducts(
     return `${process.env.NEXT_PUBLIC_API_URL}/v2/shop/${shopId}/categories/${categoryId}/products`;
   }, [categoryId, shopId]);
 
-  const { data, error, isLoading, mutate } =
-    useSWR<V2CategoryProductsResponseDto>(url);
+  const fetcher = useAuthFetcher();
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ["partner-category-products", shopId, categoryId],
+    queryFn: () => fetcher<V2CategoryProductsResponseDto>(url!),
+    enabled: !!url,
+  });
 
   return {
     categoryData: data?.data ?? null,
     loading: isLoading || authLoading,
-    error: error?.message ?? null,
-    refetch: mutate,
+    error: (error as Error | null)?.message || null,
+    refetch,
   };
 }
