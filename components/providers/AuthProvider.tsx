@@ -39,12 +39,14 @@ interface AuthContextType {
   error: string;
   adminData: AuthProfile | null;
   currentShopId: number | null;
+  pendingShopSelection: boolean;
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
   fetchWithSession: fetchSessionFn;
   setCurrentShopId: (shopId: number | null) => void;
+  completeShopSelection: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const [adminData, setAdminData] = useState<AuthProfile | null>(null);
   const [currentShopId, setCurrentShopIdState] = useState<number | null>(null);
+  const [pendingShopSelection, setPendingShopSelection] = useState(false);
 
   const resolveShopId = useCallback(
     (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
+      // Only return shop ID from cookie, don't auto-select first shop
       const allowedIds = businesses.map((business) => business.id);
       const cookieId = Number(Cookies.get("current_shop_id"));
 
@@ -102,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return cookieId;
       }
 
-      return allowedIds[0] ?? null;
+      // Don't auto-select - return null so user can choose
+      return null;
     },
     []
   );
@@ -334,7 +339,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authStorage.setTokens(tokens.accessToken, tokens.refreshToken);
 
         const profile = await refreshProfile();
-        router.push(profile?.isAdmin ? "/orders" : "/categories");
+
+        if (profile) {
+          if (!profile.isAdmin && profile.businesses.length > 0) {
+            setPendingShopSelection(true);
+            setLoading(false);
+            return;
+          }
+
+          // Admin or user with no shops - redirect immediately
+          router.push(profile?.isAdmin ? "/orders" : "/categories");
+        }
       }
     } catch (err) {
       setError("Ошибка при входе.");
@@ -342,6 +357,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
+
+  const completeShopSelection = useCallback(() => {
+    setPendingShopSelection(false);
+    router.push("/categories");
+  }, [router]);
 
   useEffect(() => {
     const cachedProfile = readCachedProfile();
@@ -369,24 +389,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       error,
       adminData,
       currentShopId,
+      pendingShopSelection,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
       setCurrentShopId,
+      completeShopSelection,
     }),
     [
       loading,
       error,
       adminData,
       currentShopId,
+      pendingShopSelection,
       login,
       logout,
       refreshProfile,
       refreshSession,
       fetchWithSession,
       setCurrentShopId,
+      completeShopSelection,
     ]
   );
   return (
