@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { mutate } from "swr";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Lock } from "lucide-react";
 
@@ -35,6 +35,7 @@ const generateCode = () => {
 
 export default function PromotionsCreateIndexPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     adminData,
@@ -210,7 +211,7 @@ export default function PromotionsCreateIndexPage() {
       }
 
       // Clear SWR cache for promocodes list
-      mutate((key) => typeof key === "string" && key.includes("/v2/admin/promocode"));
+      queryClient.invalidateQueries({ queryKey: ["promocodes"] });
       
       router.push("/promotions");
     } catch (e: any) {

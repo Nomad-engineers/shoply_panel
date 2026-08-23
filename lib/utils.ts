@@ -13,13 +13,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 export function getImageUrl(
   input: string | { id?: string; url?: string | null } | null | undefined,
   options: { width?: number; height?: number; fit?: string } = {}
 ) {
   if (!input) return "";
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
   const cleanBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 
   // 1. Handle object input (DirectusFileEntity or similar)

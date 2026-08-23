@@ -1,0 +1,51 @@
+{
+  "source": "Figma",
+  "fileKey": "XHuCcLXOUU78udznXxIVax",
+  "fileName": "☘️ Shoply-app",
+  "fetchedAt": "2026-08-10",
+  "scale": 2,
+  "screens": [
+    {
+      "file": "login-empty.png",
+      "nodeId": "15070:104753",
+      "figmaName": "Авторизация — пустой",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15095-83802"
+    },
+    {
+      "file": "login-filled.png",
+      "nodeId": "15070:104796",
+      "figmaName": "Авторизация — заполненный",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15095-83802"
+    },
+    {
+      "file": "login-shop-select.png",
+      "nodeId": "15530:100605",
+      "figmaName": "Авторизация — выбор магазинов",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15530-100605"
+    },
+    {
+      "file": "home.png",
+      "nodeId": "15530:105266",
+      "figmaName": "Главная",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15530-105266"
+    },
+    {
+      "file": "orders-table.png",
+      "nodeId": "15530:103887",
+      "figmaName": "Заказы = таблица",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15530-103887"
+    },
+    {
+      "file": "active-order-shop.png",
+      "nodeId": "15530:99953",
+      "figmaName": "Активный заказ для Магазина",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15530-99953"
+    },
+    {
+      "file": "action-log.png",
+      "nodeId": "15530:99952",
+      "figmaName": "Журнал действий",
+      "url": "https://www.figma.com/design/XHuCcLXOUU78udznXxIVax/%E2%98%98%EF%B8%8F-Shoply-app?node-id=15530-99952"
+    }
+  ]
+}

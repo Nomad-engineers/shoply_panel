@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { mutate } from "swr";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronLeft, Trash2 } from "lucide-react";
 
@@ -60,6 +60,7 @@ const mapAllowedUsersFromPromocode = (promocode: Promocode) =>
 
 export default function EditPromocodePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useParams();
   const promocodeId = params?.id;
   const detailCacheKey = `shoply:promocode-detail:${promocodeId}`;
@@ -356,7 +357,7 @@ export default function EditPromocodePage() {
 
       toast.success("Промокод обновлен");
       // Clear SWR cache for promocodes list
-      mutate((key) => typeof key === "string" && key.includes(getPromocodeListCachePattern()));
+      queryClient.invalidateQueries({ queryKey: ["promocodes"] });
 
       router.push("/promotions");
     } catch (e: any) {
@@ -394,7 +395,7 @@ export default function EditPromocodePage() {
 
       toast.success("Промокод удален");
       // Clear SWR cache for promocodes list
-      mutate((key) => typeof key === "string" && key.includes(getPromocodeListCachePattern()));
+      queryClient.invalidateQueries({ queryKey: ["promocodes"] });
 
       router.push("/promotions");
     } catch (e: any) {
