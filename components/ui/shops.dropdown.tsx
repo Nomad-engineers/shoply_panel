@@ -74,9 +74,6 @@ export const ShopSwitcher = ({
             <h3 className="text-sm font-bold text-text-primary truncate leading-tight">
               {currentShop?.name || "Загрузка..."}
             </h3>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">
-              Сменить магазин
-            </p>
           </div>
         )}
       </button>

@@ -225,7 +225,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         {isLoggedIn && !adminData?.isAdmin && (
           <div
             className={cn(
-              "px-4 py-4 border-b border-gray-100 shrink-0",
+              "px-2 py-2 border-b border-gray-100 shrink-0",
               isCollapsed && "px-2"
             )}
           >

@@ -7,13 +7,12 @@ import { cn } from "@/lib/theme";
 
 interface LogoProps {
   className?: string;
-  showBadge?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
 const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
-  ({ className, showBadge = true, isCollapsed, onToggleCollapse }, ref) => {
+  ({ className, isCollapsed, onToggleCollapse }, ref) => {
     return (
       <div className="relative mb-1 flex items-center justify-between border-b border-[#dcdce6] px-[18px] py-[14px]">
         {isCollapsed ? (
@@ -39,22 +38,26 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
             ref={ref}
             href="/categories"
             className={cn(
-              "flex items-center gap-1 text-text-primary transition-all",
+              "flex items-center text-text-primary transition-all",
               className,
             )}
           >
-            <>
-              <span className="text-[18px] font-extrabold leading-none tracking-[-0.04em]">
-                SHOPLY
-              </span>
-              {showBadge && (
-                <span
-                  className="inline-flex items-center justify-center rounded-md bg-[#9747ff] px-2 py-1 text-[10px] font-semibold leading-none text-white"
-                >
-                  Panel
-                </span>
-              )}
-            </>
+            <div className="flex gap-3 items-center">
+              <Image
+                src="/v2-icons/v2-logo.svg"
+                height={45}
+                width={45}
+                alt="logo"
+              />
+              <div className="flex flex-col">
+                <p className="m-0 text-[11px] font-extrabold tracking-tight text-[#0E0F27] leading-none">
+                  SHOPLY
+                </p>
+                <p className="m-0 text-xl font-extrabold tracking-tight text-[#0E0F27] leading-none">
+                  PANEL
+                </p>
+              </div>
+            </div>
           </Link>
         )}
 
