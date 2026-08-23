@@ -13,7 +13,7 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex h-screen w-full overflow-hidden bg-background-main",
+          "flex h-screen w-full gap-4 overflow-hidden bg-background-main",
           className,
         )}
       >
@@ -37,7 +37,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         ref={ref}
         className={cn(
           "relative z-10 flex h-full flex-col overflow-hidden bg-white transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-[72px]" : "w-[280px]",
+          isCollapsed ? "w-[88px]" : "w-[240px]",
           className,
         )}
       >
@@ -59,7 +59,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "relative flex h-full flex-1 flex-col overflow-hidden bg-background-surface",
+          "relative flex h-full flex-1 flex-col overflow-hidden rounded-[24px] bg-background-surface p-4",
           className,
         )}
       >
