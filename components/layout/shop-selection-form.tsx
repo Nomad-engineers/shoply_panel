@@ -15,7 +15,7 @@ interface ShopSelectionFormProps {
 }
 
 export const ShopSelectionForm = ({ shops, userName }: ShopSelectionFormProps) => {
-  const { setCurrentShopId, currentShopId, loading, completeShopSelection } = useAuth();
+  const { setCurrentShopId, currentShopId, loading, completeShopSelection, logout } = useAuth();
   const [selectedShopId, setSelectedShopId] = useState<number | null>(currentShopId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +60,13 @@ export const ShopSelectionForm = ({ shops, userName }: ShopSelectionFormProps) =
         >
           Добро пожаловать, {userName}!
         </h1>
+        <button
+          type="button"
+          onClick={logout}
+          className="m-0 mt-2 bg-transparent border-none cursor-pointer text-sm text-[#DC2626] hover:text-[#B91C1C] transition-colors"
+        >
+          Выйти
+        </button>
       </div>
 
       {/* Shop Selection */}
