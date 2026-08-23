@@ -44,7 +44,7 @@ const Logo = forwardRef<HTMLAnchorElement, LogoProps>(
           >
             <div className="flex gap-3 items-center">
               <Image
-                src="/v2-icons/v2-logo.svg"
+                src="/v2-files/v2-logo.svg"
                 height={45}
                 width={45}
                 alt="logo"

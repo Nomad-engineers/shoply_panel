@@ -59,7 +59,7 @@ const Main = React.forwardRef<HTMLDivElement, MainProps>(
       <div
         ref={ref}
         className={cn(
-          "relative flex h-full flex-1 flex-col overflow-hidden rounded-[24px] bg-background-surface p-4",
+          "relative flex h-full flex-1 flex-col overflow-hidden rounded-[24px]",
           className,
         )}
       >

@@ -32,7 +32,6 @@ const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(
       <AppShell ref={ref} className=" bg-gray-100 flex min-h-screen">
         {!hideSidebar && (
           <Sidebar isCollapsed={isCollapsed}>
-            <Logo isCollapsed={isCollapsed} onToggleCollapse={toggleCollapse} />
             <SidebarNav
               isCollapsed={isCollapsed}
               className="flex-1 min-h-0"

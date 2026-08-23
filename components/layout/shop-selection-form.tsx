@@ -41,7 +41,7 @@ export const ShopSelectionForm = ({ shops, userName }: ShopSelectionFormProps) =
     >
       {/* Logo */}
       <div className="flex gap-3">
-        <Image src="/v2-icons/v2-logo.svg" height={50} width={50} alt="logo" />
+        <Image src="/v2-files/v2-logo.svg" height={50} width={50} alt="logo" />
         <div className="flex flex-col">
           <p className="m-0 text-sm font-extrabold tracking-tight text-[#0E0F27]">
             SHOPLY

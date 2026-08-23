@@ -9,7 +9,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { AppShell, Main } from "@/components/layout";
-import { AdminSidebar } from "@/components/layout/admin-sidebar";
+import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { cn } from "@/lib/theme";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
 import { useOrderSocket } from "@/components/hooks/useOrderSocket";
@@ -341,7 +341,7 @@ export function OrdersBoard() {
 
   return (
     <AppShell>
-      <AdminSidebar
+      <SidebarNav
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
       />

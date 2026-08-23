@@ -34,7 +34,7 @@ export const LoginForm = () => {
     >
       {/* Logo */}
       <div className="flex gap-3">
-        <Image src="/v2-icons/v2-logo.svg" height={50} width={50} alt="logo" />
+        <Image src="/v2-files/v2-logo.svg" height={50} width={50} alt="logo" />
         <div className="flex flex-col">
           <p className="m-0 text-sm font-extrabold tracking-tight text-[#0E0F27]">
             SHOPLY
@@ -75,7 +75,7 @@ export const LoginForm = () => {
             dir="ltr"
             icon={
               <img
-                src="/v2-icons/login-profile-photo.svg"
+                src="/v2-files/login-profile-photo.svg"
                 alt=""
                 className="w-5 h-5"
               />
@@ -108,7 +108,7 @@ export const LoginForm = () => {
               onClick={() => setShowPassword((value) => !value)}
             >
               <img
-                src="/v2-icons/login-password-key.svg"
+                src="/v2-filess/login-password-key.svg"
                 alt=""
                 className="w-5 h-5"
               />

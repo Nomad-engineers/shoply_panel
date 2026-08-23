@@ -1,126 +1,41 @@
 "use client";
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/theme";
-import { Button } from "../ui";
 import { useAuth } from "../hooks/useLogin";
-import { ProductIcon, UserIcon } from "./icons";
-import { useMemo } from "react";
+import { MenuIcon } from "@/components/icons/menu-icons";
 import { ShopSwitcher } from "../ui/shops.dropdown";
 import type { AuthProfileBusiness } from "@/types/auth";
 
-type NavIcon = React.ElementType | string;
-
-type NavigationItem = {
-  title: string;
-  href?: string;
-  icon: NavIcon;
-  disabled?: boolean;
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Админ',
+  operator: 'Оператор',
+  shop_owner: 'Владелец',
+  shop_employee: 'Сотрудник',
 };
 
-interface NavItemProps {
-  href?: string;
-  icon: NavIcon;
-  children: React.ReactNode;
-  className?: string;
-  isCollapsed?: boolean;
-  disabled?: boolean;
+interface NavItem {
+  label: string
+  href?: string
+  icon: string
+  roles?: string[] // If undefined, visible to all. If defined, only visible to these roles.
 }
 
-export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(
-  ({ href, icon: Icon, children, className, isCollapsed, disabled }, ref) => {
-    const pathname = usePathname();
-    const isDisabled = disabled || !href;
-    const isActive =
-      !!href && !isDisabled && (pathname === href || pathname.startsWith(href + "/"));
-
-    const content = (
-      <>
-        {typeof Icon === "string" ? (
-          <div className={cn(
-            "shrink-0 p-1.5 rounded-lg",
-            isActive && "bg-black"
-          )}>
-            <img
-              src={Icon}
-              alt=""
-              aria-hidden="true"
-              width={24}
-              height={24}
-              className={cn(
-                "w-6 h-6",
-                isDisabled && "opacity-50",
-                isActive && "brightness-0 invert"
-              )}
-            />
-          </div>
-        ) : (
-          <div className={cn(
-            "shrink-0 p-1.5 rounded-lg",
-            isActive && "bg-black"
-          )}>
-            <Icon
-              className={cn(
-                isDisabled
-                  ? "text-text-secondary/50"
-                  : isActive
-                    ? "text-white"
-                    : "text-text-secondary"
-              )}
-            />
-          </div>
-        )}
-        <span
-          className={cn(
-            "whitespace-nowrap",
-            isCollapsed &&
-              "max-w-[70px] truncate text-center text-[10px] leading-tight"
-          )}
-        >
-          {children}
-        </span>
-      </>
-    );
-
-    const commonClassName = cn(
-      "flex items-center gap-3 px-[18px] py-3 text-[14px] font-semibold tracking-[-0.02em] transition-all duration-150",
-      isDisabled
-        ? "cursor-not-allowed text-text-secondary/50 opacity-60"
-        : isActive
-          ? "text-text-primary"
-          : "text-text-primary hover:bg-[#f7f7fa]",
-      isCollapsed &&
-        "flex-col items-center justify-center gap-1 px-2 py-2 text-[11px]",
-      className
-    );
-
-    if (isDisabled) {
-      return (
-        <div
-          className={commonClassName}
-          aria-disabled="true"
-          title={isCollapsed ? children?.toString() : undefined}
-        >
-          {content}
-        </div>
-      );
-    }
-
-    return (
-      <Link
-        href={href}
-        ref={ref}
-        className={commonClassName}
-        title={isCollapsed ? children?.toString() : undefined}
-      >
-        {content}
-      </Link>
-    );
-  }
-);
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Главная', href: '/', icon: 'home' },
+  { label: 'Заказы', href: '/orders', icon: 'cart' },
+  { label: 'Курьеры', href: '/reports/couriers', icon: 'bike', roles: ['admin', 'operator'] },
+  { label: 'Операции', icon: 'wallet', roles: ['admin', 'operator'] },
+  { label: 'Продавцы', icon: 'store', roles: ['admin', 'operator'] },
+  { label: 'Партнеры', href: '/partners', icon: 'briefcase', roles: ['admin', 'operator'] },
+  { label: 'История заказов', icon: 'history', roles: ['admin', 'operator'] },
+  { label: 'Отчет', href: '/reports', icon: 'filetext', roles: ['admin', 'operator'] },
+  { label: 'Отзывы', icon: 'message', roles: ['admin', 'operator'] },
+  { label: 'Маркетинг', href: '/promotions', icon: 'tag' },
+  { label: 'Пользователи', href: '/users', icon: 'users', roles: ['admin'] },
+  { label: 'Товары', href: '/categories', icon: 'store', roles: ['shop_owner', 'shop_employee'] },
+];
 
 interface SidebarNavProps {
   className?: string;
@@ -129,11 +44,12 @@ interface SidebarNavProps {
 }
 
 export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
-  ({ className, isCollapsed: externalIsCollapsed }, ref) => {
-    const { adminData, currentShopId, logout, setCurrentShopId } = useAuth();
+  ({ className, isCollapsed = false, onToggleCollapse }, ref) => {
     const pathname = usePathname();
+    const router = useRouter();
+    const { adminData, currentShopId, logout, setCurrentShopId } = useAuth();
 
-    const allShops = useMemo(
+    const allShops = React.useMemo(
       () =>
         (adminData?.businesses || []).map((business: AuthProfileBusiness) => ({
           id: business.id,
@@ -144,7 +60,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       [adminData?.businesses]
     );
 
-    const activeShopId = useMemo(() => {
+    const activeShopId = React.useMemo(() => {
       const allowedShops = allShops.map((shop) => shop.id);
 
       if (currentShopId && allowedShops.includes(currentShopId)) {
@@ -160,86 +76,157 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       }
     }, [activeShopId, currentShopId, setCurrentShopId]);
 
-    const currentShop = useMemo(() => {
+    const currentShop = React.useMemo(() => {
       if (!allShops || !Array.isArray(allShops)) return null;
       return allShops.find((s) => s.id === activeShopId) || null;
     }, [allShops, activeShopId]);
 
-    const isCollapsed = externalIsCollapsed ?? false;
     const isLoggedIn = !!adminData;
-    const isAdminArea =
-      adminData?.isAdmin ||
-      pathname.startsWith("/users") ||
-      pathname.startsWith("/partners") ||
-      pathname.startsWith("/reports");
+    const userRole = adminData?.role;
+
+    const fullName = [adminData?.firstName, adminData?.lastName].filter(Boolean).join(' ') || 'Пользователь';
+    const roleLabel = adminData ? (ROLE_LABELS[adminData.role] ?? adminData.role) : '';
+    const initials = (adminData?.firstName?.[0] ?? '') + (adminData?.lastName?.[0] ?? '');
+
+    const isActive = (href?: string) =>
+      !!href && (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/'));
+
+    // Filter nav items based on user role
+    const visibleNavItems = NAV_ITEMS.filter(item => {
+      if (!item.roles) return true;
+      if (!userRole) return false;
+      return item.roles.includes(userRole);
+    });
 
     const handleShopChange = (shopId: number) => {
       setCurrentShopId(shopId);
     };
 
-    const navigationItems: NavigationItem[] = isAdminArea
-      ? [
-          { title: "Заказы", href: "/orders", icon: "/v2-files/nav-orders.svg" },
-          {
-            title: "Пользователи",
-            href: "/users",
-            icon: "/panel-icons/nav-users.png",
-          },
-          {
-            title: "Партнеры",
-            href: "/partners",
-            icon: "/panel-icons/nav-partners.png",
-          },
-          {
-            title: "Акции и промокоды",
-            href: "/promotions",
-            icon: "/panel-icons/nav-promotions.png",
-          },
-          {
-            title: "Отчеты",
-            href: "/reports/couriers",
-            icon: "/panel-icons/nav-reports.png",
-          },
-          {
-            title: "Профиль",
-            href: "/profile",
-            icon: UserIcon,
-          },
-        ]
-      : [
-          {
-            title: "Заказы",
-            href: "/orders",
-            icon: "/v2-files/nav-orders.svg",
-          },
-          {
-            title: "Товары",
-            href: "/categories",
-            icon: ProductIcon,
-          },
-          {
-            title: "Акции и промокоды",
-            href: "/promotions",
-            icon: "/panel-icons/nav-promotions.png",
-          },
-          {
-            title: "Профиль",
-            href: "/profile",
-            icon: UserIcon,
-          },
-        ];
-
     return (
       <div
         ref={ref}
-        className={cn("relative flex h-full min-h-0 flex-col", className)}
+        className={cn("relative flex h-full flex-col bg-white", className)}
       >
-        {/* Блок выбора магазина с Dropdown */}
+        {/* Header with Logo and Toggle */}
+        <header
+          className={cn(
+            "flex shrink-0 items-center gap-[10px] p-[8px]",
+            isCollapsed ? "flex-col" : "flex-row justify-between"
+          )}
+        >
+          <div className={cn("flex items-center gap-[10px] p-[8px]")}>
+            {!isCollapsed ? (
+              <svg width='111' height='36' viewBox='0 0 111 36' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                <path
+                  d='M27.872 6.96875C28.241 6.96875 28.6042 6.99371 28.9601 7.04133C29.0078 7.39749 29.0333 7.76083 29.0333 8.13004V20.9042C29.0333 25.3938 25.3938 29.0333 20.9042 29.0333H8.13004C7.76083 29.0333 7.39749 29.0078 7.04133 28.9601C6.99371 28.6042 6.96875 28.241 6.96875 27.872V15.0978C6.96875 10.6082 10.6082 6.96875 15.0978 6.96875H27.872Z'
+                  fill='#9747FF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M36 15.0968C36 11.9545 34.2171 9.22859 31.6077 7.87557C30.8348 6.38527 29.6142 5.16449 28.1239 4.3917C26.7707 1.78268 24.0452 0 20.9032 0H8.12903C3.63949 0 0 3.63949 0 8.12903V20.9032C0 24.0452 1.78268 26.7707 4.3917 28.1239C5.16449 29.6142 6.38527 30.8348 7.87557 31.6077C9.22859 34.2171 11.9545 36 15.0968 36H27.871C32.3605 36 36 32.3605 36 27.871V15.0968ZM28.9591 7.04032C29.9028 7.16657 30.7954 7.45434 31.6077 7.87557C32.1881 8.99451 32.5161 10.2654 32.5161 11.6129V24.3871C32.5161 28.8766 28.8766 32.5161 24.3871 32.5161H11.6129C10.2654 32.5161 8.99451 32.1881 7.87557 31.6077C7.45434 30.7954 7.16708 29.9028 7.04032 28.9591C6.09657 28.8328 5.20406 28.5452 4.3917 28.1239C3.81158 27.0051 3.48387 25.7344 3.48387 24.3871V11.6129C3.48387 7.12336 7.12336 3.48387 11.6129 3.48387H24.3871C25.7344 3.48387 27.0051 3.81158 28.1239 4.3917C28.5452 5.20406 28.8328 6.09657 28.9591 7.04032Z'
+                  fill='#F9DCFF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M11.6134 32.5166C10.2659 32.5166 8.99501 32.1886 7.87607 31.6082C7.45484 30.7959 7.16708 29.9033 7.04083 28.9596C7.39698 29.0073 7.76033 29.0328 8.12954 29.0328H20.9037C25.3933 29.0328 29.0328 25.3933 29.0328 20.9037V8.12954C29.0328 7.76033 29.0073 7.39699 28.9596 7.04083C29.9033 7.16708 30.7959 7.45484 31.6082 7.87607C32.1886 8.99502 32.5166 10.2659 32.5166 11.6134V24.3876C32.5166 28.8771 28.8771 32.5166 24.3876 32.5166H11.6134Z'
+                  fill='#D099FF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M7.04083 28.9596C6.09708 28.8333 5.20457 28.5457 4.3922 28.1244C3.81209 27.0056 3.48438 25.7349 3.48438 24.3876V11.6134C3.48438 7.12387 7.12387 3.48438 11.6134 3.48438H24.3876C25.7349 3.48438 27.0056 3.81209 28.1244 4.3922C28.5457 5.20457 28.8333 6.09708 28.9596 7.04083C28.6037 6.99321 28.2405 6.96825 27.8715 6.96825H15.0973C10.6077 6.96825 6.96825 10.6077 6.96825 15.0973V27.8715C6.96825 28.2405 6.99321 28.6037 7.04083 28.9596Z'
+                  fill='#D099FF'
+                />
+                <path
+                  d='M74.2474 4.88935C74.1958 4.79492 74.2641 4.67969 74.3717 4.67969H75.8693C75.923 4.67969 75.972 4.71001 75.996 4.75801L77.3639 7.49306C77.3726 7.51045 77.3903 7.52143 77.4098 7.52143C77.4292 7.52143 77.4469 7.5105 77.4557 7.49317L78.8324 4.75769C78.8565 4.70986 78.9055 4.67969 78.959 4.67969H80.448C80.5555 4.67969 80.6239 4.79482 80.5724 4.88925L78.2372 9.17017C78.2259 9.19098 78.2199 9.21431 78.2199 9.23803V11.3236C78.2199 11.4018 78.1565 11.4653 78.0782 11.4653H76.7458C76.6675 11.4653 76.6041 11.4018 76.6041 11.3236V9.23808C76.6041 9.21434 76.5981 9.19097 76.5867 9.17013L74.2474 4.88935Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M71.6105 11.4653C71.5322 11.4653 71.4688 11.4018 71.4688 11.3236V4.82139C71.4688 4.74313 71.5322 4.67969 71.6105 4.67969H72.9519C73.0302 4.67969 73.0936 4.74313 73.0936 4.8214V9.98921C73.0936 10.0675 73.1571 10.1309 73.2353 10.1309H75.7627C75.8409 10.1309 75.9044 10.1944 75.9044 10.2726V11.3236C75.9044 11.4018 75.8409 11.4653 75.7627 11.4653H71.6105Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M66.0089 11.4653C65.9306 11.4653 65.8672 11.4018 65.8672 11.3236V4.82139C65.8672 4.74313 65.9306 4.67969 66.0089 4.67969H68.6462C69.1532 4.67969 69.5907 4.77836 69.9588 4.9757C70.327 5.17305 70.6106 5.44933 70.8097 5.80455C71.0119 6.15673 71.113 6.56659 71.113 7.03415C71.113 7.5017 71.0104 7.91005 70.8052 8.25919C70.6031 8.60834 70.3134 8.88007 69.9362 9.07437C69.559 9.26565 69.1139 9.36128 68.601 9.36128H67.0228C66.9445 9.36128 66.881 9.29784 66.881 9.21957V8.20963C66.881 8.13137 66.9445 8.06792 67.0228 8.06792H68.2977C68.5421 8.06792 68.7473 8.02542 68.9133 7.94041C69.0823 7.85236 69.209 7.73092 69.2935 7.57608C69.381 7.42124 69.4247 7.2406 69.4247 7.03415C69.4247 6.82162 69.381 6.63946 69.2935 6.48766C69.209 6.33282 69.0823 6.21441 68.9133 6.13244C68.7473 6.04743 68.5406 6.00492 68.2932 6.00492H67.6338C67.5555 6.00492 67.4921 6.06837 67.4921 6.14663V11.3236C67.4921 11.4018 67.4286 11.4653 67.3504 11.4653H66.0089Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M62.1478 11.5537C61.5413 11.5537 60.9936 11.4186 60.5048 11.1484C60.019 10.8782 59.6343 10.485 59.3506 9.96886C59.07 9.4497 58.9297 8.8182 58.9297 8.07436C58.9297 7.32749 59.07 6.69448 59.3506 6.17531C59.6343 5.65311 60.019 5.25842 60.5048 4.99125C60.9936 4.72104 61.5413 4.58594 62.1478 4.58594C62.7513 4.58594 63.2959 4.72104 63.7817 4.99125C64.2675 5.25842 64.6523 5.65311 64.9359 6.17531C65.2195 6.69448 65.3614 7.32749 65.3614 8.07436C65.3614 8.8182 65.2195 9.4497 64.9359 9.96886C64.6523 10.488 64.2675 10.8827 63.7817 11.1529C63.2959 11.4201 62.7513 11.5537 62.1478 11.5537ZM62.1478 10.1191C62.4706 10.1191 62.7483 10.0402 62.9806 9.88233C63.2129 9.72446 63.391 9.49372 63.5147 9.19011C63.6384 8.88651 63.7003 8.51459 63.7003 8.07436C63.7003 7.6311 63.6384 7.25766 63.5147 6.95406C63.391 6.64742 63.2129 6.41516 62.9806 6.25728C62.7483 6.09941 62.4706 6.02047 62.1478 6.02047C61.8249 6.02047 61.5473 6.09941 61.315 6.25728C61.0826 6.41516 60.9031 6.64742 60.7764 6.95406C60.6526 7.25766 60.5908 7.6311 60.5908 8.07436C60.5908 8.51459 60.6526 8.88651 60.7764 9.19011C60.9031 9.49372 61.0826 9.72446 61.315 9.88233C61.5473 10.0402 61.8249 10.1191 62.1478 10.1191Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M52.6573 11.4653C52.5791 11.4653 52.5156 11.4018 52.5156 11.3236V4.82139C52.5156 4.74313 52.5791 4.67969 52.6573 4.67969H53.9988C54.0771 4.67969 54.1405 4.74313 54.1405 4.8214V7.26132C54.1405 7.33958 54.204 7.40303 54.2822 7.40303H56.6602C56.7384 7.40303 56.8019 7.33958 56.8019 7.26132V4.82139C56.8019 4.74313 56.8653 4.67969 56.9436 4.67969H58.2851C58.3633 4.67969 58.4268 4.74313 58.4268 4.8214V11.3236C58.4268 11.4018 58.3633 11.4653 58.2851 11.4653H56.9436C56.8653 11.4653 56.8019 11.4018 56.8019 11.3236V8.87908C56.8019 8.80082 56.7384 8.73737 56.6602 8.73737H54.2822C54.204 8.73737 54.1405 8.80082 54.1405 8.87908V11.3236C54.1405 11.4018 54.0771 11.4653 53.9988 11.4653H52.6573Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M49.4559 11.5537C48.8916 11.5537 48.3998 11.4687 47.9804 11.2987C47.5609 11.1256 47.2336 10.866 46.9982 10.5199C46.7872 10.2028 46.6695 9.81187 46.6452 9.34704C46.641 9.26826 46.7051 9.20378 46.784 9.20378H48.0655C48.1399 9.20378 48.2007 9.26157 48.2129 9.33499C48.2393 9.49427 48.2931 9.6327 48.3741 9.75026C48.4798 9.896 48.6216 10.0068 48.7996 10.0827C48.9806 10.1586 49.1919 10.1966 49.4333 10.1966C49.6535 10.1966 49.8406 10.1662 49.9945 10.1055C50.1514 10.0448 50.2721 9.96127 50.3566 9.85501C50.4411 9.74875 50.4833 9.62579 50.4833 9.48613C50.4833 9.35861 50.4441 9.25083 50.3656 9.16279C50.2872 9.07171 50.168 8.99277 50.0081 8.92598C49.8512 8.85615 49.649 8.79391 49.4016 8.73926L48.691 8.57531C48.1116 8.44173 47.6545 8.22465 47.3195 7.92408C46.9846 7.62047 46.8171 7.20909 46.8171 6.68992C46.8171 6.27095 46.9303 5.90358 47.1566 5.58784C47.3829 5.27209 47.6937 5.02617 48.089 4.85007C48.4873 4.67398 48.9429 4.58594 49.4559 4.58594C49.9779 4.58594 50.432 4.6755 50.8183 4.85463C51.2045 5.03072 51.5032 5.27968 51.7144 5.6015C51.9014 5.8836 52.0079 6.20613 52.0342 6.56907C52.0399 6.64792 51.9756 6.71269 51.8966 6.71269H50.6058C50.5316 6.71269 50.4714 6.65508 50.456 6.58253C50.4174 6.40151 50.327 6.25667 50.1846 6.14799C50.0126 6.01136 49.7682 5.94305 49.4514 5.94305C49.2401 5.94305 49.0636 5.97038 48.9218 6.02503C48.783 6.07968 48.6774 6.15558 48.605 6.25273C48.5356 6.34988 48.5009 6.45918 48.5009 6.58062C48.5009 6.71421 48.5401 6.82806 48.6186 6.92218C48.697 7.0163 48.8102 7.09524 48.958 7.15899C49.1089 7.22275 49.2854 7.2774 49.4876 7.32294L50.0624 7.45501C50.3943 7.52787 50.6885 7.62503 50.945 7.74647C51.2015 7.86791 51.4172 8.01212 51.5922 8.17911C51.7703 8.34609 51.9045 8.53888 51.9951 8.75747C52.0856 8.97607 52.1308 9.22047 52.1308 9.49068C52.1308 9.9218 52.0237 10.2922 51.8095 10.6019C51.5983 10.9085 51.2935 11.1438 50.8952 11.3078C50.4969 11.4717 50.0171 11.5537 49.4559 11.5537Z'
+                  fill='#09091D'
+                />
+                <path
+                  d='M100.948 31.4032C100.627 31.4032 100.367 31.1433 100.367 30.8226V16.776C100.367 16.4553 100.627 16.1953 100.948 16.1953H103.451C103.771 16.1953 104.031 16.4553 104.031 16.776V27.832C104.031 28.1527 104.291 28.4127 104.612 28.4127H109.789C110.11 28.4127 110.37 28.6726 110.37 28.9933V30.8226C110.37 31.1433 110.11 31.4032 109.789 31.4032H100.948Z'
+                  fill='#0E0F27'
+                />
+                <path
+                  d='M88.6431 31.4032C88.3225 31.4032 88.0625 31.1433 88.0625 30.8226V16.776C88.0625 16.4553 88.3225 16.1953 88.6431 16.1953H98.0866C98.4072 16.1953 98.6672 16.4553 98.6672 16.776V18.6052C98.6672 18.9259 98.4072 19.1859 98.0866 19.1859H92.3073C91.9867 19.1859 91.7267 19.4458 91.7267 19.7665V21.6774C91.7267 21.9981 91.9867 22.2581 92.3073 22.2581H97.5354C97.8561 22.2581 98.1161 22.518 98.1161 22.8387V24.5965C98.1161 24.9172 97.8561 25.1772 97.5354 25.1772H92.3073C91.9867 25.1772 91.7267 25.4371 91.7267 25.7578V27.832C91.7267 28.1527 91.9867 28.4127 92.3073 28.4127H98.0764C98.397 28.4127 98.657 28.6726 98.657 28.9933V30.8226C98.657 31.1433 98.397 31.4032 98.0764 31.4032H88.6431Z'
+                  fill='#0E0F27'
+                />
+                <path
+                  d='M85.7574 16.1953C86.0781 16.1953 86.3381 16.4553 86.3381 16.776V30.8226C86.3381 31.1433 86.0781 31.4032 85.7574 31.4032H83.5402C83.3493 31.4032 83.1705 31.3094 83.0622 31.1522L77.2047 22.6573C77.1909 22.6374 77.1683 22.6255 77.1441 22.6255C77.1034 22.6255 77.0704 22.6585 77.0704 22.6991V30.8226C77.0704 31.1433 76.8105 31.4032 76.4898 31.4032H73.9869C73.6662 31.4032 73.4062 31.1433 73.4062 30.8226V16.776C73.4062 16.4553 73.6662 16.1953 73.9869 16.1953H76.2637C76.4556 16.1953 76.635 16.2901 76.7432 16.4485L82.5275 24.9177C82.5425 24.9395 82.5673 24.9526 82.5937 24.9526C82.638 24.9526 82.6739 24.9167 82.6739 24.8725V16.776C82.6739 16.4553 82.9339 16.1953 83.2545 16.1953H85.7574Z'
+                  fill='#0E0F27'
+                />
+                <path
+                  d='M61.273 30.9965C61.197 31.2385 60.9727 31.4032 60.719 31.4032H58.0047C57.6073 31.4032 57.3273 31.013 57.4547 30.6365L62.206 16.5899C62.2858 16.3541 62.507 16.1953 62.756 16.1953H66.8014C67.0505 16.1953 67.2719 16.3542 67.3516 16.5902L72.0935 30.6369C72.2205 31.0133 71.9406 31.4032 71.5433 31.4032H68.8387C68.585 31.4032 68.3607 31.2385 68.2847 30.9965L64.8584 20.0812C64.8475 20.0465 64.8153 20.0228 64.7789 20.0228C64.7424 20.0228 64.7102 20.0465 64.6993 20.0812L61.273 30.9965ZM60.635 25.9926C60.635 25.6719 60.8949 25.4119 61.2156 25.4119H68.3115C68.6322 25.4119 68.8921 25.6719 68.8921 25.9926V27.6279C68.8921 27.9486 68.6322 28.2085 68.3115 28.2085H61.2156C60.8949 28.2085 60.635 27.9486 60.635 27.6279V25.9926Z'
+                  fill='#0E0F27'
+                />
+                <path
+                  d='M47.2213 31.4032C46.9006 31.4032 46.6406 31.1433 46.6406 30.8226V16.776C46.6406 16.4553 46.9006 16.1953 47.2213 16.1953H52.9075C54.0507 16.1953 55.0373 16.4165 55.8674 16.8587C56.6976 17.301 57.3372 17.9202 57.7863 18.7164C58.2422 19.5057 58.4701 20.4243 58.4701 21.4722C58.4701 22.52 58.2388 23.4352 57.7761 24.2177C57.3202 25.0003 56.667 25.6092 55.8164 26.0447C54.9659 26.4734 53.9622 26.6878 52.8054 26.6878H49.5076C49.1869 26.6878 48.9269 26.4278 48.9269 26.1071V24.3697C48.9269 24.049 49.1869 23.7891 49.5076 23.7891H52.1216C52.6728 23.7891 53.1355 23.6938 53.5097 23.5033C53.8908 23.3059 54.1765 23.0338 54.3671 22.6867C54.5644 22.3397 54.6631 21.9349 54.6631 21.4722C54.6631 20.9958 54.5644 20.5876 54.3671 20.2474C54.1765 19.9003 53.8908 19.635 53.5097 19.4512C53.1355 19.2607 52.6694 19.1654 52.1114 19.1654H50.8855C50.5648 19.1654 50.3048 19.4254 50.3048 19.7461V30.8226C50.3048 31.1433 50.0448 31.4032 49.7242 31.4032H47.2213Z'
+                  fill='#0E0F27'
+                />
+              </svg>
+            ) : (
+              <svg width='37' height='36' viewBox='0 0 37 36' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                <path
+                  d='M27.872 6.96875C28.241 6.96875 28.6042 6.99371 28.9601 7.04133C29.0078 7.39749 29.0333 7.76083 29.0333 8.13004V20.9042C29.0333 25.3938 25.3938 29.0333 20.9042 29.0333H8.13004C7.76083 29.0333 7.39749 29.0078 7.04133 28.9601C6.99371 28.6042 6.96875 28.241 6.96875 27.872V15.0978C6.96875 10.6082 10.6082 6.96875 15.0978 6.96875H27.872Z'
+                  fill='#9747FF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M36 15.0968C36 11.9545 34.2171 9.22859 31.6077 7.87557C30.8348 6.38527 29.6142 5.16449 28.1239 4.3917C26.7707 1.78268 24.0452 0 20.9032 0H8.12903C3.63949 0 0 3.63949 0 8.12903V20.9032C0 24.0452 1.78268 26.7707 4.3917 28.1239C5.16449 29.6142 6.38527 30.8348 7.87557 31.6077C9.22859 34.2171 11.9545 36 15.0968 36H27.871C32.3605 36 36 32.3605 36 27.871V15.0968ZM28.9591 7.04032C29.9028 7.16657 30.7954 7.45434 31.6077 7.87557C32.1881 8.99451 32.5161 10.2654 32.5161 11.6129V24.3871C32.5161 28.8766 28.8766 32.5161 24.3871 32.5161H11.6129C10.2654 32.5161 8.99451 32.1881 7.87557 31.6077C7.45434 30.7954 7.16708 29.9028 7.04032 28.9591C6.09657 28.8328 5.20406 28.5452 4.3917 28.1239C3.81158 27.0051 3.48387 25.7344 3.48387 24.3871V11.6129C3.48387 7.12336 7.12336 3.48387 11.6129 3.48387H24.3871C25.7344 3.48387 27.0051 3.81209 28.1244 4.3922C28.5452 5.20406 28.8333 6.09708 28.9596 7.04083C28.6037 6.99321 28.2405 6.96825 27.8715 6.96825H15.0973C10.6077 6.96825 6.96825 10.6077 6.96825 15.0973V27.8715C6.96825 28.2405 6.99321 28.6037 7.04083 28.9596Z'
+                  fill='#F9DCFF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M11.6134 32.5166C10.2659 32.5166 8.99501 32.1886 7.87607 31.6082C7.45484 30.7959 7.16708 29.9033 7.04083 28.9596C7.39698 29.0073 7.76033 29.0328 8.12954 29.0328H20.9037C25.3933 29.0328 29.0328 25.3933 29.0328 20.9037V8.12954C29.0328 7.76033 29.0073 7.39699 28.9596 7.04083C29.9033 7.16708 30.7959 7.45484 31.6082 7.87607C32.1886 8.99502 32.5166 10.2659 32.5166 11.6134V24.3876C32.5166 28.8771 28.8771 32.5166 24.3876 32.5166H11.6134Z'
+                  fill='#D099FF'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M7.04083 28.9596C6.09708 28.8333 5.20457 28.5457 4.3922 28.1244C3.81209 27.0056 3.48438 25.7349 3.48438 24.3876V11.6134C3.48438 7.12387 7.12387 3.48438 11.6134 3.48438H24.3876C25.7349 3.48438 27.0056 3.81209 28.1244 4.3922C28.5457 5.20457 28.8333 6.09708 28.9596 7.04083C28.6037 6.99321 28.2405 6.96825 27.8715 6.96825H15.0973C10.6077 6.96825 6.96825 10.6077 6.96825 15.0973V27.8715C6.96825 28.2405 6.99321 28.6037 7.04083 28.9596Z'
+                  fill='#D099FF'
+                />
+              </svg>
+            )}
+          </div>
+          <button
+            type='button'
+            onClick={onToggleCollapse}
+            className='grid h-[36px] w-[36px] cursor-pointer place-items-center rounded-[8px] transition-colors hover:bg-[#F5F6F6]'
+            title={isCollapsed ? 'Развернуть' : 'Свернуть'}
+          >
+            <MenuIcon name='menu' className='h-[24px] w-[24px] text-[#0E0E27]' />
+          </button>
+        </header>
+
+        {/* Shop Switcher for non-admin users */}
         {isLoggedIn && !adminData?.isAdmin && (
           <div
             className={cn(
-              "px-2 py-2 border-b border-gray-100 shrink-0",
-              isCollapsed && "px-2"
+              "px-[8px] py-[8px]",
+              isCollapsed && "flex justify-center"
             )}
           >
             <ShopSwitcher
@@ -252,75 +239,122 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           </div>
         )}
 
-        <nav className="min-h-0 flex-1 overflow-auto px-[6px] pt-2">
-          {navigationItems.map((item) => (
-            <NavItem
-              key={item.href ?? item.title}
-              href={item.href}
-              icon={item.icon}
-              isCollapsed={isCollapsed}
-              disabled={item.disabled}
-            >
-              {item.title}
-            </NavItem>
-          ))}
+        <div className='mx-[8px] h-px shrink-0 bg-[#ECECF3]' />
+
+        {/* Navigation Items */}
+        <nav className={cn(
+          'flex flex-1 flex-col gap-[4px] overflow-y-auto p-[8px] no-scrollbar',
+          isCollapsed && 'items-center'
+        )}>
+          {visibleNavItems.map((item) => {
+            const active = isActive(item.href)
+            const content = (
+              <>
+                <span
+                  className={`grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px] transition-colors ${
+                    active ? 'bg-[#09091D]' : 'bg-transparent'
+                  }`}
+                >
+                  <MenuIcon
+                    name={item.icon}
+                    className={`h-[24px] w-[24px] ${active ? 'text-white' : 'text-[#09091D]'}`}
+                  />
+                </span>
+                {!isCollapsed && (
+                  <span
+                    className={`flex-1 truncate text-[16px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
+                  >
+                    {item.label}
+                  </span>
+                )}
+              </>
+            )
+
+            const className = cn(
+              "flex h-[52px] shrink-0 items-center gap-[12px] rounded-[16px] px-[10px] transition-colors",
+              active ? 'bg-[#F8F8FA]' : item.href ? 'hover:bg-[#F5F6F6]' : 'opacity-50',
+              isCollapsed && "justify-center px-0"
+            )
+
+            return item.href ? (
+              <Link key={item.label} href={item.href} className={className} title={isCollapsed ? item.label : undefined}>
+                {content}
+              </Link>
+            ) : (
+              <span
+                key={item.label}
+                className={className}
+                aria-disabled='true'
+                title={isCollapsed ? item.label : 'Скоро'}
+              >
+                {content}
+              </span>
+            )
+          })}
         </nav>
 
-        <div
-          className={cn(
-            "z-10 mt-auto bg-white px-[18px] pb-[18px] pt-[18px]",
-            isCollapsed && "px-2"
-          )}
-        >
-          {isLoggedIn && !isCollapsed && (
-            <div className="mb-[18px] space-y-1">
-              <p className="truncate text-[16px] font-medium leading-[1.125] text-text-primary">
-                {adminData?.firstName ?? "Admin"} {adminData?.lastName ?? ""}
+        <div className='mx-[8px] h-px shrink-0 bg-[#ECECF3]' />
+
+        {/* User Profile Section */}
+        <div className='shrink-0 px-[8px] py-[8px]'>
+          <div className='flex h-[52px] items-center gap-[12px] rounded-[16px] px-[10px]'>
+            <span className='grid h-[36px] w-[36px] shrink-0 place-items-center overflow-hidden rounded-[8px] bg-[#9747FF] text-[14px] font-semibold text-white'>
+              {initials || 'A'}
+            </span>
+            {!isCollapsed && (
+              <div className='flex min-w-0 flex-col'>
+                <span className='truncate text-[16px] font-medium leading-tight text-[#1C2533]'>{fullName}</span>
+                <span className='text-[12px] leading-tight text-[#7F8DA1]'>{roleLabel}</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            type='button'
+            onClick={() => {
+              logout()
+              router.push('/login')
+            }}
+            className='mt-[4px] flex h-[52px] w-full cursor-pointer items-center gap-[12px] rounded-[16px] px-[10px] text-left transition-colors hover:bg-[#F5F6F6]'
+            title={isCollapsed ? 'Выйти' : undefined}
+          >
+            <span className='grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px] bg-transparent'>
+              <MenuIcon name='logout' className='h-[24px] w-[24px] text-[#F5462C]' />
+            </span>
+            {!isCollapsed && <span className='text-[16px] font-medium text-[#1C2533]'>Выйти</span>}
+          </button>
+        </div>
+
+        <div className='mx-[8px] h-px shrink-0 bg-[#ECECF3]' />
+
+        {/* Footer */}
+        <footer className='shrink-0 p-[16px]'>
+          {isCollapsed ? (
+            <div className='flex items-center justify-center'>
+              <svg width="30" height="16" viewBox="0 0 30 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21.8408 0C26.2583 0.000192189 29.8397 3.58137 29.8398 7.99902C29.8398 12.4168 26.2584 15.9988 21.8408 15.999C18.8846 15.999 16.3046 14.3939 14.9199 12.0088C13.5355 14.3943 10.9556 16 7.99902 16C3.58132 16 0 12.4179 0 8C0.000185377 3.58223 3.58143 0.000976562 7.99902 0.000976562C10.9552 0.000996794 13.5343 1.60624 14.9189 3.99121C16.3034 1.60541 18.884 0 21.8408 0ZM7.99902 2.15234C4.76938 2.15234 2.15155 4.77024 2.15137 8C2.15137 11.2299 4.76927 13.8486 7.99902 13.8486C11.1979 13.8486 13.7943 11.28 13.8438 8.09277C13.8434 8.06156 13.8418 8.03032 13.8418 7.99902C13.8418 7.96773 13.8434 7.93649 13.8438 7.90527C13.793 4.71924 11.197 2.15237 7.99902 2.15234Z" fill="#AAAAB8"/>
+              </svg>
+            </div>
+          ) : (
+            <div className='flex flex-col gap-2.5'>
+              <div className='h-[16px] w-[92px] bg-[#0E0F27]/10 rounded-[4px]' />
+              <p className='mt-[6px] text-[12px] leading-[14px] text-[#0E0F27]/50'>
+                Все авторские права защищены
+                <br />
+                2024-2026 ©
               </p>
-              <p className="truncate text-[14px] leading-[1.3] text-text-secondary">
-                {adminData?.email ?? ""}
+              <p
+                className='mt-[2px] text-[14px] font-semibold leading-[16px] text-[#0E0F27]/50'
+                style={{ fontFamily: 'var(--font-inter-tight)' }}
+              >
+                version 2.0
               </p>
             </div>
           )}
-
-          {isLoggedIn ? (
-            <Button
-              onClick={logout}
-              variant="destructive"
-              size="default"
-              className={cn(
-                "h-auto w-full justify-start gap-3 rounded-xl border-0 bg-[#ffd9b8] px-3 py-3 text-[#0e0f27] shadow-none hover:bg-[#ffd1aa]",
-                isCollapsed && "justify-center px-2"
-              )}
-              title={isCollapsed ? "Выйти" : undefined}
-            >
-              <Image
-                src="/panel-icons/action-logout.png"
-                alt=""
-                aria-hidden="true"
-                width={24}
-                height={24}
-              />
-              {!isCollapsed && "Выйти"}
-            </Button>
-          ) : (
-            <Button
-              asChild
-              size="default"
-              className={cn(
-                "w-full flex items-center justify-center gap-2",
-                isCollapsed && "px-2"
-              )}
-              title={isCollapsed ? "Войти" : undefined}
-            >
-              <Link href="/login">
-                <Plus className="w-4 h-4" />
-                {!isCollapsed && "Войти"}
-              </Link>
-            </Button>
-          )}
-        </div>
+        </footer>
       </div>
     );
   }
 );
+
+SidebarNav.displayName = "SidebarNav";
