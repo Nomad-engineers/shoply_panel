@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<string, string> = {
   shop_employee: 'Сотрудник',
 };
 
-interface NavItem {
+export interface NavItem {
   label: string
   href?: string
   icon: string

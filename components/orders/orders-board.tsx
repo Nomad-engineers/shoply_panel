@@ -359,23 +359,17 @@ export function OrdersBoard() {
                 refreshing={loading}
               />
 
-              {error ? (
-                <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[18px] bg-[#F7F7FB] px-6 text-center text-[15px] text-[#6F748B]">
-                  {error}
-                </div>
-              ) : (
-                <div className="no-scrollbar flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto pb-1">
-                  {columns.map((column) => (
-                    <BoardColumn
-                      key={column.id}
-                      title={column.title}
-                      orders={column.orders}
-                      finished={column.id === "done"}
-                      onOpen={(order) => setSelectedOrderId(order.id)}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="no-scrollbar flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto pb-1">
+                {columns.map((column) => (
+                  <BoardColumn
+                    key={column.id}
+                    title={column.title}
+                    orders={column.orders}
+                    finished={column.id === "done"}
+                    onOpen={(order) => setSelectedOrderId(order.id)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

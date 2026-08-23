@@ -8,6 +8,9 @@ export {
 
 export {
   SidebarNav,
+} from "./sidebar-nav";
+
+export type {
   NavItem,
 } from "./sidebar-nav";
 
