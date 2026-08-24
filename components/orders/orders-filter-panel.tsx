@@ -35,17 +35,11 @@ interface OrdersFilterPanelProps {
   showShopFilter?: boolean;
 }
 
-/**
- * Filter panel for orders page with dropdowns for region, shop, status, and date range
- */
 export function OrdersFilterPanel({
   filters,
   regions = [],
   shops = [],
   onFilterChange,
-  onClearFilters,
-  hasActiveFilters = false,
-  userRole = null,
   showRegionFilter = true,
   showShopFilter = true,
 }: OrdersFilterPanelProps) {
@@ -53,7 +47,6 @@ export function OrdersFilterPanel({
   const [regionOpen, setRegionOpen] = React.useState(false);
   const [shopOpen, setShopOpen] = React.useState(false);
 
-  // Status options
   const statusOptions = [
     { value: OrderStatus.PENDING, label: "Новые" },
     { value: OrderStatus.ASSEMBLING, label: "На сборке" },
@@ -83,7 +76,6 @@ export function OrdersFilterPanel({
     <div className="flex items-center gap-3">
       {/* Status Filter */}
       <div className="relative">
-
         {statusOpen && (
           <>
             <div
@@ -128,7 +120,7 @@ export function OrdersFilterPanel({
       </div>
 
       {/* Region Filter - only for admin role */}
-      {showRegionFilter && regions.length > 0 && (
+      {showRegionFilter && (
         <div className="relative">
           <button
             type="button"
@@ -189,8 +181,7 @@ export function OrdersFilterPanel({
         </div>
       )}
 
-      {/* Shop Filter - for admin and operator roles */}
-      {showShopFilter && shops.length > 0 && (
+      {showShopFilter  && (
         <div className="relative">
           <button
             type="button"

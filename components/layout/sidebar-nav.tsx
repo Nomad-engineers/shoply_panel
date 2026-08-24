@@ -252,18 +252,18 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             const content = (
               <>
                 <span
-                  className={`grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px] transition-colors ${
+                  className={`grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[6px] transition-colors ${
                     active ? 'bg-[#09091D]' : 'bg-transparent'
                   }`}
                 >
                   <MenuIcon
                     name={item.icon}
-                    className={`h-[24px] w-[24px] ${active ? 'text-white' : 'text-[#09091D]'}`}
+                    className={`h-[18px] w-[18px] ${active ? 'text-white' : 'text-[#09091D]'}`}
                   />
                 </span>
                 {!isCollapsed && (
                   <span
-                    className={`flex-1 truncate text-[16px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
+                    className={`flex-1 truncate text-[13px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
                   >
                     {item.label}
                   </span>
@@ -272,7 +272,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             )
 
             const className = cn(
-              "flex h-[52px] shrink-0 items-center gap-[12px] rounded-[16px] px-[10px] transition-colors",
+              "flex h-[40px] shrink-0 items-center gap-[8px] rounded-[12px] px-[8px] transition-colors",
               active ? 'bg-[#F8F8FA]' : item.href ? 'hover:bg-[#F5F6F6]' : 'opacity-50',
               isCollapsed && "justify-center px-0"
             )
@@ -297,15 +297,18 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         <div className='mx-[8px] h-px shrink-0 bg-[#ECECF3]' />
 
         {/* User Profile Section */}
-        <div className='shrink-0 px-[8px] py-[8px]'>
-          <div className='flex h-[52px] items-center gap-[12px] rounded-[16px] px-[10px]'>
-            <span className='grid h-[36px] w-[36px] shrink-0 place-items-center overflow-hidden rounded-[8px] bg-[#9747FF] text-[14px] font-semibold text-white'>
+        <div className={cn('shrink-0 px-[8px] py-[8px]', isCollapsed && 'flex justify-center')}>
+          <div className={cn(
+            'flex h-[44px] items-center gap-[8px] rounded-[12px] px-[8px]',
+            isCollapsed && 'justify-center px-0 w-full'
+          )}>
+            <span className='grid h-[32px] w-[32px] shrink-0 place-items-center overflow-hidden rounded-[6px] bg-[#9747FF] text-[12px] font-semibold text-white'>
               {initials || 'A'}
             </span>
             {!isCollapsed && (
               <div className='flex min-w-0 flex-col'>
-                <span className='truncate text-[16px] font-medium leading-tight text-[#1C2533]'>{fullName}</span>
-                <span className='text-[12px] leading-tight text-[#7F8DA1]'>{roleLabel}</span>
+                <span className='truncate text-[13px] font-medium leading-tight text-[#1C2533]'>{fullName}</span>
+                <span className='text-[11px] leading-tight text-[#7F8DA1]'>{roleLabel}</span>
               </div>
             )}
           </div>
@@ -316,13 +319,16 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
               logout()
               router.push('/login')
             }}
-            className='mt-[4px] flex h-[52px] w-full cursor-pointer items-center gap-[12px] rounded-[16px] px-[10px] text-left transition-colors hover:bg-[#F5F6F6]'
+            className={cn(
+              'mt-[4px] flex h-[40px] w-full cursor-pointer items-center gap-[8px] rounded-[12px] px-[8px] text-left transition-colors hover:bg-[#F5F6F6]',
+              isCollapsed && 'justify-center px-0'
+            )}
             title={isCollapsed ? 'Выйти' : undefined}
           >
-            <span className='grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px] bg-transparent'>
-              <MenuIcon name='logout' className='h-[24px] w-[24px] text-[#F5462C]' />
+            <span className='grid h-[24px] w-[24px] shrink-0 place-items-center rounded-[6px] bg-transparent'>
+              <MenuIcon name='logout' className='h-[18px] w-[18px] text-[#F5462C]' />
             </span>
-            {!isCollapsed && <span className='text-[16px] font-medium text-[#1C2533]'>Выйти</span>}
+            {!isCollapsed && <span className='text-[12px] font-medium text-[#1C2533]'>Выйти</span>}
           </button>
         </div>
 

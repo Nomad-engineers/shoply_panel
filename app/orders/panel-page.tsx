@@ -137,10 +137,9 @@ export default function PanelOrdersPage() {
     endOfDay.setHours(23, 59, 59, 999);
 
     return {
-      status: statusParam as any, // Will be validated by API
+      status: statusParam as any, 
       regionId: searchParams.get("regionId") ? Number(searchParams.get("regionId")) : undefined,
       shopId: searchParams.get("shopId") ? Number(searchParams.get("shopId")) : undefined,
-      // Always send today's date range to backend
       from: today.toISOString(),
       to: endOfDay.toISOString(),
       page: Number(searchParams.get("page")) || 1,
@@ -148,7 +147,6 @@ export default function PanelOrdersPage() {
     };
   }, [searchParams]);
 
-  // Check if any non-pagination filters are active
   const hasActiveFilters = useMemo(() => {
     return Boolean(
       filters.status ||
@@ -171,25 +169,17 @@ export default function PanelOrdersPage() {
     enabled: true,
   });
 
-  // Legacy hook for fetching full order details
   const { orders: adminOrders, fetchOrder } = useAdminOrders({ skip: true });
 
-  // Fetch filter data from API
   const { data: regions = [] } = usePanelRegions();
   const { data: shops = [] } = useAdminShops();
 
-  // Get user role for filter visibility
   const { adminData } = useAuthContext();
   const userRole = adminData?.role;
 
-  // Determine filter visibility based on role:
-  // - shop_owner: no region, no shop filters
-  // - operator: only shop filter
-  // - admin: both region and shop filters
   const showRegionFilter = userRole === "admin";
   const showShopFilter = userRole === "admin" || userRole === "operator";
 
-  // Get the full AdminOrder when a card is selected
   const selectedAdminOrder = useMemo(() => {
     if (!selectedOrderCard) return null;
     return adminOrders.find(order => order.id === selectedOrderCard.id) || null;

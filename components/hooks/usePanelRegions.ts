@@ -16,7 +16,11 @@ export function usePanelRegions() {
 
   return useQuery({
     queryKey: ["panel-regions"],
-    queryFn: () => fetcher<PanelRegion[]>("/v2/panel/regions"),
+    queryFn: async () => {
+      const response = await fetcher<{ data: PanelRegion[] } | PanelRegion[]>("/panel/regions");
+      // Handle both direct array and nested data formats
+      return Array.isArray(response) ? response : (response && 'data' in response ? response.data : []);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
