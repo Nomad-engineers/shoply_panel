@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
-import { AppShell, Main, Content } from '@/components/layout'
+import { AppShell, Main, Content, Sidebar } from '@/components/layout'
 import { SidebarNav } from '@/components/layout/sidebar-nav'
 import { DashboardCard } from './dashboard-card'
 import { useAuth } from '@/components/hooks/useLogin'
@@ -1021,7 +1021,9 @@ export const AdminDashboard = () => {
 
   return (
     <AppShell>
-      <SidebarNav isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)} />
+      <Sidebar isCollapsed={sidebarCollapsed}>
+        <SidebarNav isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)} />
+      </Sidebar>
       <Main className='bg-[#EDEDF4]'>
         <Content className='p-[24px]'>
           <TopActionBar />

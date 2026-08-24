@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useLogin";
 import { MenuIcon } from "@/components/icons/menu-icons";
 import { ShopSwitcher } from "../ui/shops.dropdown";
 import type { AuthProfileBusiness } from "@/types/auth";
+import Image from "next/image";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Админ',
@@ -337,7 +338,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             </div>
           ) : (
             <div className='flex flex-col gap-2.5'>
-              <div className='h-[16px] w-[92px] bg-[#0E0F27]/10 rounded-[4px]' />
+              <Image src={"v2-files/v2-logo-adt.svg"} width={70} height={70} alt="additional logo"/>
               <p className='mt-[6px] text-[12px] leading-[14px] text-[#0E0F27]/50'>
                 Все авторские права защищены
                 <br />

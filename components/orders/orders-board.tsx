@@ -8,7 +8,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { AppShell, Main } from "@/components/layout";
+import { AppShell, Main, Sidebar } from "@/components/layout";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { cn } from "@/lib/theme";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
@@ -341,10 +341,12 @@ export function OrdersBoard() {
 
   return (
     <AppShell>
-      <SidebarNav
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-      />
+      <Sidebar isCollapsed={sidebarCollapsed}>
+        <SidebarNav
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        />
+      </Sidebar>
       <Main className="bg-[#EDEDF4]">
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div
