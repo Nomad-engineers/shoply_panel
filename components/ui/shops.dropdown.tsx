@@ -46,7 +46,7 @@ export const ShopSwitcher = ({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-full cursor-pointer flex items-center gap-3 p-2 rounded-2xl transition-all outline-none group",
-          isOpen ? "bg-surface-light" : "hover:bg-surface-light"
+          isOpen ? "bg-surface-light" : "hover:bg-surface-light justify-center"
         )}
       >
         {/* ЛОГОТИП */}
@@ -61,10 +61,6 @@ export const ShopSwitcher = ({
             ) : (
               <Store className="w-5 h-5 text-gray-400" />
             )}
-          </div>
-          {/* Маленькая иконка-индикатор дропдауна поверх лого */}
-          <div className="absolute -bottom-1 -right-1 bg-white rounded-full border border-gray-100 p-0.5 shadow-xs">
-            <ChevronDown size={10} className={cn("text-gray-500 transition-transform", isOpen && "rotate-180")} />
           </div>
         </div>
 

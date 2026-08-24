@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { AppShell, Main, Sidebar } from "@/components/layout";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { cn } from "@/lib/theme";
@@ -27,8 +27,6 @@ const boardColumns: { id: OrderUiStatus["columnId"]; title: string }[] = [
   { id: "delivery", title: "На доставке" },
   { id: "done", title: "Завершенные" },
 ];
-
-const SOUND_STORAGE_KEY = "orders-sound-enabled";
 
 function formatToolbarDate() {
   const now = new Date();
@@ -62,24 +60,16 @@ function ToolbarPill({
 }
 
 function OrdersToolbar({
-  soundEnabled,
-  onToggleSound,
   onRefresh,
   refreshing,
 }: {
-  soundEnabled: boolean;
-  onToggleSound: () => void;
   onRefresh: () => void;
   refreshing: boolean;
 }) {
   return (
     <div className="flex items-center gap-6">
-      <ToolbarPill onClick={onToggleSound} active={soundEnabled}>
-        {soundEnabled ? (
-          <Volume2 size={18} color="#0E0F27" />
-        ) : (
-          <VolumeX size={18} color="#0E0F27" />
-        )}
+      <ToolbarPill active={false}>
+        <Volume2 size={18} color="#0E0F27" />
         Звуковое уведомление
       </ToolbarPill>
       <button
@@ -131,35 +121,14 @@ function BoardColumn({
     </section>
   );
 }
-
-/**
- * Panel Orders Page - Integrated with Backend API
- *
- * Features:
- * - Filter by status, region, shop, date range
- * - Pagination with meta information
- * - Kanban board layout
- * - URL-based filter state persistence
- * - Real-time order updates via socket (to be integrated)
- */
 export default function PanelOrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Sound state
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Selected order for detail view
   const [selectedOrderCard, setSelectedOrderCard] = useState<OrderCardProps | null>(null);
 
-  // Load sound preference
-  useState(() => {
-    const stored = localStorage.getItem(SOUND_STORAGE_KEY) !== "off";
-    setSoundEnabled(stored);
-  });
-
-  // Parse filters from URL - automatically add today's date
   const filters = useMemo(() => {
     const statusParam = searchParams.get("status");
     const today = new Date();
@@ -259,15 +228,6 @@ export default function PanelOrdersPage() {
     router.push("/orders");
   }, [router]);
 
-  // Toggle sound
-  const toggleSound = useCallback(() => {
-    setSoundEnabled((prev) => {
-      const next = !prev;
-      localStorage.setItem(SOUND_STORAGE_KEY, next ? "on" : "off");
-      return next;
-    });
-  }, []);
-
   return (
     <AppShell>
       <Sidebar isCollapsed={sidebarCollapsed}>
@@ -286,8 +246,6 @@ export default function PanelOrdersPage() {
 
               {/* Toolbar with sound, refresh, date */}
               <OrdersToolbar
-                soundEnabled={soundEnabled}
-                onToggleSound={toggleSound}
                 onRefresh={() => refetch()}
                 refreshing={isLoading}
               />
