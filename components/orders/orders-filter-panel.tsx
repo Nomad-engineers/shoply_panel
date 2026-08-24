@@ -56,12 +56,6 @@ export function OrdersFilterPanel({
     { value: OrderStatus.CANCELLED, label: "Отмененные" },
   ];
 
-  // Get display labels
-  const getStatusLabel = () => {
-    if (!filters.status) return "Все статусы";
-    return statusOptions.find((s) => s.value === filters.status)?.label ?? "Все статусы";
-  };
-
   const getRegionLabel = () => {
     if (!filters.regionId) return "Все регионы";
     return regions.find((r) => r.id === filters.regionId)?.name ?? "Все регионы";
@@ -91,7 +85,7 @@ export function OrdersFilterPanel({
                 }}
                 className={cn(
                   "rounded px-3 py-2 text-left text-sm transition-colors",
-                  !filters.status ? "bg-[#04DCB4] text-white" : "text-[#0E0F27] hover:bg-gray-100"
+                  !filters.status ? "bg-[#D099FF] text-white" : "text-[#0E0F27] hover:bg-gray-100"
                 )}
               >
                 Все статусы
@@ -107,7 +101,7 @@ export function OrdersFilterPanel({
                   className={cn(
                     "rounded px-3 py-2 text-left text-sm transition-colors",
                     filters.status === option.value
-                      ? "bg-[#04DCB4] text-white"
+                      ? "bg-[#D099FF] text-white"
                       : "text-[#0E0F27] hover:bg-gray-100"
                   )}
                 >
@@ -128,7 +122,7 @@ export function OrdersFilterPanel({
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
               filters.regionId
-                ? "border-[#04DCB4] bg-[rgba(4,220,180,0.1)] text-[#04DCB4]"
+                ? "border-[#D099FF] bg-[rgba(239,233,244,0.87)] text-[#811fd7]"
                 : "border-[#FFFFFF80] bg-[#FFFFFF80] text-[#0E0F27] hover:bg-white/90"
             )}
           >
@@ -152,7 +146,7 @@ export function OrdersFilterPanel({
                   }}
                   className={cn(
                     "rounded px-3 py-2 text-left text-sm transition-colors",
-                    !filters.regionId ? "bg-[#04DCB4] text-white" : "text-[#0E0F27] hover:bg-gray-100"
+                    !filters.regionId ? "bg-[#D099FF] text-white" : "text-[#0E0F27] hover:bg-gray-100"
                   )}
                 >
                   Все регионы
@@ -168,7 +162,7 @@ export function OrdersFilterPanel({
                     className={cn(
                       "rounded px-3 py-2 text-left text-sm transition-colors",
                       filters.regionId === region.id
-                        ? "bg-[#04DCB4] text-white"
+                        ? "bg-[#D099FF] text-white"
                         : "text-[#0E0F27] hover:bg-gray-100"
                     )}
                   >
@@ -189,7 +183,7 @@ export function OrdersFilterPanel({
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
               filters.shopId
-                ? "border-[#04DCB4] bg-[rgba(4,220,180,0.1)] text-[#04DCB4]"
+                ? "border-[#D099FF] bg-[rgba(239,233,244,0.87)] text-[#811fd7]"
                 : "border-[#FFFFFF80] bg-[#FFFFFF80] text-[#0E0F27] hover:bg-white/90"
             )}
           >
@@ -213,7 +207,7 @@ export function OrdersFilterPanel({
                   }}
                   className={cn(
                     "rounded px-3 py-2 text-left text-sm transition-colors",
-                    !filters.shopId ? "bg-[#04DCB4] text-white" : "text-[#0E0F27] hover:bg-gray-100"
+                    !filters.shopId ? "bg-[#D099FF] text-white" : "text-[#0E0F27] hover:bg-gray-100"
                   )}
                 >
                   Все магазины
@@ -229,7 +223,7 @@ export function OrdersFilterPanel({
                     className={cn(
                       "rounded px-3 py-2 text-left text-sm transition-colors",
                       filters.shopId === shop.id
-                        ? "bg-[#04DCB4] text-white"
+                        ? "bg-[#D099FF] text-white"
                         : "text-[#0E0F27] hover:bg-gray-100"
                     )}
                   >

@@ -27,6 +27,7 @@ interface UseAdminShopsOptions {
  * React Query hook for fetching admin shops from /v2/admin/shop/list for filter dropdown
  * Supports pagination with page and pageSize query parameters
  * Includes dateFrom and dateTo set to today's date
+ * Cached for 15 minutes with extended garbage collection
  */
 export function useAdminShops(options: UseAdminShopsOptions = {}) {
   const fetcher = useAuthFetcher();
@@ -51,7 +52,8 @@ export function useAdminShops(options: UseAdminShopsOptions = {}) {
       // Handle both direct array and nested data formats
       return Array.isArray(response) ? response : response.data ?? [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - data won't be refetched if younger
+    gcTime: 30 * 60 * 1000, // 30 minutes - cache retention time
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 }
