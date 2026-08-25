@@ -26,11 +26,9 @@ export function usePanelOrders(options: UsePanelOrdersOptions = {}) {
     queryKey,
     queryFn: () =>
       fetcher<PanelOrderPaginatedResponseDto>(
-        `/panel/orders${queryString ? `?${queryString}` : ""}`
+        `/v2/panel/order${queryString ? `?${queryString}` : ""}`
       ),
     enabled,
-    staleTime: 30_000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   return {
@@ -54,8 +52,14 @@ function buildQueryString(filters: V2PanelOrdersQueryDto): string {
   if (filters.status) params.set("status", filters.status);
   if (filters.regionId) params.set("regionId", String(filters.regionId));
   if (filters.shopId) params.set("shopId", String(filters.shopId));
-  if (filters.from) params.set("from", String(filters.from));
-  if (filters.to) params.set("to", String(filters.to));
+  if (filters.from) {
+    const date = typeof filters.from === 'string' ? new Date(filters.from) : filters.from;
+    params.set("from", date.toISOString());
+  }
+  if (filters.to) {
+    const date = typeof filters.to === 'string' ? new Date(filters.to) : filters.to;
+    params.set("to", date.toISOString());
+  }
   if (filters.page) params.set("page", String(filters.page));
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
 
