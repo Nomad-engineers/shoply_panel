@@ -327,7 +327,7 @@ export function V2OrderDetailModal({ orderId, onClose, onSuccess }: V2OrderDetai
                   ) : (
                     <div className="text-right">
                       <p className="text-sm font-medium text-[#0E0F27]">{item.quantity} шт</p>
-                      <p className="text-sm text-[#8F90A7]">{formatCurrency(item.priceAtOrderTime, order.currency)}</p>
+                      <p className="text-sm text-[#8F90A7]">{formatCurrency(item.priceAtOrderTime, order.targetCurrency)}</p>
                     </div>
                   )}
                 </div>
@@ -347,25 +347,25 @@ export function V2OrderDetailModal({ orderId, onClose, onSuccess }: V2OrderDetai
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-[#8F90A7]">Товары:</span>
-                <span className="text-[#0E0F27]">{formatCurrency(order.subtotalPrice, order.currency)}</span>
+                <span className="text-[#0E0F27]">{formatCurrency(order.subtotalPrice, order.targetCurrency)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#8F90A7]">Доставка:</span>
-                <span className="text-[#0E0F27]">{formatCurrency(order.deliveryCost, order.currency)}</span>
+                <span className="text-[#0E0F27]">{formatCurrency(order.deliveryCost, order.targetCurrency)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#8F90A7]">Сервисный сбор:</span>
-                <span className="text-[#0E0F27]">{formatCurrency(order.serviceFee, order.currency)}</span>
+                <span className="text-[#0E0F27]">{formatCurrency(order.serviceFee, order.targetCurrency)}</span>
               </div>
               {order.discountAmount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Скидка:</span>
-                  <span>−{formatCurrency(order.discountAmount, order.currency)}</span>
+                  <span>−{formatCurrency(order.discountAmount, order.targetCurrency)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-[#DCDCE6] pt-2 text-base font-semibold">
                 <span>Итого:</span>
-                <span>{formatCurrency(order.totalPrice, order.currency)}</span>
+                <span>{formatCurrency(order.totalPrice, order.targetCurrency)}</span>
               </div>
             </div>
           </div>

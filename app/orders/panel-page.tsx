@@ -288,10 +288,11 @@ export default function PanelOrdersPage() {
       </Main>
 
       {/* Order Detail Panel */}
-      {selectedAdminOrder && (
+      {selectedOrderCard && (
         <OrderViewPanel
-          order={selectedAdminOrder}
+          orderId={selectedOrderCard.id}
           onClose={() => setSelectedOrderCard(null)}
+          onSuccess={() => refetch()}
         />
       )}
     </AppShell>

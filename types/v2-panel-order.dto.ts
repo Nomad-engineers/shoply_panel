@@ -97,7 +97,8 @@ export interface V2PanelOrderDetailDto {
   cancelDescription: string | null;
   canceledBy: string | null;
   paymentMethod: string;
-  currency: string;
+  initialCurrency:string,
+  targetCurrency: string,
   exchangeRate: number;
   subtotalPrice: number;
   totalPrice: number;
