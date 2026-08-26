@@ -72,6 +72,7 @@ export interface V2PanelOrderItemDto {
   productName: string;
   productWeight: number;
   productMeasure: string;
+  photos: string[];
   inStock: boolean;
   photoId: string | null;
   categoryId: number | null;
@@ -97,8 +98,8 @@ export interface V2PanelOrderDetailDto {
   cancelDescription: string | null;
   canceledBy: string | null;
   paymentMethod: string;
-  initialCurrency:string,
-  targetCurrency: string,
+  initialCurrency: string;
+  targetCurrency: string;
   exchangeRate: number;
   subtotalPrice: number;
   totalPrice: number;

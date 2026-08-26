@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { X, Phone, MapPin, User, ShoppingBag, Loader2, CheckCircle2, XCircle, Plus, Minus, Trash2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/theme";
+import { getImageUrl } from "@/lib/utils";
 import { useV2PanelOrder } from "@/components/hooks/useV2PanelOrder";
 import type { V2PanelOrderDetailDto } from "@/types/v2-panel-order.dto";
 import { OrderStatus } from "@/types/panel-orders.dto";
@@ -327,9 +328,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                     <div key={item.id}>
                       <div className="flex items-center gap-4 p-4">
                         <div className="h-16 w-16 shrink-0 rounded-xl bg-[#F5F5F7] overflow-hidden">
-                          {item.photoId ? (
+                          {item.photos && item.photos[0] ? (
                             <img
-                              src={item.photoId}
+                              src={getImageUrl(item.photos[0])}
                               alt={item.productName}
                               className="h-full w-full object-cover"
                             />
