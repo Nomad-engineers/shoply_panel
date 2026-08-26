@@ -1,7 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { X, Phone, MapPin, User, ShoppingBag, Loader2, CheckCircle2, XCircle, Plus, Minus, Trash2, MessageSquare } from "lucide-react";
+import {
+  X,
+  Phone,
+  MapPin,
+  User,
+  ShoppingBag,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Plus,
+  Minus,
+  Trash2,
+  MessageSquare,
+} from "lucide-react";
 import { cn } from "@/lib/theme";
 import { getImageUrl } from "@/lib/utils";
 import { useV2PanelOrder } from "@/components/hooks/useV2PanelOrder";
@@ -39,13 +52,10 @@ function formatDateTime(dateString: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-
-  const day = isToday ? "Сегодня" : date.toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "short",
-  });
-
-  return `${time}, ${day}`;
+  if(isToday){
+    return `Сегодня,${time}`
+  } 
+  return `${time}`;
 }
 
 function formatAddress(address: {
@@ -100,7 +110,10 @@ interface StatusConfig {
   secondaryAction?: string;
 }
 
-function getStatusConfig(status: OrderStatus, isCancelled: boolean): StatusConfig {
+function getStatusConfig(
+  status: OrderStatus,
+  isCancelled: boolean,
+): StatusConfig {
   if (isCancelled) {
     return {
       label: "Отменен",
@@ -118,7 +131,9 @@ function getStatusConfig(status: OrderStatus, isCancelled: boolean): StatusConfi
         label: "Ожидание",
         color: "#1976D2",
         bgColor: "#E3F2FD",
-        icon: <img src="v2-files/order-pending.svg" alt="" width={30} height={30} />,
+        icon: (
+          <img src="v2-files/order-pending.svg" alt="" width={30} height={30} />
+        ),
         canEdit: false,
         showActions: true,
         primaryAction: "accept",
@@ -129,7 +144,14 @@ function getStatusConfig(status: OrderStatus, isCancelled: boolean): StatusConfi
         label: "Сборка",
         color: "#FF9800",
         bgColor: "#FFF3E0",
-        icon: <img src="v2-files/order-assembling.svg" alt="" width={30} height={30} />,
+        icon: (
+          <img
+            src="v2-files/order-assembling.svg"
+            alt=""
+            width={30}
+            height={30}
+          />
+        ),
         canEdit: true,
         showActions: true,
         primaryAction: "assemble",
@@ -158,8 +180,19 @@ function getStatusConfig(status: OrderStatus, isCancelled: boolean): StatusConfi
   }
 }
 
-export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelProps) {
-  const { fetchOrderDetail, acceptOrder, cancelOrder, assembleOrder, updateItem, deleteItem } = useV2PanelOrder();
+export function OrderViewPanel({
+  orderId,
+  onClose,
+  onSuccess,
+}: OrderViewPanelProps) {
+  const {
+    fetchOrderDetail,
+    acceptOrder,
+    cancelOrder,
+    assembleOrder,
+    updateItem,
+    deleteItem,
+  } = useV2PanelOrder();
 
   const [order, setOrder] = useState<V2PanelOrderDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -223,7 +256,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
     if (!order || !cancelReason.trim()) return;
     try {
       setActionLoading("cancel");
-      const updated = await cancelOrder(order.id, { cancelDescription: cancelReason });
+      const updated = await cancelOrder(order.id, {
+        cancelDescription: cancelReason,
+      });
       setOrder(updated);
       setShowCancelModal(false);
       setCancelReason("");
@@ -275,7 +310,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
     if (!order || newQuantity < 1) return;
     try {
       setActionLoading(`update-${itemId}`);
-      const updated = await updateItem(order.id, itemId, { quantity: newQuantity });
+      const updated = await updateItem(order.id, itemId, {
+        quantity: newQuantity,
+      });
       setOrder(updated);
       setEditingItem(null);
       onSuccess?.();
@@ -320,7 +357,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="w-[70%] min-w-0 border-r border-[#E5E5EA] bg-[#F5F5F7]">
             <div className="flex h-full flex-col p-6">
-              <h3 className="mb-4 text-sm font-medium text-[#8E8E93]">Список товаров</h3>
+              <h3 className="mb-4 text-sm font-medium text-[#8E8E93]">
+                Список товаров
+              </h3>
 
               <div className="flex flex-col rounded-2xl bg-white shadow-sm overflow-hidden">
                 <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
@@ -342,7 +381,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                         </div>
 
                         <div className="flex min-h-0 flex-1 flex-col">
-                          <p className="text-sm font-medium text-[#09091D] line-clamp-2">{item.productName}</p>
+                          <p className="text-sm font-medium text-[#09091D] line-clamp-2">
+                            {item.productName}
+                          </p>
                         </div>
 
                         {isEditMode ? (
@@ -350,16 +391,32 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                             {editingItem === item.id ? (
                               <>
                                 <button
-                                  onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                                  disabled={actionLoading === `update-${item.id}`}
+                                  onClick={() =>
+                                    handleUpdateQuantity(
+                                      item.id,
+                                      Math.max(1, item.quantity - 1),
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading === `update-${item.id}`
+                                  }
                                   className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA]"
                                 >
                                   <Minus size={14} />
                                 </button>
-                                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                                <span className="w-8 text-center text-sm font-medium">
+                                  {item.quantity}
+                                </span>
                                 <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                  disabled={actionLoading === `update-${item.id}`}
+                                  onClick={() =>
+                                    handleUpdateQuantity(
+                                      item.id,
+                                      item.quantity + 1,
+                                    )
+                                  }
+                                  disabled={
+                                    actionLoading === `update-${item.id}`
+                                  }
                                   className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA]"
                                 >
                                   <Plus size={14} />
@@ -373,7 +430,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                                 >
                                   <Minus size={14} />
                                 </button>
-                                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                                <span className="w-8 text-center text-sm font-medium">
+                                  {item.quantity}
+                                </span>
                                 <button
                                   onClick={() => setEditingItem(item.id)}
                                   className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA]"
@@ -397,10 +456,15 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                         ) : (
                           <div className="shrink-0 text-right">
                             <p className="text-sm font-semibold text-[#09091D]">
-                              {formatCurrency(item.quantity * item.priceAtOrderTime, order.targetCurrency)}
+                              {formatCurrency(
+                                item.quantity * item.priceAtOrderTime,
+                                order.targetCurrency,
+                              )}
                             </p>
                             {item.quantity > 1 && (
-                              <p className="text-xs text-[#8E8E93]">{item.quantity} шт.</p>
+                              <p className="text-xs text-[#8E8E93]">
+                                {item.quantity} шт.
+                              </p>
                             )}
                           </div>
                         )}
@@ -416,12 +480,17 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                 <div className="flex items-center justify-between border-t border-[#E5E5EA] px-4 py-3 bg-[#FAFAFC]">
                   <div className="flex items-center gap-2 text-sm text-[#8E8E93]">
                     <ShoppingBag size={16} />
-                    <span>{totalItems} товар{totalItems > 1 ? "а" : ""}</span>
+                    <span>
+                      {totalItems} товар{totalItems > 1 ? "а" : ""}
+                    </span>
                   </div>
                   <div className="text-sm">
                     <span className="text-[#8E8E93]">Итого:</span>
                     <span className="ml-2 font-semibold text-[#09091D]">
-                      {formatCurrency(order.subtotalPrice, order.targetCurrency)}
+                      {formatCurrency(
+                        order.subtotalPrice,
+                        order.targetCurrency,
+                      )}
                     </span>
                   </div>
                 </div>
@@ -441,7 +510,7 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
           <div className="w-[30%] min-w-0 bg-white">
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-[#E5E5EA] px-6 py-4">
-                <h2 className="text-lg font-semibold text-[#09091D]">
+                <h2 className="text-md text-gray-400">
                   Детали заказа, ID {order.id}
                 </h2>
                 <button
@@ -459,7 +528,7 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                     "flex-1 px-6 py-3 text-sm font-medium transition-colors relative",
                     activeTab === "info"
                       ? "text-[#55CB00]"
-                      : "text-[#8E8E93] hover:text-[#09091D]"
+                      : "text-[#8E8E93] hover:text-[#09091D]",
                   )}
                 >
                   Информация
@@ -473,7 +542,7 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                     "flex-1 px-6 py-3 text-sm font-medium transition-colors relative",
                     activeTab === "logs"
                       ? "text-[#55CB00]"
-                      : "text-[#8E8E93] hover:text-[#09091D]"
+                      : "text-[#8E8E93] hover:text-[#09091D]",
                   )}
                 >
                   Журнал
@@ -492,22 +561,34 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                       </div>
                       <div className="w-full">
                         <h3 className="text-lg text-left font-semibold text-[#09091D]">
-                          {order.status === OrderStatus.PENDING ? `Принять заказ, №${order.dailyOrderNumber}` :
-                           order.status === OrderStatus.ASSEMBLING ? `Сборка заказа, №${order.dailyOrderNumber}` :
-                           order.status === OrderStatus.READY ? `Заказ собран, №${order.dailyOrderNumber}` :
-                           `Заказ №${order.dailyOrderNumber}`}
+                          {order.status === OrderStatus.PENDING
+                            ? `Принять заказ, №${order.dailyOrderNumber}`
+                            : order.status === OrderStatus.ASSEMBLING
+                              ? `Сборка заказа, №${order.dailyOrderNumber}`
+                              : order.status === OrderStatus.READY
+                                ? `Заказ собран, №${order.dailyOrderNumber}`
+                                : `Заказ №${order.dailyOrderNumber}`}
                         </h3>
                         <p className="mt-1 text-left text-sm text-[#8E8E93]">
-                          {order.status === OrderStatus.PENDING ? "Проверьте состав корзины, адрес и комментарий клиента перед началом сборки." :
-                           order.status === OrderStatus.ASSEMBLING ? "Отредактируйте состав заказа при необходимости и завершите сборку." :
-                           order.status === OrderStatus.READY ? "Заказ готов к выдаче клиенту." :
-                           "Заказ обрабатывается."}
+                          {order.status === OrderStatus.PENDING
+                            ? "Проверьте состав корзины, адрес и комментарий клиента перед началом сборки."
+                            : order.status === OrderStatus.ASSEMBLING
+                              ? "Отредактируйте состав заказа при необходимости и завершите сборку."
+                              : order.status === OrderStatus.READY
+                                ? "Заказ готов к выдаче клиенту."
+                                : "Заказ обрабатывается."}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium" style={{ backgroundColor: statusConfig.bgColor, color: statusConfig.color }}>
+                      <span
+                        className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium"
+                        style={{
+                          backgroundColor: statusConfig.bgColor,
+                          color: statusConfig.color,
+                        }}
+                      >
                         {statusConfig.label}
                       </span>
                       <span className="inline-flex items-center rounded-full bg-[#F5F5F7] px-3 py-1.5 text-sm text-[#8E8E93]">
@@ -517,23 +598,36 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
 
                     {order.isCancelled && (
                       <div className="rounded-xl bg-red-50 p-4">
-                        <p className="text-sm font-medium text-red-600">Заказ отменен</p>
+                        <p className="text-sm font-medium text-red-600">
+                          Заказ отменен
+                        </p>
                         <p className="mt-1 text-sm text-red-500">
-                          {order.cancelDescription && `Причина: ${order.cancelDescription}`}
-                          {order.canceledBy && ` • Отменено: ${order.canceledBy}`}
+                          {order.cancelDescription &&
+                            `Причина: ${order.cancelDescription}`}
+                          {order.canceledBy &&
+                            ` • Отменено: ${order.canceledBy}`}
                         </p>
                       </div>
                     )}
 
-                    <div className="flex items-center gap-3 rounded-xl bg-[#F5F5F7] px-4 py-3">
-                      <img src="v2-files/order-money.svg" alt="" width={20} height={20} />
-                      <span className="text-sm text-[#09091D]">{getPaymentMethod(order.paymentMethod)}</span>
+                    <div className="flex items-center gap-3 border-b py-3">
+                      <img
+                        src="v2-files/order-money.svg"
+                        alt=""
+                        width={20}
+                        height={20}
+                      />
+                      <span className="text-sm text-[#09091D]">
+                        {getPaymentMethod(order.paymentMethod)}
+                      </span>
                     </div>
 
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 border-b pb-3">
                       <MapPin size={20} className="mt-0.5 text-[#8E8E93]" />
                       <div className="flex-1">
-                        <p className="text-sm text-[#09091D]">{formatAddress(order.addressSnapshot)}</p>
+                        <p className="text-sm text-[#09091D]">
+                          {formatAddress(order.addressSnapshot)}
+                        </p>
                       </div>
                     </div>
 
@@ -548,37 +642,50 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                       </div>
                       <a
                         href={`tel:${order.user.phone}`}
-                        className="flex items-center gap-3 text-sm text-[#1976D2] hover:underline"
+                        className="flex items-center gap-3 text-sm text-[#1976D2] hover:underline  border-b pb-3"
                       >
                         <Phone size={20} />
                         {order.user.phone}
                       </a>
                     </div>
 
-                    {order.comment && (
-                      <div className="flex items-start gap-3 rounded-xl bg-[#F5F5F7] p-4">
-                        <MessageSquare size={20} className="mt-0.5 text-[#8E8E93]" />
-                        <div className="flex-1">
-                          <p className="text-sm text-[#09091D] whitespace-pre-line">{order.comment}</p>
-                        </div>
+                    <div className="flex flex-col items-start rounded-xl">
+                      <div className="flex items-center w-full justify-between">
+                        <p className="text-sm text-gray-400">Комментарий</p>
+                        <MessageSquare
+                          size={20}
+                          className="mt-0.5 text-[#8E8E93]"
+                        />
                       </div>
-                    )}
+                      <div className="pt-5">
+                        <p className="text-sm text-[#09091D] whitespace-pre-line">
+                          {order.comment ? order.comment : "Нету комментариев"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-6 space-y-4">
                     {order.logs.map((log) => (
-                      <div key={log.id} className="pb-4 border-b border-[#E5E5EA] last:border-0">
-                        <p className="text-sm font-medium text-[#09091D]">{getOrderLogActionTranslation(log.action as any)}</p>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[#8E8E93]">
-                          <span className="inline-flex items-center rounded-full bg-[#F5F5F7] px-2 py-0.5">
-                            {getStatusTranslation(log.status)}
-                          </span>
-                          <span>{log.userName || "Система"}</span>
-                          <span>•</span>
-                          <span>{formatDateTime(log.createdAt)}</span>
+                      <div
+                        key={log.id}
+                        className="flex flex-col pb-4 border-b border-[#E5E5EA] last:border-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-1 items-center">
+                            <span>{formatDateTime(log.createdAt)},</span>
+                            <p className="text-sm font-medium text-[#09091D]">
+                              {getOrderLogActionTranslation(log.action as any)}
+                            </p>
+                          </div>
+                          <div className="text-xs text-[#8E8E93]">
+                            <span>{log.userName || "Система"}</span>
+                          </div>
                         </div>
                         {log.reason && (
-                          <p className="mt-2 text-xs text-[#8E8E93]">Причина: {log.reason}</p>
+                          <p className="mt-2 text-xs text-[#8E8E93]">
+                            Причина: {log.reason}
+                          </p>
                         )}
                       </div>
                     ))}
@@ -587,7 +694,7 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
               </div>
 
               {statusConfig.showActions && (
-                <div className="flex gap-3 border-t border-[#E5E5EA] px-6 py-4 bg-white">
+                <div className="flex flex-col gap-3 border-t border-[#E5E5EA] px-6 py-4 bg-white">
                   {statusConfig.primaryAction === "accept" && (
                     <button
                       onClick={handleAccept}
@@ -622,14 +729,15 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                     </button>
                   )}
 
-                  {statusConfig.primaryAction === "edit" && order.status === OrderStatus.READY && (
-                    <button
-                      onClick={() => setEditMode(!editMode)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#55CB00] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#44A800]"
-                    >
-                      {editMode ? "Отменить редактирование" : "Редактировать"}
-                    </button>
-                  )}
+                  {statusConfig.primaryAction === "edit" &&
+                    order.status === OrderStatus.READY && (
+                      <button
+                        onClick={() => setEditMode(!editMode)}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#55CB00] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#44A800]"
+                      >
+                        {editMode ? "Отменить редактирование" : "Редактировать"}
+                      </button>
+                    )}
 
                   {statusConfig.secondaryAction === "cancel" && (
                     <button
@@ -638,10 +746,12 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
                         "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition",
                         order.status === OrderStatus.PENDING
                           ? "bg-[#F5F5F7] text-[#09091D] hover:bg-[#E5E5EA]"
-                          : "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-red-500 text-white hover:bg-red-600",
                       )}
                     >
-                      {order.status === OrderStatus.PENDING ? "Отклонить заказ" : "Отменить заказ"}
+                      {order.status === OrderStatus.PENDING
+                        ? "Отклонить заказ"
+                        : "Отменить заказ"}
                     </button>
                   )}
                 </div>
@@ -654,7 +764,9 @@ export function OrderViewPanel({ orderId, onClose, onSuccess }: OrderViewPanelPr
       {showCancelModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#09091D]/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-[#09091D] mb-4">Причина отмены</h3>
+            <h3 className="text-lg font-semibold text-[#09091D] mb-4">
+              Причина отмены
+            </h3>
             <textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
