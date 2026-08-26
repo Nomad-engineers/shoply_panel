@@ -52,9 +52,6 @@ function formatDateTime(dateString: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-  if(isToday){
-    return `Сегодня,${time}`
-  } 
   return `${time}`;
 }
 
@@ -573,7 +570,7 @@ export function OrderViewPanel({
                           {order.status === OrderStatus.PENDING
                             ? "Проверьте состав корзины, адрес и комментарий клиента перед началом сборки."
                             : order.status === OrderStatus.ASSEMBLING
-                              ? "Отредактируйте состав заказа при необходимости и завершите сборку."
+                              ? "Соберите заказ. При отсутствии товаров или изменении цены согласуйте корректировки с клиентом"
                               : order.status === OrderStatus.READY
                                 ? "Заказ готов к выдаче клиенту."
                                 : "Заказ обрабатывается."}
@@ -671,18 +668,21 @@ export function OrderViewPanel({
                         key={log.id}
                         className="flex flex-col pb-4 border-b border-[#E5E5EA] last:border-0"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-1 items-center">
-                            <span>{formatDateTime(log.createdAt)},</span>
-                            <p className="text-sm font-medium text-[#09091D]">
-                              {getOrderLogActionTranslation(log.action as any)}
-                            </p>
-                          </div>
-                          <div className="text-xs text-[#8E8E93]">
-                            <span>{log.userName || "Система"}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-1 items-center">
+                              <span className="text-xs text-[#8E8E93]">{formatDateTime(log.createdAt)}</span>
+                              <span className="text-xs text-[#8E8E93]">,</span>
+                              <p className="text-sm font-medium text-[#09091D]">
+                                {getOrderLogActionTranslation(log.action as any)}
+                              </p>
+                            </div>
+                            <div className="text-xs text-[#8E8E93] whitespace-nowrap">
+                              {log.userName || "Система"}
+                            </div>
                           </div>
                         </div>
-                        {log.reason && (
+                        {order.isCancelled && log.reason && (
                           <p className="mt-2 text-xs text-[#8E8E93]">
                             Причина: {log.reason}
                           </p>
