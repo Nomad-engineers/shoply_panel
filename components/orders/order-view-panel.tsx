@@ -238,6 +238,7 @@ export function OrderViewPanel({
       const updated = await acceptOrder(order.id);
       setOrder(updated);
       onSuccess?.();
+      onClose();
     } catch (err: any) {
       if (err.message?.includes("403")) {
         setError("У вас нет прав для управления заказом этого магазина");
@@ -260,6 +261,7 @@ export function OrderViewPanel({
       setShowCancelModal(false);
       setCancelReason("");
       onSuccess?.();
+      onClose();
     } catch (err: any) {
       if (err.message?.includes("403")) {
         setError("У вас нет прав для управления заказом этого магазина");
@@ -278,6 +280,7 @@ export function OrderViewPanel({
       const updated = await assembleOrder(order.id);
       setOrder(updated);
       onSuccess?.();
+      onClose();
     } catch (err: any) {
       if (err.message?.includes("403")) {
         setError("У вас нет прав для управления заказом этого магазина");
