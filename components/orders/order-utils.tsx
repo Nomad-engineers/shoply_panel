@@ -34,7 +34,7 @@ const STATUS_STYLES: Record<AdminOrderStatus, StatusStyle> = {
   },
   ready: {
     label: "Готов к выдаче",
-    sentenceLabel: "Заказ собран",
+    sentenceLabel: "Заказ готов",
     icon: <IconReady />,
     color: "#55CB00",
     chipClassName: "bg-[#55CB00]",

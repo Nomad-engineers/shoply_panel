@@ -39,7 +39,7 @@ function getStatusLabel(status: OrderStatus): string {
   const labels: Record<OrderStatus, string> = {
     [OrderStatus.PENDING]: "Ожидание",
     [OrderStatus.ASSEMBLING]: "Сборка",
-    [OrderStatus.READY]: "Заказ собран",
+    [OrderStatus.READY]: "Заказ готов",
     [OrderStatus.DELIVERY]: "Доставка",
     [OrderStatus.COMPLETING]: "Завершение",
     [OrderStatus.COMPLETED]: "Завершен",
@@ -449,7 +449,7 @@ export function V2OrderDetailModal({ orderId, onClose, onSuccess }: V2OrderDetai
           {modalState === "ready" && (
             <>
               <button
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#55CB00] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#44A800]"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#478EFF] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6399f1]"
               >
                 Редактировать
               </button>

@@ -18,9 +18,13 @@ import {
 import { cn } from "@/lib/theme";
 import { getImageUrl } from "@/lib/utils";
 import { useV2PanelOrder } from "@/components/hooks/useV2PanelOrder";
-import type { V2PanelOrderDetailDto } from "@/types/v2-panel-order.dto";
+import type {
+  V2PanelOrderDetailDto,
+  V2PanelOrderItemDto,
+} from "@/types/v2-panel-order.dto";
 import { OrderStatus } from "@/types/panel-orders.dto";
 import { getOrderLogActionTranslation } from "@/types/order-log.dto";
+import Image from "next/image";
 
 interface OrderViewPanelProps {
   orderId: number;
@@ -159,7 +163,7 @@ function getStatusConfig(
         label: "Заказ собран",
         color: "#55CB00",
         bgColor: "#E8F5E9",
-        icon: <CheckCircle2 size={24} color="#55CB00" />,
+        icon: <Image src="/v2-files/order-ready.svg" height={30} width={30} alt="order-ready"/>,
         canEdit: false,
         showActions: true,
         primaryAction: "edit",
@@ -200,6 +204,7 @@ export function OrderViewPanel({
   const [activeTab, setActiveTab] = useState<TabType>("info");
   const [editMode, setEditMode] = useState<EditMode>(false);
   const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [draftItems, setDraftItems] = useState<V2PanelOrderItemDto[] | null>(null);
 
   const loadOrder = useCallback(async () => {
     try {
@@ -208,6 +213,7 @@ export function OrderViewPanel({
       const data = await fetchOrderDetail(orderId);
       setOrder(data);
       setEditMode(false);
+      setDraftItems(null);
     } catch (err: any) {
       if (err.message?.includes("403")) {
         setError("У вас нет прав для управления заказом этого магазина");
@@ -323,6 +329,65 @@ export function OrderViewPanel({
     }
   };
 
+  const handleStartEdit = () => {
+    if (!order) return;
+    setDraftItems(order.items.map((item) => ({ ...item })));
+    setEditingItem(null);
+    setEditMode(true);
+  };
+
+  const changeDraftQuantity = (itemId: number, newQuantity: number) => {
+    setDraftItems((prev) =>
+      prev === null
+        ? null
+        : prev.map((item) =>
+            item.id === itemId
+              ? { ...item, quantity: Math.max(1, newQuantity) }
+              : item,
+          ),
+    );
+  };
+
+  const removeDraftItem = (itemId: number) => {
+    setDraftItems((prev) =>
+      prev === null ? null : prev.filter((item) => item.id !== itemId),
+    );
+  };
+
+  const handleSaveChanges = async () => {
+    if (!order || !draftItems) return;
+    try {
+      setActionLoading("save");
+      const draftIds = new Set(draftItems.map((item) => item.id));
+      for (const original of order.items) {
+        if (!draftIds.has(original.id)) {
+          await deleteItem(order.id, original.id);
+        }
+      }
+      for (const draft of draftItems) {
+        const original = order.items.find((item) => item.id === draft.id);
+        if (original && original.quantity !== draft.quantity) {
+          await updateItem(order.id, draft.id, { quantity: draft.quantity });
+        }
+      }
+      const fresh = await fetchOrderDetail(order.id);
+      setOrder(fresh);
+      setEditMode(false);
+      setDraftItems(null);
+      onSuccess?.();
+    } catch (err: any) {
+      setError(err.message || "Ошибка при сохранении изменений");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResetChanges = () => {
+    setDraftItems(null);
+    setEditingItem(null);
+    setEditMode(false);
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#09091D]/50">
@@ -348,7 +413,15 @@ export function OrderViewPanel({
   }
 
   const statusConfig = getStatusConfig(order.status, order.isCancelled);
-  const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const isDraftMode = editMode && draftItems !== null;
+  const displayItems = isDraftMode && draftItems ? draftItems : order.items;
+  const totalItems = displayItems.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotalPrice = isDraftMode
+    ? displayItems.reduce(
+        (sum, item) => sum + item.quantity * item.priceAtOrderTime,
+        0,
+      )
+    : order.subtotalPrice;
   const isEditMode = editMode || statusConfig.canEdit;
 
   return (
@@ -363,7 +436,7 @@ export function OrderViewPanel({
 
               <div className="flex flex-col rounded-2xl bg-white shadow-sm overflow-hidden">
                 <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
-                  {order.items.map((item, index) => (
+                  {displayItems.map((item, index) => (
                     <div key={item.id}>
                       <div className="flex items-center gap-4 p-4">
                         <div className="h-16 w-16 shrink-0 rounded-xl bg-[#F5F5F7] overflow-hidden">
@@ -388,7 +461,36 @@ export function OrderViewPanel({
 
                         {isEditMode ? (
                           <div className="flex items-center gap-2">
-                            {editingItem === item.id ? (
+                            {isDraftMode ? (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    changeDraftQuantity(
+                                      item.id,
+                                      item.quantity - 1,
+                                    )
+                                  }
+                                  disabled={item.quantity <= 1}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA]"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <span className="w-8 text-center text-sm font-medium">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    changeDraftQuantity(
+                                      item.id,
+                                      item.quantity + 1,
+                                    )
+                                  }
+                                  className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA]"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </>
+                            ) : editingItem === item.id ? (
                               <>
                                 <button
                                   onClick={() =>
@@ -442,11 +544,19 @@ export function OrderViewPanel({
                               </>
                             )}
                             <button
-                              onClick={() => handleDeleteItem(item.id)}
-                              disabled={actionLoading === `delete-${item.id}`}
+                              onClick={() =>
+                                isDraftMode
+                                  ? removeDraftItem(item.id)
+                                  : handleDeleteItem(item.id)
+                              }
+                              disabled={
+                                !isDraftMode &&
+                                actionLoading === `delete-${item.id}`
+                              }
                               className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 transition hover:bg-red-200 text-red-500"
                             >
-                              {actionLoading === `delete-${item.id}` ? (
+                              {!isDraftMode &&
+                              actionLoading === `delete-${item.id}` ? (
                                 <Loader2 size={14} className="animate-spin" />
                               ) : (
                                 <Trash2 size={14} />
@@ -470,7 +580,7 @@ export function OrderViewPanel({
                         )}
                       </div>
 
-                      {index < order.items.length - 1 && (
+                      {index < displayItems.length - 1 && (
                         <div className="mx-4 border-t border-[#E5E5EA]" />
                       )}
                     </div>
@@ -488,7 +598,7 @@ export function OrderViewPanel({
                     <span className="text-[#8E8E93]">Итого:</span>
                     <span className="ml-2 font-semibold text-[#09091D]">
                       {formatCurrency(
-                        order.subtotalPrice,
+                        subtotalPrice,
                         order.targetCurrency,
                       )}
                     </span>
@@ -566,7 +676,7 @@ export function OrderViewPanel({
                             : order.status === OrderStatus.ASSEMBLING
                               ? `Сборка заказа, №${order.dailyOrderNumber}`
                               : order.status === OrderStatus.READY
-                                ? `Заказ собран, №${order.dailyOrderNumber}`
+                                ? `Заказ готов, №${order.dailyOrderNumber}`
                                 : `Заказ №${order.dailyOrderNumber}`}
                         </h3>
                         <p className="mt-1 text-left text-sm text-[#8E8E93]">
@@ -575,7 +685,7 @@ export function OrderViewPanel({
                             : order.status === OrderStatus.ASSEMBLING
                               ? "Соберите заказ. При отсутствии товаров или изменении цены согласуйте корректировки с клиентом"
                               : order.status === OrderStatus.READY
-                                ? "Заказ готов к выдаче клиенту."
+                                ? "Заказ укомплектован. Убедитесь, что чеки и маркировка на месте, перед выдачей курьеру"
                                 : "Заказ обрабатывается."}
                         </p>
                       </div>
@@ -732,31 +842,60 @@ export function OrderViewPanel({
                     </button>
                   )}
 
-                  {statusConfig.primaryAction === "edit" &&
-                    order.status === OrderStatus.READY && (
+                  {order.status === OrderStatus.READY && editMode ? (
+                    <>
                       <button
-                        onClick={() => setEditMode(!editMode)}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#55CB00] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#44A800]"
+                        onClick={handleSaveChanges}
+                        disabled={actionLoading === "save"}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#55CB00] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#44A800] disabled:opacity-50"
                       >
-                        {editMode ? "Отменить редактирование" : "Редактировать"}
+                        {actionLoading === "save" ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Сохранение...
+                          </>
+                        ) : (
+                          "Сохранить изменения"
+                        )}
                       </button>
-                    )}
+                      <button
+                        onClick={handleResetChanges}
+                        disabled={actionLoading === "save"}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#EEEEF4] px-6 py-3.5 text-sm font-semibold text-black transition hover:bg-[#d0d0d8] disabled:opacity-50"
+                      >
+                        Сбросить изменения
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {statusConfig.primaryAction === "edit" &&
+                        order.status === OrderStatus.READY && (
+                          <button
+                            onClick={handleStartEdit}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#478EFF] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#6fa1f2]"
+                          >
+                            Редактировать
+                          </button>
+                        )}
 
-                  {statusConfig.secondaryAction === "cancel" && (
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition",
-                        order.status === OrderStatus.PENDING
-                          ? "bg-[#F5F5F7] text-[#09091D] hover:bg-[#E5E5EA]"
-                          : "bg-red-500 text-white hover:bg-red-600",
+                      {statusConfig.secondaryAction === "cancel" && (
+                        <button
+                          onClick={() => setShowCancelModal(true)}
+                          className={cn(
+                            "flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition",
+                            order.status === OrderStatus.PENDING
+                              ? "bg-[#F5F5F7] text-[#09091D] hover:bg-[#E5E5EA]"
+                              : "bg-[#EEEEF4] text-black hover:bg-[#d0d0d8]",
+                          )}
+                        >
+                          {order.status === OrderStatus.PENDING
+                            ? "Отклонить заказ"
+                            : "Отменить заказ"}
+                        </button>
                       )}
-                    >
-                      {order.status === OrderStatus.PENDING
-                        ? "Отклонить заказ"
-                        : "Отменить заказ"}
-                    </button>
+                    </>
                   )}
+
                 </div>
               )}
             </div>
