@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   X,
   Phone,
@@ -14,14 +14,19 @@ import {
   Minus,
   Trash2,
   MessageSquare,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/theme";
 import { getImageUrl } from "@/lib/utils";
 import { useV2PanelOrder } from "@/components/hooks/useV2PanelOrder";
+import { useV2PanelProducts } from "@/components/hooks/useV2PanelProducts";
 import type {
   V2PanelOrderDetailDto,
   V2PanelOrderItemDto,
 } from "@/types/v2-panel-order.dto";
+import { measureTranslations } from "@/types/v2-panel-product.dto";
+import type { V2PanelProductDto } from "@/types/v2-panel-product.dto";
 import { OrderStatus } from "@/types/panel-orders.dto";
 import { getOrderLogActionTranslation } from "@/types/order-log.dto";
 import Image from "next/image";
@@ -181,6 +186,22 @@ function getStatusConfig(
   }
 }
 
+function getProductsPaginationRange(
+  current: number,
+  total: number,
+): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 3) {
+    return [1, 2, 3, 4, "ellipsis", total];
+  }
+  if (current >= total - 2) {
+    return [1, "ellipsis", total - 3, total - 2, total - 1, total];
+  }
+  return [1, "ellipsis", current - 1, current, current + 1, "ellipsis", total];
+}
+
 export function OrderViewPanel({
   orderId,
   onClose,
@@ -191,9 +212,12 @@ export function OrderViewPanel({
     acceptOrder,
     cancelOrder,
     assembleOrder,
+    addItem,
     updateItem,
     deleteItem,
   } = useV2PanelOrder();
+
+  const { fetchPanelProducts } = useV2PanelProducts();
 
   const [order, setOrder] = useState<V2PanelOrderDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,6 +229,21 @@ export function OrderViewPanel({
   const [editMode, setEditMode] = useState<EditMode>(false);
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [draftItems, setDraftItems] = useState<V2PanelOrderItemDto[] | null>(null);
+
+  const [showProductsList, setShowProductsList] = useState(false);
+  const [products, setProducts] = useState<V2PanelProductDto[]>([]);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsHasMore, setProductsHasMore] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsLoadingMore, setProductsLoadingMore] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [productsTotalPages, setProductsTotalPages] = useState(1);
+  const [selectedProduct, setSelectedProduct] = useState<V2PanelProductDto | null>(null);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const draftTempIdRef = useRef(-1);
+  const productsScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const shopId = order?.shop?.id;
 
   const loadOrder = useCallback(async () => {
     try {
@@ -228,14 +267,6 @@ export function OrderViewPanel({
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   const handleAccept = async () => {
     if (!order) return;
@@ -354,6 +385,142 @@ export function OrderViewPanel({
     );
   };
 
+  const openProductsList = () => {
+    setProducts([]);
+    setProductsPage(1);
+    setProductsHasMore(false);
+    setProductsError(null);
+    setProductsTotalPages(1);
+    setSelectedProduct(null);
+    setSelectedQuantity(1);
+    setShowProductsList(true);
+    loadProducts(1, false);
+  };
+
+  const closeProductsList = () => {
+    setShowProductsList(false);
+    setProductsError(null);
+    setSelectedProduct(null);
+    setSelectedQuantity(1);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (showProductsList) {
+        closeProductsList();
+        return;
+      }
+
+      if (showCancelModal) {
+        setShowCancelModal(false);
+        setCancelReason("");
+        return;
+      }
+
+      onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, showProductsList, showCancelModal, closeProductsList]);
+
+  const loadProducts = useCallback(
+    async (page: number, append: boolean) => {
+      if (!shopId) return;
+      try {
+        if (append) {
+          setProductsLoadingMore(true);
+        } else {
+          setProductsLoading(true);
+        }
+        setProductsError(null);
+
+        const { items, meta } = await fetchPanelProducts({
+          page,
+          pageSize: 20,
+          shopId,
+        });
+
+        setProducts((prev) => {
+          if (!append) return items;
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...items.filter((p) => !seen.has(p.id))];
+        });
+        setProductsPage(page);
+        setProductsTotalPages(meta?.totalPages ?? 1);
+        setProductsHasMore(meta ? page < meta.totalPages : items.length === 20);
+      } catch (err: any) {
+        setProductsError(err.message || "Ошибка при загрузке товаров");
+      } finally {
+        setProductsLoading(false);
+        setProductsLoadingMore(false);
+      }
+    },
+    [shopId, fetchPanelProducts],
+  );
+
+  const handleProductsPageChange = (page: number) => {
+    if (page === productsPage) return;
+    loadProducts(page, false);
+    productsScrollRef.current?.scrollTo({ top: 0 });
+  };
+
+  const handleSelectProduct = (product: V2PanelProductDto) => {
+    setSelectedProduct((prev) => (prev?.id === product.id ? null : product));
+    setSelectedQuantity(1);
+  };
+
+  const handleAddProduct = async () => {
+    if (!order || !selectedProduct) return;
+
+    const product = selectedProduct;
+    const quantity = selectedQuantity;
+
+    // Draft mode: item is appended locally and created on "Сохранить изменения"
+    if (editMode && draftItems !== null) {
+      draftTempIdRef.current -= 1;
+      const tempId = draftTempIdRef.current;
+
+      setDraftItems((prev) => [
+        ...(prev ?? []),
+        {
+          id: tempId,
+          createdAt: product.createdAt,
+          productId: product.id,
+          quantity,
+          priceAtOrderTime: product.price,
+          productName: product.name,
+          productWeight: product.weight,
+          productMeasure: product.measure,
+          photos: product.photoId ? [product.photoId] : [],
+          inStock: product.inStock,
+          photoId: product.photoId ?? null,
+          categoryId: null,
+          subcategoryId: null,
+        },
+      ]);
+      closeProductsList();
+      return;
+    }
+
+    // Immediate mode: add straight to the order via API
+    try {
+      setActionLoading("add-product");
+      const updated = await addItem(order.id, {
+        productId: product.id,
+        quantity,
+      });
+      setOrder(updated);
+      onSuccess?.();
+      closeProductsList();
+    } catch (err: any) {
+      setError(err.message || "Ошибка при добавлении товара");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleSaveChanges = async () => {
     if (!order || !draftItems) return;
     try {
@@ -365,6 +532,13 @@ export function OrderViewPanel({
         }
       }
       for (const draft of draftItems) {
+        if (draft.id < 0) {
+          await addItem(order.id, {
+            productId: draft.productId,
+            quantity: draft.quantity,
+          });
+          continue;
+        }
         const original = order.items.find((item) => item.id === draft.id);
         if (original && original.quantity !== draft.quantity) {
           await updateItem(order.id, draft.id, { quantity: draft.quantity });
@@ -430,11 +604,238 @@ export function OrderViewPanel({
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="w-[70%] min-w-0 border-r border-[#E5E5EA] bg-[#F5F5F7]">
             <div className="flex h-full flex-col p-6">
-              <h3 className="mb-4 text-sm font-medium text-[#8E8E93]">
-                Список товаров
-              </h3>
+              {showProductsList ? (
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-[#8E8E93]">
+                      Выбор товара
+                    </h3>
+                    <button
+                      onClick={closeProductsList}
+                      className="text-sm text-[#307CF8] transition hover:text-[#266bdb]"
+                    >
+                      К списку заказа
+                    </button>
+                  </div>
 
-              <div className="flex flex-col rounded-2xl bg-white shadow-sm overflow-hidden">
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
+                    <div
+                      ref={productsScrollRef}
+                      className="min-h-0 flex-1 overflow-y-auto"
+                    >
+                      {productsLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2
+                            size={24}
+                            className="animate-spin text-[#8E8E93]"
+                          />
+                        </div>
+                      ) : productsError && products.length === 0 ? (
+                        <div className="py-12 text-center">
+                          <p className="text-sm text-red-500">
+                            {productsError}
+                          </p>
+                          <button
+                            onClick={() => loadProducts(1, false)}
+                            className="mt-3 rounded-xl bg-[#F5F5F7] px-4 py-2 text-sm font-medium text-[#09091D] transition hover:bg-[#E5E5EA]"
+                          >
+                            Повторить
+                          </button>
+                        </div>
+                      ) : products.length === 0 ? (
+                        <p className="py-12 text-center text-sm text-[#8E8E93]">
+                          Товары не найдены
+                        </p>
+                      ) : (
+                        products.map((product, index) => {
+                          const isSelected = selectedProduct?.id === product.id;
+                          return (
+                            <div key={product.id}>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectProduct(product)}
+                                className={cn(
+                                  "flex w-full items-center gap-4 p-4 text-left transition",
+                                  isSelected
+                                    ? "bg-[#D2F0FF]"
+                                    : "hover:bg-[#FAFAFC]",
+                                )}
+                              >
+                                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F5F5F7]">
+                                  {product.photoId ? (
+                                    <img
+                                      src={getImageUrl(product.photoId)}
+                                      alt={product.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[#C7C7CC]">
+                                      <ShoppingBag size={22} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <p className="line-clamp-2 text-sm font-medium text-[#09091D]">
+                                    {product.name}
+                                  </p>
+                                  <p className="mt-1 text-xs text-[#8E8E93]">
+                                    {formatCurrency(
+                                      product.price,
+                                      order.targetCurrency,
+                                    )}
+                                    {product.weight > 0
+                                      ? ` · ${product.weight} ${measureTranslations[product.measure] ?? product.measure}`
+                                      : ""}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={cn(
+                                    "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium",
+                                    product.inStock
+                                      ? "bg-[#E8F5E9] text-[#2E7D32]"
+                                      : "bg-[#FEF2F2] text-red-500",
+                                  )}
+                                >
+                                  {product.inStock
+                                    ? "В наличии"
+                                    : "Нет в наличии"}
+                                </span>
+                              </button>
+                              {index < products.length - 1 && (
+                                <div className="mx-4 border-t border-[#E5E5EA]" />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="border-t border-[#E5E5EA] p-3">
+                      {productsTotalPages > 1 ? (
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <button
+                            onClick={() =>
+                              handleProductsPageChange(productsPage - 1)
+                            }
+                            disabled={
+                              productsPage <= 1 ||
+                              productsLoading ||
+                              productsLoadingMore
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA] disabled:opacity-40"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {getProductsPaginationRange(
+                              productsPage,
+                              productsTotalPages,
+                            ).map((page, i) =>
+                              page === "ellipsis" ? (
+                                <span
+                                  key={`ellipsis-${i}`}
+                                  className="px-1 text-sm text-[#8E8E93]"
+                                >
+                                  ...
+                                </span>
+                              ) : (
+                                <button
+                                  key={page}
+                                  onClick={() => handleProductsPageChange(page)}
+                                  disabled={
+                                    productsLoading || productsLoadingMore
+                                  }
+                                  className={cn(
+                                    "h-8 min-w-8 rounded-lg px-2 text-sm font-medium transition",
+                                    page === productsPage
+                                      ? "bg-[#307CF8] text-white"
+                                      : "bg-[#F5F5F7] text-[#09091D] hover:bg-[#E5E5EA]",
+                                  )}
+                                >
+                                  {page}
+                                </button>
+                              ),
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              handleProductsPageChange(productsPage + 1)
+                            }
+                            disabled={
+                              productsPage >= productsTotalPages ||
+                              productsLoading ||
+                              productsLoadingMore
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA] disabled:opacity-40"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      ) : productsHasMore ? (
+                        <button
+                          onClick={() => loadProducts(productsPage + 1, true)}
+                          disabled={productsLoadingMore}
+                          className="mb-3 w-full rounded-xl bg-[#F5F5F7] px-4 py-2 text-sm font-medium text-[#09091D] transition hover:bg-[#E5E5EA] disabled:opacity-50"
+                        >
+                          {productsLoadingMore ? "Загрузка..." : "Показать ещё"}
+                        </button>
+                      ) : null}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              setSelectedQuantity((q) => Math.max(1, q - 1))
+                            }
+                            disabled={!selectedProduct}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA] disabled:opacity-40"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-8 text-center text-sm font-medium">
+                            {selectedQuantity}
+                          </span>
+                          <button
+                            onClick={() => setSelectedQuantity((q) => q + 1)}
+                            disabled={!selectedProduct}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F5F7] transition hover:bg-[#E5E5EA] disabled:opacity-40"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={handleAddProduct}
+                          disabled={
+                            !selectedProduct || actionLoading === "add-product"
+                          }
+                          className="ml-auto flex items-center gap-2 rounded-xl bg-[#307CF8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#266bdb] disabled:opacity-50"
+                        >
+                          {actionLoading === "add-product" ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              Добавление...
+                            </>
+                          ) : (
+                            <>
+                              Добавить
+                              <Plus size={16} />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="mb-4 text-sm font-medium text-[#8E8E93]">
+                    Список товаров
+                  </h3>
+
+                  <div className="flex flex-col rounded-2xl bg-white shadow-sm overflow-hidden">
                 <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
                   {displayItems.map((item, index) => (
                     <div key={item.id}>
@@ -607,13 +1008,18 @@ export function OrderViewPanel({
 
                 {isEditMode && (
                   <div className="border-t border-[#E5E5EA] p-3 w-full">
-                    <button className="ml-auto flex items-center gap-2 rounded-xl border-2 border-dashed bg-[#D2F0FF] border-[#307CF8] px-4 py-2 text-sm text-[#307CF8] transition hover:border-[#266bdb] hover:text-[#2c72e1]">
+                    <button
+                      onClick={openProductsList}
+                      className="ml-auto flex items-center gap-2 rounded-xl border-2 border-dashed border-[#307CF8] bg-[#D2F0FF] px-4 py-2 text-sm text-[#307CF8] transition hover:border-[#266bdb] hover:text-[#2c72e1]"
+                    >
                       Добавить товар
                       <Plus size={16} />
                     </button>
                   </div>
                 )}
               </div>
+                </>
+              )}
             </div>
           </div>
 
