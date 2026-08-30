@@ -606,10 +606,10 @@ export function OrderViewPanel({
                 </div>
 
                 {isEditMode && (
-                  <div className="border-t border-[#E5E5EA] p-3">
-                    <button className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E5E5EA] px-4 py-2 text-sm text-[#8E8E93] transition hover:border-[#55CB00] hover:text-[#55CB00]">
-                      <Plus size={16} />
+                  <div className="border-t border-[#E5E5EA] p-3 w-full">
+                    <button className="ml-auto flex items-center gap-2 rounded-xl border-2 border-dashed bg-[#D2F0FF] border-[#307CF8] px-4 py-2 text-sm text-[#307CF8] transition hover:border-[#266bdb] hover:text-[#2c72e1]">
                       Добавить товар
+                      <Plus size={16} />
                     </button>
                   </div>
                 )}
@@ -674,7 +674,7 @@ export function OrderViewPanel({
                           {order.status === OrderStatus.PENDING
                             ? `Принять заказ, №${order.dailyOrderNumber}`
                             : order.status === OrderStatus.ASSEMBLING
-                              ? `Сборка заказа, №${order.dailyOrderNumber}`
+                              ? `Соберите заказ, №${order.dailyOrderNumber}`
                               : order.status === OrderStatus.READY
                                 ? `Заказ готов, №${order.dailyOrderNumber}`
                                 : `Заказ №${order.dailyOrderNumber}`}
