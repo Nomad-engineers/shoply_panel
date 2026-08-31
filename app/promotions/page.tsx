@@ -97,7 +97,9 @@ export default function PromotionsPage() {
     () => ({
       page,
       pageSize,
-      shopId: selectedFilterShopId || shopIdForFilter,
+      shopId: isAdmin
+        ? selectedFilterShopId ?? undefined
+        : shopIdForFilter,
       skip: authLoading || (!shopIdForFilter && !isAdmin),
       filter: { search },
       isAdmin,
@@ -149,12 +151,12 @@ export default function PromotionsPage() {
     }
 
     // Client-side Shop filter (additional safety/UI consistency)
-    if (shopIdForFilter) {
-      list = list.filter((p) => p.shop?.id === shopIdForFilter);
+    if (selectedFilterShopId) {
+      list = list.filter((p) => p.shop?.id === selectedFilterShopId);
     }
 
     return list.sort((a, b) => b.id - a.id);
-  }, [data?.data, shopIdForFilter, activeTab]);
+  }, [data?.data, selectedFilterShopId, activeTab]);
 
   const totalActivations = useMemo(() => {
     return promocodes.reduce((sum, p) => sum + (p.activationCount ?? 0), 0);
