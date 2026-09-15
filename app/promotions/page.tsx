@@ -26,6 +26,7 @@ import {
   MarketingGiftIcon,
   MarketingFilterIcon,
   MarketingSearchIcon,
+  MarketingEmptyTicketIcon,
 } from "@/components/icons/marketing-icons";
 import { ShopsFilterDropdown } from "@/components/promotions/shops-filter-dropdown";
 import { CreatePromocodeSheet } from "@/components/promotions/create-promocode-sheet";
@@ -95,7 +96,7 @@ export default function PromotionsPage() {
 
   // Filter States
   const [search, setSearch] = useState("");
-  
+
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
@@ -378,7 +379,12 @@ export default function PromotionsPage() {
 
               {!loading && !error && (
                 <>
-                  <div className="flex-1 overflow-x-auto px-3 pb-2">
+                  <div
+                    className={cn(
+                      "overflow-x-auto px-3 pb-2",
+                      promocodes.length === 0 ? "flex-none" : "flex-1"
+                    )}
+                  >
                     <table className="min-w-full border-separate border-spacing-0">
                       <thead className="sticky top-0 z-10 bg-white">
                         <tr className="text-left text-[14px] text-text-secondary">
@@ -532,8 +538,11 @@ export default function PromotionsPage() {
                   </div>
 
                   {promocodes.length === 0 && (
-                    <div className="flex min-h-[320px] items-center justify-center px-6 py-16 text-[14px] text-text-secondary">
-                      Нет промокодов
+                    <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 px-6 py-16">
+                      <MarketingEmptyTicketIcon className="h-[36px] w-[36px] text-[#09091D]" />
+                      <div className="text-[14px] text-[#8e90a0]">
+                        Еще пока нет созданных промокодов
+                      </div>
                     </div>
                   )}
                  </>

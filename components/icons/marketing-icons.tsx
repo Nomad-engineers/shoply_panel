@@ -265,6 +265,56 @@ export const MarketingTrashIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+export const MarketingEmptyTicketIcon = ({
+  className,
+}: {
+  className?: string;
+}) => (
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M13.2105 29.5665H9.708C7.902 29.5665 6.4365 28.1025 6.4365 26.295V24.147C6.4365 23.28 6.0915 22.4475 5.478 21.834L3.9585 20.3145C2.6805 19.0365 2.6805 16.9665 3.9585 15.6885L5.478 14.169C6.0915 13.5555 6.4365 12.7245 6.4365 11.856V9.708C6.4365 7.902 7.9005 6.4365 9.708 6.4365H11.856C12.723 6.4365 13.5555 6.0915 14.169 5.478L15.6885 3.9585C16.9665 2.6805 19.0365 2.6805 20.3145 3.9585L21.834 5.478C22.4475 6.0915 23.28 6.4365 24.147 6.4365H26.295C28.101 6.4365 29.5665 7.9005 29.5665 9.708V11.856C29.5665 12.723 29.9115 13.5555 30.525 14.169L32.0445 15.6885C33.3225 16.9665 33.3225 19.0365 32.0445 20.3145L30.525 21.834C29.9115 22.4475 29.5665 23.28 29.5665 24.147V26.295C29.5665 28.101 28.1025 29.5665 26.295 29.5665H24.147C23.28 29.5665 22.4475 29.9115 21.834 30.525L20.3145 32.0445C19.0365 33.3225 16.9665 33.3225 15.6885 32.0445L13.2105 29.5665Z"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M13.5 22.5L22.5 13.5"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M13.8735 13.5C13.6665 13.5 13.4985 13.668 13.5 13.875C13.5 14.082 13.668 14.25 13.875 14.25C14.082 14.25 14.25 14.082 14.25 13.875C14.25 13.668 14.082 13.5 13.8735 13.5"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M22.1235 21.75C21.9165 21.75 21.7485 21.918 21.75 22.125C21.75 22.332 21.918 22.5 22.125 22.5C22.332 22.5 22.5 22.332 22.5 22.125C22.5 21.918 22.332 21.75 22.1235 21.75"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const MarketingUserIcon = ({ className }: { className?: string }) => (
   <svg
     width="24"

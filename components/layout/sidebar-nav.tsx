@@ -117,7 +117,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         >
           <div className={cn("flex items-center gap-[10px] p-[8px]")}>
             {!isCollapsed ? (
-              <svg width='111' height='36' viewBox='0 0 111 36' fill='none' xmlns='http://www.w3.org/2000/svg'>
+              <svg key='logo-full' width='111' height='36' viewBox='0 0 111 36' fill='none' xmlns='http://www.w3.org/2000/svg' className='animate-sidebar-content-in'>
                 <path
                   d='M27.872 6.96875C28.241 6.96875 28.6042 6.99371 28.9601 7.04133C29.0078 7.39749 29.0333 7.76083 29.0333 8.13004V20.9042C29.0333 25.3938 25.3938 29.0333 20.9042 29.0333H8.13004C7.76083 29.0333 7.39749 29.0078 7.04133 28.9601C6.99371 28.6042 6.96875 28.241 6.96875 27.872V15.0978C6.96875 10.6082 10.6082 6.96875 15.0978 6.96875H27.872Z'
                   fill='#9747FF'
@@ -186,7 +186,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
                 />
               </svg>
             ) : (
-              <svg width='37' height='36' viewBox='0 0 37 36' fill='none' xmlns='http://www.w3.org/2000/svg'>
+              <svg key='logo-collapsed' width='37' height='36' viewBox='0 0 37 36' fill='none' xmlns='http://www.w3.org/2000/svg' className='animate-sidebar-content-in'>
                 <path
                   d='M27.872 6.96875C28.241 6.96875 28.6042 6.99371 28.9601 7.04133C29.0078 7.39749 29.0333 7.76083 29.0333 8.13004V20.9042C29.0333 25.3938 25.3938 29.0333 20.9042 29.0333H8.13004C7.76083 29.0333 7.39749 29.0078 7.04133 28.9601C6.99371 28.6042 6.96875 28.241 6.96875 27.872V15.0978C6.96875 10.6082 10.6082 6.96875 15.0978 6.96875H27.872Z'
                   fill='#9747FF'
@@ -194,7 +194,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
                 <path
                   fillRule='evenodd'
                   clipRule='evenodd'
-                  d='M36 15.0968C36 11.9545 34.2171 9.22859 31.6077 7.87557C30.8348 6.38527 29.6142 5.16449 28.1239 4.3917C26.7707 1.78268 24.0452 0 20.9032 0H8.12903C3.63949 0 0 3.63949 0 8.12903V20.9032C0 24.0452 1.78268 26.7707 4.3917 28.1239C5.16449 29.6142 6.38527 30.8348 7.87557 31.6077C9.22859 34.2171 11.9545 36 15.0968 36H27.871C32.3605 36 36 32.3605 36 27.871V15.0968ZM28.9591 7.04032C29.9028 7.16657 30.7954 7.45434 31.6077 7.87557C32.1881 8.99451 32.5161 10.2654 32.5161 11.6129V24.3871C32.5161 28.8766 28.8766 32.5161 24.3871 32.5161H11.6129C10.2654 32.5161 8.99451 32.1881 7.87557 31.6077C7.45434 30.7954 7.16708 29.9028 7.04032 28.9591C6.09657 28.8328 5.20406 28.5452 4.3917 28.1239C3.81158 27.0051 3.48387 25.7344 3.48387 24.3871V11.6129C3.48387 7.12336 7.12336 3.48387 11.6129 3.48387H24.3871C25.7344 3.48387 27.0051 3.81209 28.1244 4.3922C28.5452 5.20406 28.8333 6.09708 28.9596 7.04083C28.6037 6.99321 28.2405 6.96825 27.8715 6.96825H15.0973C10.6077 6.96825 6.96825 10.6077 6.96825 15.0973V27.8715C6.96825 28.2405 6.99321 28.6037 7.04083 28.9596Z'
+                  d='M36 15.0968C36 11.9545 34.2171 9.22859 31.6077 7.87557C30.8348 6.38527 29.6142 5.16449 28.1239 4.3917C26.7707 1.78268 24.0452 0 20.9032 0H8.12903C3.63949 0 0 3.63949 0 8.12903V20.9032C0 24.0452 1.78268 26.7707 4.3917 28.1239C5.16449 29.6142 6.38527 30.8348 7.87557 31.6077C9.22859 34.2171 11.9545 36 15.0968 36H27.871C32.3605 36 36 32.3605 36 27.871V15.0968ZM28.9591 7.04032C29.9028 7.16657 30.7954 7.45434 31.6077 7.87557C32.1881 8.99451 32.5161 10.2654 32.5161 11.6129V24.3871C32.5161 28.8766 28.8766 32.5161 24.3871 32.5161H11.6129C10.2654 32.5161 8.99451 32.1881 7.87557 31.6077C7.45434 30.7954 7.16658 29.9028 7.04032 28.9591C6.09657 28.8328 5.20406 28.5452 4.3917 28.1239C3.81158 27.0051 3.48387 25.7344 3.48387 24.3871V11.6129C3.48387 7.12336 7.12336 3.48387 11.6129 3.48387H24.3871C25.7344 3.48387 27.0051 3.81158 28.1239 4.3917C28.5452 5.20406 28.8328 6.09657 28.9591 7.04032Z'
                   fill='#F9DCFF'
                 />
                 <path
@@ -263,7 +263,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
                 </span>
                 {!isCollapsed && (
                   <span
-                    className={`flex-1 truncate text-[13px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
+                    className={`animate-sidebar-content-in flex-1 truncate text-[13px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
                   >
                     {item.label}
                   </span>
@@ -297,7 +297,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         <div className='mx-[8px] h-px shrink-0 bg-[#ECECF3]' />
 
         {/* User Profile Section */}
-        <div className={cn('shrink-0 px-[8px] py-[8px]', isCollapsed && 'flex justify-center')}>
+        <div className={cn('shrink-0 px-[8px] py-[8px]', isCollapsed && 'flex flex-col items-center')}>
           <div className={cn(
             'flex h-[44px] items-center gap-[8px] rounded-[12px] px-[8px]',
             isCollapsed && 'justify-center px-0 w-full'
@@ -306,7 +306,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
               {initials || 'A'}
             </span>
             {!isCollapsed && (
-              <div className='flex min-w-0 flex-col'>
+              <div className='animate-sidebar-content-in flex min-w-0 flex-col'>
                 <span className='truncate text-[13px] font-medium leading-tight text-[#1C2533]'>{fullName}</span>
                 <span className='text-[11px] leading-tight text-[#7F8DA1]'>{roleLabel}</span>
               </div>
@@ -328,7 +328,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             <span className='grid h-[24px] w-[24px] shrink-0 place-items-center rounded-[6px] bg-transparent'>
               <MenuIcon name='logout' className='h-[18px] w-[18px] text-[#F5462C]' />
             </span>
-            {!isCollapsed && <span className='text-[12px] font-medium text-[#1C2533]'>Выйти</span>}
+            {!isCollapsed && <span className='animate-sidebar-content-in text-[12px] font-medium text-[#1C2533]'>Выйти</span>}
           </button>
         </div>
 
@@ -337,13 +337,13 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
         {/* Footer */}
         <footer className='shrink-0 p-[16px]'>
           {isCollapsed ? (
-            <div className='flex items-center justify-center'>
+            <div key='footer-collapsed' className='animate-sidebar-content-in flex items-center justify-center'>
               <svg width="30" height="16" viewBox="0 0 30 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21.8408 0C26.2583 0.000192189 29.8397 3.58137 29.8398 7.99902C29.8398 12.4168 26.2584 15.9988 21.8408 15.999C18.8846 15.999 16.3046 14.3939 14.9199 12.0088C13.5355 14.3943 10.9556 16 7.99902 16C3.58132 16 0 12.4179 0 8C0.000185377 3.58223 3.58143 0.000976562 7.99902 0.000976562C10.9552 0.000996794 13.5343 1.60624 14.9189 3.99121C16.3034 1.60541 18.884 0 21.8408 0ZM7.99902 2.15234C4.76938 2.15234 2.15155 4.77024 2.15137 8C2.15137 11.2299 4.76927 13.8486 7.99902 13.8486C11.1979 13.8486 13.7943 11.28 13.8438 8.09277C13.8434 8.06156 13.8418 8.03032 13.8418 7.99902C13.8418 7.96773 13.8434 7.93649 13.8438 7.90527C13.793 4.71924 11.197 2.15237 7.99902 2.15234Z" fill="#AAAAB8"/>
               </svg>
             </div>
           ) : (
-            <div className='flex flex-col gap-2.5'>
+            <div key='footer-full' className='animate-sidebar-content-in flex flex-col gap-2.5'>
               <Image src={"v2-files/v2-logo-adt.svg"} width={70} height={70} alt="additional logo"/>
               <p className='mt-[6px] text-[12px] leading-[14px] text-[#0E0F27]/50'>
                 Все авторские права защищены
