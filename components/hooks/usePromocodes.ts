@@ -8,6 +8,7 @@ export interface FetchPromocodesParams {
   pageSize?: number;
   relations?: string;
   shopId?: number;
+  shopIds?: number[];
   filter?: Record<string, any>;
   skip?: boolean;
   isAdmin?: boolean;
@@ -20,6 +21,7 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     const page = initialParams?.page ?? 1;
     const pageSize = initialParams?.pageSize ?? 10;
     const shopId = initialParams?.shopId;
+    const shopIds = initialParams?.shopIds;
     const search = initialParams?.filter?.search;
     const isAdmin = initialParams?.isAdmin;
 
@@ -27,7 +29,9 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     queryParams.set("page", String(page));
     queryParams.set("pageSize", String(pageSize));
 
-    if (isAdmin && shopId) {
+    if (isAdmin && shopIds && shopIds.length > 0) {
+      queryParams.set("shopIds", shopIds.join(","));
+    } else if (isAdmin && shopId) {
       queryParams.set("shopId", String(shopId));
     }
 
@@ -45,6 +49,7 @@ export const usePromocodes = (initialParams?: FetchPromocodesParams) => {
     initialParams?.page,
     initialParams?.pageSize,
     initialParams?.shopId,
+    initialParams?.shopIds,
     initialParams?.filter?.search,
     initialParams?.isAdmin,
   ]);

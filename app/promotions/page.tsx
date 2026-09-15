@@ -8,8 +8,8 @@ import {
   Plus,
   Search,
   RotateCcw,
+  Bell,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
 import { DashboardLayout } from "@/components/layout";
@@ -21,7 +21,27 @@ import type { Promocode } from "@/types/promocode";
 import { useAuth } from "@/components/hooks/useLogin";
 import { getImageUrl } from "@/lib/utils";
 import { PromocodeIcon } from "@/components/icons/PromocodeIcon";
+import {
+  MarketingTicketIcon,
+  MarketingGiftIcon,
+  MarketingFilterIcon,
+  MarketingSearchIcon,
+} from "@/components/icons/marketing-icons";
+import { ShopsFilterDropdown } from "@/components/promotions/shops-filter-dropdown";
+import { CreatePromocodeSheet } from "@/components/promotions/create-promocode-sheet";
 import { toast } from "sonner";
+
+type MarketingSection = "promocodes" | "push" | "raffles";
+
+const MARKETING_SECTIONS: {
+  key: MarketingSection;
+  label: string;
+  soon?: boolean;
+}[] = [
+  { key: "promocodes", label: "Промокоды" },
+  { key: "push", label: "Push уведомления", soon: true },
+  { key: "raffles", label: "Розыгрыши", soon: true },
+];
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) + " ₽";
@@ -30,12 +50,15 @@ const formatDate = (iso: string | null) => {
   if (!iso) return "Бессрочный";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Бессрочный";
-  return d.toLocaleDateString("ru-RU");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}.${mm}.${yy} г.`;
 };
 
 const getConditionsLabel = (p: Promocode) => {
-  if (p.usageLimit === null) return "Бесконечный";
-  return `${p.usageLimit} шт`;
+  if (p.usageLimit === null) return "∞";
+  return `${(p.usageLimit ?? 0).toLocaleString("ru-RU")} шт`;
 };
 
 const getContentLabel = (p: Promocode) => {
@@ -44,7 +67,6 @@ const getContentLabel = (p: Promocode) => {
 };
 
 export default function PromotionsPage() {
-  const router = useRouter();
   const { adminData, loading: authLoading } = useAuth();
   const isAdmin = adminData?.isAdmin ?? false;
   const derivedShopId = useMemo(() => {
@@ -61,14 +83,12 @@ export default function PromotionsPage() {
   const [activeTab, setActiveTab] = useState<"promocodes" | "archive">(
     "promocodes"
   );
-  const [filterActive, setFilterActive] = useState(false);
-  const [selectedFilterShopId, setSelectedFilterShopId] = useState<
-    number | null
-  >(null);
-  const [shopSearchQuery, setShopSearchQuery] = useState("");
-  const [isFilterShopDropdownOpen, setIsFilterShopDropdownOpen] =
-    useState(false);
-  const filterShopDropdownRef = useRef<HTMLDivElement>(null);
+  const [section, setSection] = useState<MarketingSection>("promocodes");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [editPromocode, setEditPromocode] = useState<Promocode | null>(null);
+  const [appliedShopIds, setAppliedShopIds] = useState<number[]>([]);
+  const [draftShopIds, setDraftShopIds] = useState<number[]>([]);
 
   const [page, setPage] = useState(1);
   const pageSize = 30;
@@ -85,21 +105,13 @@ export default function PromotionsPage() {
     dateTo: tomorrow,
     skip: authLoading || !isAdmin,
   });
-  const filteredShops = useMemo(() => {
-    if (!shopSearchQuery) return allShops || [];
-    const lowerQuery = shopSearchQuery.toLowerCase();
-    return (allShops || []).filter((s) =>
-      s.name.toLowerCase().includes(lowerQuery)
-    );
-  }, [allShops, shopSearchQuery]);
 
   const promocodeParams = useMemo(
     () => ({
       page,
       pageSize,
-      shopId: isAdmin
-        ? selectedFilterShopId ?? undefined
-        : shopIdForFilter,
+      shopId: isAdmin ? undefined : shopIdForFilter,
+      shopIds: isAdmin ? appliedShopIds : undefined,
       skip: authLoading || (!shopIdForFilter && !isAdmin),
       filter: { search },
       isAdmin,
@@ -107,7 +119,7 @@ export default function PromotionsPage() {
     [
       page,
       pageSize,
-      selectedFilterShopId,
+      appliedShopIds,
       shopIdForFilter,
       authLoading,
       isAdmin,
@@ -120,24 +132,7 @@ export default function PromotionsPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, selectedFilterShopId]);
-
-  const total = data?.meta?.total ?? 0;
-  const pageCount = data?.meta?.pageCount ?? 1;
-  // Close filter shop dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        filterShopDropdownRef.current &&
-        !filterShopDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsFilterShopDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [search, appliedShopIds]);
 
   const promocodes = useMemo(() => {
     let list = data?.data ?? [];
@@ -151,12 +146,12 @@ export default function PromotionsPage() {
     }
 
     // Client-side Shop filter (additional safety/UI consistency)
-    if (selectedFilterShopId) {
-      list = list.filter((p) => p.shop?.id === selectedFilterShopId);
+    if (appliedShopIds.length > 0) {
+      list = list.filter((p) => p.shop?.id && appliedShopIds.includes(p.shop.id));
     }
 
     return list.sort((a, b) => b.id - a.id);
-  }, [data?.data, selectedFilterShopId, activeTab]);
+  }, [data?.data, appliedShopIds, activeTab]);
 
   const totalActivations = useMemo(() => {
     return promocodes.reduce((sum, p) => sum + (p.activationCount ?? 0), 0);
@@ -166,49 +161,105 @@ export default function PromotionsPage() {
     return promocodes.reduce((sum, p) => sum + (p.turnover ?? 0), 0);
   }, [promocodes]);
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+  const handleSectionChange = (key: MarketingSection) => {
+    if (key === "promocodes") {
+      setSection("promocodes");
+      return;
+    }
+    toast.info("Раздел скоро появится");
   };
 
-  const header = (
-    <div className="flex w-full items-center gap-8">
-      <h1 className="text-[28px] font-bold leading-none tracking-[-0.03em] text-[#111322]">
-        Промокоды
-      </h1>
-    </div>
+  const marketingMenu = (
+    <aside className="w-[248px] shrink-0 rounded-[20px] bg-white p-[8px] shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+      <nav className="flex flex-col gap-[2px]">
+        {MARKETING_SECTIONS.map((item) => {
+          const active = section === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => handleSectionChange(item.key)}
+              className={cn(
+                "flex h-[48px] w-full items-center gap-[10px] rounded-[14px] px-[8px] text-left transition-colors",
+                active ? "bg-[#F6F6FA]" : "hover:bg-[#FAFAFC]"
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[10px] transition-colors",
+                  active ? "bg-[#09091D]" : "bg-transparent"
+                )}
+              >
+                {item.key === "raffles" ? (
+                  <MarketingGiftIcon
+                    className={cn(
+                      "h-[22px] w-[22px]",
+                      active ? "text-white" : "text-[#09091D]"
+                    )}
+                  />
+                ) : item.key === "push" ? (
+                  <Bell
+                    className={cn(
+                      "h-[20px] w-[20px]",
+                      active ? "text-white" : "text-[#09091D]"
+                    )}
+                  />
+                ) : (
+                  <MarketingTicketIcon
+                    className={cn(
+                      "h-[20px] w-[20px]",
+                      active ? "text-white" : "text-[#09091D]"
+                    )}
+                  />
+                )}
+              </span>
+              <span
+                className={cn(
+                  "flex-1 truncate text-[14px]",
+                  active
+                    ? "font-semibold text-[#09091D]"
+                    : "font-normal text-[#09091D]/80"
+                )}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
   );
 
   return (
     <DashboardLayout
-      header={header}
-      headerClassName="pl-4 pr-8"
-      contentClassName="min-h-0 p-0"
+      contentClassName="min-h-0 w-full p-0"
     >
-      <section className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+      <section className="flex min-h-0 flex-1 items-start gap-6 px-6 pb-6 pt-8">
+        {marketingMenu}
+        <div className="flex min-h-0 flex-1 flex-col self-stretch overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
             <div className="flex flex-wrap items-center gap-6">
               {/* Navigation Tabs */}
               <div className="flex items-center gap-6 pr-2">
                 <button
                   onClick={() => setActiveTab("promocodes")}
                   className={cn(
-                    "text-[18px] font-semibold leading-none transition-all py-1.5",
+                    "text-[18px] font-semibold leading-[18px] text-text-primary transition-all py-1.5",
                     activeTab === "promocodes"
-                      ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[13px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
-                      : "text-[#23263a]/60 hover:text-text-primary"
+                      ? "relative after:absolute after:inset-x-0 after:-bottom-[4px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+                      : ""
                   )}
                 >
-                  Промокоды
+                  Активные
                 </button>
                 <button
                   onClick={() => setActiveTab("archive")}
                   className={cn(
-                    "text-[18px] font-semibold leading-none transition-all py-1.5",
+                    "text-[18px] font-semibold leading-[18px] text-text-primary transition-all py-1.5",
                     activeTab === "archive"
-                      ? "text-text-primary relative after:absolute after:inset-x-0 after:-bottom-[13px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
-                      : "text-[#23263a]/60 hover:text-text-primary"
+                      ? "relative after:absolute after:inset-x-0 after:-bottom-[4px] after:h-[2px] after:rounded-full after:bg-[#55CB00] after:content-['']"
+                      : ""
                   )}
                 >
                   Архив
@@ -218,171 +269,91 @@ export default function PromotionsPage() {
               {/* Separator */}
               <div className="h-8 w-px bg-[#DCDCE6]/60" />
 
-              {/* Filter toggle */}
-              {isAdmin && (
-                <button
-                  onClick={() => setFilterActive(!filterActive)}
-                  className={cn(
-                    "inline-flex items-center gap-2 text-[15px] font-medium transition-colors",
-                    filterActive ? "text-[#55CB00]" : "text-text-primary"
-                  )}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M3 6H21M7 12H17M10 18H14"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  Фильтр
-                </button>
-              )}
-
               {/* Search */}
               <label className="relative block w-[225px]">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Поиск"
-                  className="h-[32px] w-full border-0 border-b border-[#DCDCE6] bg-transparent pl-0 pr-8 text-[15px] text-text-primary outline-none transition-colors placeholder:text-[#8e90a0] focus:border-[#55CB00]"
+                  className="h-[26px] w-full border-0 border-b border-[#09091D40] bg-transparent py-[4px] pl-0 pr-[22px] text-[14px] font-normal leading-[18px] text-[#0E0F27] outline-none transition-colors placeholder:text-[#8e90a0]"
                 />
-                <Search className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+                <MarketingSearchIcon className="pointer-events-none absolute right-0 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#09091D]" />
               </label>
+
+              {/* Filter toggle */}
+              {isAdmin && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isFilterOpen) setDraftShopIds(appliedShopIds);
+                      setIsFilterOpen(!isFilterOpen);
+                    }}
+                    title="Фильтр"
+                    className={cn(
+                      "inline-flex h-[26px] w-[42px] items-center justify-center rounded-[12px] border px-[12px] py-[4px] transition-colors",
+                      appliedShopIds.length > 0
+                        ? "border-transparent bg-[#55CB00] text-white"
+                        : draftShopIds.length > 0
+                          ? "border-[#55CB00] bg-[#F6F6FA] text-[#09091D]"
+                          : "border-transparent bg-[#F6F6FA] text-[#09091D] hover:bg-[#eeeef3]"
+                    )}
+                  >
+                    <MarketingFilterIcon />
+                  </button>
+
+                  {isFilterOpen && (
+                    <ShopsFilterDropdown
+                      shops={allShops}
+                      loading={shopsLoading}
+                      appliedShopIds={appliedShopIds}
+                      selectedShopIds={draftShopIds}
+                      onToggle={(id) =>
+                        setDraftShopIds((prev) =>
+                          prev.includes(id)
+                            ? prev.filter((v) => v !== id)
+                            : [...prev, id]
+                        )
+                      }
+                      onApply={() => {
+                        setAppliedShopIds(draftShopIds);
+                        setIsFilterOpen(false);
+                      }}
+                      onReset={() => {
+                        setDraftShopIds([]);
+                        setAppliedShopIds([]);
+                        setIsFilterOpen(false);
+                      }}
+                      onClose={() => setIsFilterOpen(false)}
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Create button */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => router.push("/promotions/create")}
-                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#55CB00] px-5 text-[15px] font-bold text-white hover:bg-[#4db800] transition-colors"
+                onClick={() => setCreateSheetOpen(true)}
+                title="Создать промокод"
+                className="inline-flex h-[26px] w-[42px] items-center justify-center rounded-[12px] bg-[#55CB00] px-[12px] py-[4px] text-white transition-colors hover:bg-[#4db800]"
               >
-                <Plus className="h-4 w-4" />
-                Создать промокод
+                <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
               </button>
             </div>
           </div>
 
-          {/* Shop filter panel */}
-          {isAdmin && filterActive && (
-            <div className="border-b border-border px-6 py-4 flex flex-wrap items-end gap-6 transition-all animate-in fade-in slide-in-from-top-2">
-              <div className="w-[300px] relative" ref={filterShopDropdownRef}>
-                <div className="text-[12px] font-medium text-[#8E8E93] mb-2 ml-1">
-                  Магазин
-                </div>
+      <CreatePromocodeSheet
+        open={createSheetOpen}
+        onClose={() => setCreateSheetOpen(false)}
+      />
 
-                <button
-                  onClick={() =>
-                    setIsFilterShopDropdownOpen(!isFilterShopDropdownOpen)
-                  }
-                  className="w-full h-[32px] px-3 rounded-xl bg-[#f6f6fa] border border-[#ececf1] flex items-center justify-between text-[14px] transition-all hover:border-[#55CB00]"
-                >
-                  <span
-                    className={cn(
-                      selectedFilterShopId ? "text-text-primary" : "text-[#8e90a0]"
-                    )}
-                  >
-                    {selectedFilterShopId
-                      ? allShops.find((s) => s.id === selectedFilterShopId)?.name
-                      : "Все магазины"}
-                  </span>
-                  <ChevronDown
-                    size={14}
-                    className={cn(
-                      "text-text-secondary transition-transform",
-                      isFilterShopDropdownOpen && "rotate-180"
-                    )}
-                  />
-                </button>
+      <CreatePromocodeSheet
+        open={editPromocode !== null}
+        promocode={editPromocode}
+        onClose={() => setEditPromocode(null)}
+      />
 
-                {isFilterShopDropdownOpen && (
-                  <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-lg border border-border py-2 z-20 transition-all animate-in zoom-in-95 duration-200 origin-top">
-                    <div className="px-3 pb-2 mb-1 border-b border-border">
-                      <div className="relative flex items-center bg-[#f6f6fa] rounded-lg px-3 py-1.5 transition-all focus-within:ring-1 focus-within:ring-[#55CB00]/20">
-                        <Search size={14} className="text-[#8e90a0] mr-2" />
-                        <input
-                          autoFocus
-                          placeholder="Поиск магазина..."
-                          className="w-full bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-[#8e90a0]"
-                          value={shopSearchQuery}
-                          onChange={(e) => setShopSearchQuery(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="max-h-[200px] overflow-y-auto px-1 custom-scrollbar">
-                      <button
-                        onClick={() => {
-                          setSelectedFilterShopId(null);
-                          setIsFilterShopDropdownOpen(false);
-                          setShopSearchQuery("");
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors",
-                          !selectedFilterShopId
-                            ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                            : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
-                        )}
-                      >
-                        Все магазины
-                      </button>
-                      {shopsLoading ? (
-                        <div className="px-3 py-4 text-center">
-                          <Spinner size={16} />
-                        </div>
-                      ) : (
-                        <>
-                          {filteredShops.map((s) => (
-                            <button
-                              key={s.id}
-                              onClick={() => {
-                                setSelectedFilterShopId(s.id);
-                                setIsFilterShopDropdownOpen(false);
-                                setShopSearchQuery("");
-                              }}
-                              className={cn(
-                                "w-full text-left px-3 py-2 rounded-lg text-[14px] transition-colors flex items-center justify-between",
-                                selectedFilterShopId === s.id
-                                  ? "text-[#55CB00] font-semibold bg-[#55CB00]/10"
-                                  : "text-text-primary hover:bg-[#fafafe] hover:text-[#55CB00]"
-                              )}
-                            >
-                              <span className="truncate">{s.name}</span>
-                              <span className="text-[10px] text-[#b7b8c5] ml-2">
-                                ID {s.id}
-                              </span>
-                            </button>
-                          ))}
-                          {filteredShops.length === 0 && (
-                            <div className="px-3 py-4 text-center text-xs text-[#b7b8c5]">
-                              Магазины не найдены
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button
-                className="h-[32px] px-4 text-[14px] font-medium text-[#8e90a0] hover:text-[#E26D5C] transition-colors flex items-center gap-2"
-                onClick={() => {
-                  setSelectedFilterShopId(null);
-                  setSearch("");
-                }}
-              >
-                <RotateCcw size={14} />
-                Сбросить
-              </button>
-            </div>
-          )}
 
           {/* Content area */}
           {activeTab === "archive" && promocodes.length === 0 && !loading && (
@@ -409,42 +380,42 @@ export default function PromotionsPage() {
                 <>
                   <div className="flex-1 overflow-x-auto px-3 pb-2">
                     <table className="min-w-full border-separate border-spacing-0">
-                      <thead>
+                      <thead className="sticky top-0 z-10 bg-white">
                         <tr className="text-left text-[14px] text-text-secondary">
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             ID
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium whitespace-nowrap">
+                          <th className="border-b border-border px-3 py-5 font-medium whitespace-nowrap">
                             Дата
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             <div className="inline-flex items-center gap-1">
                               Название
                               <ChevronDown className="h-3 w-3" />
                             </div>
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             Комментарий
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             <div className="inline-flex items-center gap-1">
                               Выпуск
                               <ChevronDown className="h-3 w-3" />
                             </div>
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             Оборот
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             Условия
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             Содержание
                           </th>
-                          <th className="border-b border-border px-3 py-3 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium">
                             Активация
                           </th>
-                          <th className="border-b border-border px-3 py-3" />
+                          <th className="border-b border-border px-3 py-5" />
                         </tr>
                       </thead>
                       <tbody>
@@ -456,21 +427,15 @@ export default function PromotionsPage() {
                             <tr
                               key={p.id}
                               className="group transition-colors cursor-pointer hover:bg-gray-50/50"
-                              onClick={() => {
-                                sessionStorage.setItem(
-                                  `shoply:edit-promocode:${p.id}`,
-                                  JSON.stringify(p),
-                                );
-                                router.push(`/promotions/edit/${p.id}`);
-                              }}
+                              onClick={() => setEditPromocode(p)}
                             >
-                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary">
+                              <td className="border-b border-border px-3 py-5 text-[16px] text-text-secondary">
                                 {p.id}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-[16px] font-medium text-text-primary whitespace-nowrap">
+                              <td className="border-b border-border px-3 py-5 text-[16px] font-medium text-text-primary whitespace-nowrap">
                                 {formatDate(p.createdAt)}
                               </td>
-                              <td className="border-b border-border px-3 py-3">
+                              <td className="border-b border-border px-3 py-5">
                                 <div className="flex items-center gap-2">
                                   <div
                                     onClick={(e) => {
@@ -482,17 +447,17 @@ export default function PromotionsPage() {
                                   >
                                     <PromocodeIcon className="w-5 h-5 flex-shrink-0 text-[#478EFF]" />
                                   </div>
-                                  <span className="text-[16px] text-[#478EFF] font-bold hover:underline decoration-2 underline-offset-4">
+                                  <span className="whitespace-nowrap text-[16px] font-bold text-[#478EFF] hover:underline decoration-2 underline-offset-4">
                                     {p.name}
                                   </span>
                                 </div>
                               </td>
-                              <td className="border-b border-border px-3 py-3">
-                                <p className="text-[14px] text-text-secondary line-clamp-2 max-w-[200px] leading-relaxed">
+                              <td className="border-b border-border px-3 py-5">
+                                <p className="max-w-[150px] text-[14px] leading-relaxed text-text-secondary">
                                   {p.technicalName || "-"}
                                 </p>
                               </td>
-                              <td className="border-b border-border px-3 py-3">
+                              <td className="border-b border-border px-3 py-5">
                                 {(() => {
                                   const shop = p.shop;
                                   const name = shop?.name || "SHOPLY";
@@ -522,21 +487,19 @@ export default function PromotionsPage() {
                                   );
                                 })()}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
+                              <td className="whitespace-nowrap border-b border-border px-3 py-5 text-[16px] font-medium text-text-primary">
                                 {formatCurrency(turnover)}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-secondary whitespace-nowrap">
+                              <td className="border-b border-border px-3 py-5 text-[16px] text-text-secondary whitespace-nowrap">
                                 {getConditionsLabel(p)}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
-                                <span className="px-2 py-1 bg-[#f6f6fa] rounded-lg">
-                                  {getContentLabel(p)}
-                                </span>
+                              <td className="border-b border-border px-3 py-5 text-[16px] text-text-primary font-medium whitespace-nowrap">
+                                {getContentLabel(p)}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-[16px] text-text-primary font-medium">
+                              <td className="border-b border-border px-3 py-5 text-[16px] text-text-primary font-medium">
                                 {activation}
                               </td>
-                              <td className="border-b border-border px-3 py-3 text-right">
+                              <td className="border-b border-border px-3 py-5 text-right">
                                 <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
                               </td>
                             </tr>
@@ -548,20 +511,20 @@ export default function PromotionsPage() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="px-3 py-4 text-[14px] text-text-secondary font-medium"
+                              className="px-3 py-5 text-[14px] text-text-secondary font-medium"
                             >
                               {promocodes.length} промокодов
                             </td>
-                            <td className="px-3 py-4" />
-                            <td className="px-3 py-4 text-[16px] text-text-primary font-semibold">
+                            <td className="px-3 py-5" />
+                            <td className="whitespace-nowrap px-3 py-5 text-[16px] font-semibold text-text-primary">
                               {formatCurrency(totalTurnover)}
                             </td>
-                            <td className="px-3 py-4" />
-                            <td className="px-3 py-4" />
-                            <td className="px-3 py-4 text-[16px] text-text-primary font-semibold">
+                            <td className="px-3 py-5" />
+                            <td className="px-3 py-5" />
+                            <td className="px-3 py-5 text-[16px] text-text-primary font-semibold">
                               {totalActivations}
                             </td>
-                            <td className="px-3 py-4" />
+                            <td className="px-3 py-5" />
                           </tr>
                         )}
                       </tbody>
@@ -573,34 +536,10 @@ export default function PromotionsPage() {
                       Нет промокодов
                     </div>
                   )}
-
-                  {/* Pagination */}
-                  <div className="flex items-center justify-between px-6 py-4 border-t border-border text-[14px] text-text-secondary">
-                    <div>
-                      Страница {page} из {pageCount} (всего {total})
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={page <= 1}
-                        onClick={() => handlePageChange(page - 1)}
-                        className="inline-flex h-8 items-center rounded-xl border border-[#ececf1] bg-[#f6f6fa] px-3 text-[14px] font-medium text-text-primary disabled:opacity-50 transition-colors hover:bg-[#eeeef3]"
-                      >
-                        Назад
-                      </button>
-                      <button
-                        disabled={page >= pageCount}
-                        onClick={() => handlePageChange(page + 1)}
-                        className="inline-flex h-8 items-center rounded-xl border border-[#ececf1] bg-[#f6f6fa] px-3 text-[14px] font-medium text-text-primary disabled:opacity-50 transition-colors hover:bg-[#eeeef3]"
-                      >
-                        Вперед
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                 </>
+               )}
+             </>
+           )}
         </div>
       </section>
     </DashboardLayout>
