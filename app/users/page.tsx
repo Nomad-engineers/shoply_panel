@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
   Pencil,
   Plus,
   Search,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { Button, Input, Spinner } from "@/components/ui";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { cn, getImageUrl } from "@/lib/utils";
 import { useAdminUsers } from "@/components/hooks/useAdminUsers";
 import { usePartners } from "@/components/hooks/usePartners";
@@ -675,7 +675,7 @@ export default function UsersPage() {
                   className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Вперед
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRightIcon className="h-4 w-4" />
                 </button>
               </div>
             </div>

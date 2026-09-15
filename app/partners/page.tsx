@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
-  ChevronRight,
   Plus,
   Search,
   Star,
@@ -13,6 +12,7 @@ import {
 import { DashboardLayout } from "@/components/layout";
 import { Spinner, Switch } from "@/components/ui";
 import { usePartners } from "@/components/hooks/usePartners";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { cn, getImageUrl } from "@/lib/utils";
 
 type PartnerType = "Магазины" | "Рестораны" | "Сервисы";
@@ -422,7 +422,7 @@ export default function PartnersPage() {
                       {partner.statusLabel}
                     </td>
                     <td className="border-b border-border px-3 py-3 text-right">
-                      <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
+                      <ChevronRightIcon className="ml-auto h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
                     </td>
                   </tr>
                 ))}

@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronRight,
   ChevronUp,
   ChevronDown,
   Search,
@@ -12,6 +11,7 @@ import {
 import { useCouriers } from "@/components/hooks/useCouriers";
 import { MainSection } from "@/components/layout";
 import { Switch } from "@/components/ui/switch";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { cn } from "@/lib/theme";
 
 type SortField =
@@ -362,7 +362,7 @@ export default function CouriersPage() {
                     {courier.canceledorderscount} заказов
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <ChevronRight size={20} className="text-[#C7C7CC]" />
+                    <ChevronRightIcon className="h-5 w-5 text-[#C7C7CC]" />
                   </td>
                 </tr>
               ))}

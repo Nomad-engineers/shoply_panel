@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { SideModal } from "@/components/ui/side-modal";
 import { InputV2, Spinner } from "@/components/ui";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { cn } from "@/lib/theme";
 
 export interface SelectListModalProps<T extends { id: number }> {
@@ -177,7 +178,7 @@ export const SelectListModal = <T extends { id: number }>({
 
                   <div className="shrink-0">{renderMeta(item)}</div>
 
-                  <ChevronRight className="h-4 w-4 shrink-0 text-[#b9bbc6]" />
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-[#b9bbc6]" />
                 </div>
               );
             })

@@ -128,13 +128,27 @@ body {
   }
 }
 
+/* Clickable elements */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: default;
+  }
+}
+
 /* Focus styles */
-*:focus-visible:not(input) {
+*:focus-visible:not(input):not(textarea) {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
 
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible {
   outline: none;
 }
 

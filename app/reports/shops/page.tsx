@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useShops } from "@/components/hooks/useShops";
 import { useAuth } from "@/components/hooks/useLogin";
 import { Spinner } from "@/components/ui";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { ShopStats } from "@/types/shop";
 import { getImageUrl } from "@/lib/utils";
 
@@ -280,7 +281,7 @@ export default function ShopsPage() {
                   {shop.serviceIncome.toLocaleString("ru-RU")} ₽
                 </td>
                 <td className="py-4 px-4">
-                  <ChevronRight size={20} className="text-[#C7C7CC]" />
+                  <ChevronRightIcon className="h-5 w-5 text-[#C7C7CC]" />
                 </td>
               </tr>
             ))}

@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { ChevronRight } from "lucide-react";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import { cn } from "@/lib/theme";
 import { Category } from "@/types/category.types";
 
@@ -60,8 +60,8 @@ export function CategoryListItem({ category, isSelected, onToggle, onClick }: Ca
               {subCategoryCount} суб категории
             </p>
           )}
-          <ChevronRight
-            size={18}
+          <ChevronRightIcon
+            className="h-[18px] w-[18px]"
             className={cn(
               "transition-colors",
               isSelected ? "text-[#55CB00]" : "text-gray-500"

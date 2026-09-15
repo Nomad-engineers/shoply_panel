@@ -79,7 +79,7 @@ export const SideModal = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-[36px] items-center justify-center rounded-full bg-[#EDEDF2] px-[18px] text-[14px] font-medium text-[#0E0F27] transition-colors hover:bg-[#e0e0e8]"
+                  className="inline-flex h-[36px] cursor-pointer items-center justify-center rounded-full bg-[#EDEDF2] px-[18px] text-[14px] font-medium text-[#0E0F27] transition-colors hover:bg-[#e0e0e8]"
                 >
                   {closeLabel}
                 </button>
@@ -88,7 +88,7 @@ export const SideModal = ({
                   type="button"
                   onClick={onClose}
                   title="Закрыть"
-                  className="grid h-[36px] w-[36px] place-items-center rounded-full bg-[#F5462C] text-white transition-colors hover:bg-[#e03d24]"
+                  className="grid h-[36px] w-[36px] cursor-pointer place-items-center rounded-full bg-[#F5462C] text-white transition-colors hover:bg-[#e03d24]"
                 >
                   <MarketingCloseIcon className="h-[20px] w-[20px]" />
                 </button>
@@ -104,8 +104,8 @@ export const SideModal = ({
                   confirmDisabled
                     ? "cursor-default bg-[#D9D9DF]"
                     : confirmActive
-                      ? "bg-[#55CB00] hover:bg-[#4db800]"
-                      : "bg-[#D9D9DF] hover:bg-[#c9c9d1]"
+                      ? "cursor-pointer bg-[#55CB00] hover:bg-[#4db800]"
+                      : "cursor-default bg-[#D9D9DF] hover:bg-[#c9c9d1]"
                 )}
                 >
                   <MarketingCheckIcon className="h-[20px] w-[20px]" />

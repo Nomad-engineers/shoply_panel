@@ -212,6 +212,157 @@ export const MarketingCloseIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+export const MarketingImageIcon = ({ className }: { className?: string }) => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="16"
+      rx="3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="8.5"
+      cy="9.5"
+      r="1.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 16.5L7.7 12.6C8.8 11.7 10.4 11.8 11.4 12.8L17 18"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14.5 15L16.3 13.5C17.4 12.6 18.9 12.6 20 13.5L21 14.3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const MarketingUploadIcon = ({ className }: { className?: string }) => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M12.0002 10.9981V3.31641"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M12 11.0013L15.0013 8L12 11.0013Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 15H7.38383C7.76243 15 8.10859 15.2137 8.2782 15.5522L8.72538 16.4476C8.89488 16.7868 9.24157 17.001 9.62076 17.0008H14.3857C14.7649 17.001 15.1116 16.7868 15.2811 16.4476L15.7283 15.5532C15.8978 15.214 16.2445 14.9998 16.6237 15H21.0075"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M15.005 2.99609H18.0063C19.6638 2.99609 21.0075 4.3398 21.0075 5.99734V18.0023C21.0075 19.6599 19.6638 21.0036 18.0063 21.0036H6.00125C4.34371 21.0036 3 19.6599 3 18.0023V5.99734C3 4.3398 4.34371 2.99609 6.00125 2.99609H9.0025"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M9 8L12.0013 11.0013L9 8Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const MarketingEmptyImageIcon = ({
+  className,
+}: {
+  className?: string;
+}) => (
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect
+      x="4"
+      y="6"
+      width="28"
+      height="24"
+      rx="4"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="13"
+      cy="14.5"
+      r="2.25"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4 24.5L10.9 18.7C12 17.8 13.6 17.9 14.6 18.9L23.5 27"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M19.5 22.5L22.2 20.2C23.3 19.3 24.8 19.3 25.9 20.2L32 25.3"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const MarketingTrashIcon = ({ className }: { className?: string }) => (
   <svg
     width="24"
@@ -315,6 +466,57 @@ export const MarketingEmptyTicketIcon = ({
   </svg>
 );
 
+export const MarketingEmptyBellIcon = ({
+  className,
+}: {
+  className?: string;
+}) => (
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M9 12C9 7.02944 13.0294 3 18 3C22.9706 3 27 7.02944 27 12C27 22.5 31.5 25.5 31.5 25.5H4.5C4.5 25.5 9 22.5 9 12Z"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M15.45 31.5C16.155 32.695 17.43 33.5 18 33.5C18.57 33.5 19.845 32.695 20.55 31.5"
+      stroke="currentColor"
+      strokeOpacity="0.25"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const MarketingPushIcon = ({ className }: { className?: string }) => (
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect x="0.5" y="0.5" width="35" height="35" rx="7.5" stroke="#55CB00" />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M7.80672 7.68283C8.8601 7.02363 10.2484 7.34318 10.9076 8.39656C12.108 10.3147 14.7303 11.8401 18.0003 11.8401C21.2703 11.8401 23.8926 10.3147 25.093 8.39656C25.7522 7.34318 27.1405 7.02363 28.1939 7.68283C29.2473 8.34203 29.5668 9.73035 28.9076 10.7837C26.7648 14.2079 22.5807 16.3401 18.0003 16.3401C13.4199 16.3401 9.23579 14.2079 7.09298 10.7837C6.43378 9.73035 6.75333 8.34203 7.80672 7.68283Z"
+      fill="#55CB00"
+    />
+  </svg>
+);
+
 export const MarketingUserIcon = ({ className }: { className?: string }) => (
   <svg
     width="24"
@@ -339,7 +541,7 @@ export const MarketingUserIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export const MarketingGiftIcon = ({ className }: { className?: string }) => (
+export const MarketingBannerIcon = ({ className }: { className?: string }) => (
   <svg
     width="24"
     height="24"
@@ -351,32 +553,14 @@ export const MarketingGiftIcon = ({ className }: { className?: string }) => (
     <path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M17.4 19.0898H6.6C5.7168 19.0898 5 18.373 5 17.4898V11.6898C5 10.8066 5.7168 10.0898 6.6 10.0898H17.4C18.2832 10.0898 19 10.8066 19 11.6898V17.4898C19 18.373 18.2832 19.0898 17.4 19.0898Z"
+      d="M11.444 22.0007H5.111C3.945 22.0007 3 21.0557 3 19.8897V9.33366C3 8.16766 3.945 7.22266 5.111 7.22266H11.444C12.61 7.22266 13.555 8.16766 13.555 9.33366V19.8897C13.556 21.0557 12.61 22.0007 11.444 22.0007Z"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M12.1072 10.0975C12.9936 10.0975 14.8224 9.8095 15.9856 8.5951C16.8416 7.7007 16.8416 6.2527 15.9856 5.3583C15.1296 4.4639 13.7408 4.4639 12.8848 5.3583C11.5744 6.7279 12.1072 10.0975 12.1072 10.0975Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M11.8954 10.0975C11.009 10.0975 9.1802 9.8095 8.017 8.5951C7.161 7.7007 7.161 6.2527 8.017 5.3583C8.873 4.4639 10.2618 4.4639 11.1178 5.3583C12.4282 6.7279 11.8954 10.0975 11.8954 10.0975Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M12 10.1875V18.1875"
+      d="M9.75 7.22251L10.729 3.56551C11.031 2.43951 12.189 1.77051 13.315 2.07251L19.432 3.71151C20.558 4.01351 21.227 5.17051 20.925 6.29751L18.193 16.4935C17.891 17.6195 16.734 18.2885 15.608 17.9865L13.553 17.4365"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"

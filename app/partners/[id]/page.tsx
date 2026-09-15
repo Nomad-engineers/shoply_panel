@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   ChevronDown,
-  ChevronRight,
   LayoutGrid,
   List,
   Package,
@@ -14,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
+import { ChevronRightIcon } from "@/components/icons/chevron-right-icon";
 import {
   usePartners,
   type V2CategorySummaryDto,
@@ -259,7 +259,7 @@ export default function PartnerDetailsPage() {
                   <span className="text-[14px] text-[#a3a7b7]">
                     {(category.subCategories?.length ?? 0).toLocaleString("ru-RU")} суб категории
                   </span>
-                  <ChevronRight className="h-4 w-4 text-[#8f94a7]" />
+                  <ChevronRightIcon className="h-4 w-4 text-[#8f94a7]" />
                 </button>
               ))}
             </div>

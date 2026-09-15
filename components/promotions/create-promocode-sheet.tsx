@@ -18,7 +18,7 @@ import { attachAllowedUsersToPromocode } from "@/lib/promocode-allowed-users";
 import { cn } from "@/lib/theme";
 import { useAuth } from "@/components/hooks/useLogin";
 import type { Promocode } from "@/types/promocode";
-import { Spinner, InputV2, Divider } from "@/components/ui";
+import { InputV2, Divider } from "@/components/ui";
 import {
   MarketingCheckIcon,
   MarketingCloseIcon,
@@ -234,7 +234,7 @@ export const CreatePromocodeSheet = ({
     technicalName: technicalName.trim(),
     promocodeName: promocodeName.trim(),
     minSum: Number(minSum) || 0,
-    usageLimit: usageMode === "quantity" ? Number(usageLimit) || 0 : 0,
+    usageLimit: usageMode === "quantity" ? Number(usageLimit) || 0 : null,
     valueForType: Number(valueForType) || 0,
     validUntil:
       usageMode === "temporary" && validUntil
@@ -423,7 +423,7 @@ export const CreatePromocodeSheet = ({
               type="button"
               onClick={onClose}
               title="Закрыть"
-              className="inline-flex h-[36px] w-[48px] items-center justify-center gap-[8px] rounded-[18px] bg-[var(--sf-red-100,#F5462C)] px-[12px] py-[6px] text-white transition-colors hover:bg-[#e03d24]"
+              className="inline-flex h-[36px] w-[48px] cursor-pointer items-center justify-center gap-[8px] rounded-[18px] bg-[var(--sf-red-100,#F5462C)] px-[12px] py-[6px] text-white transition-colors hover:bg-[#e03d24]"
             >
               <MarketingCloseIcon className="h-[24px] w-[24px]" />
             </button>
@@ -437,12 +437,11 @@ export const CreatePromocodeSheet = ({
                 isEdit ? "w-auto" : "w-[201px]",
                 isSaveDisabled || saving
                   ? "cursor-default bg-[#D9D9DF]"
-                  : "bg-[#55CB00] hover:bg-[#4db800]"
+                  : "cursor-pointer bg-[#55CB00] hover:bg-[#4db800]"
               )}
             >
               <MarketingCheckIcon className="h-[24px] w-[24px] shrink-0" />
               {isEdit ? "Сохранить" : "Создать промокод"}
-              {saving && <Spinner size={14} />}
             </button>
           </div>
         </div>
@@ -468,7 +467,7 @@ export const CreatePromocodeSheet = ({
                 <button
                   type="button"
                   onClick={() => setShopsModalOpen(true)}
-                  className="inline-flex h-[36px] items-center gap-[8px] whitespace-nowrap rounded-full bg-[#EDEDF2] px-[18px] text-[14px] font-medium text-[#0E0F27] transition-colors hover:bg-[#e0e0e8]"
+                  className="inline-flex h-[36px] cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-full bg-[#EDEDF2] px-[18px] text-[14px] font-medium text-[#0E0F27] transition-colors hover:bg-[#e0e0e8]"
                 >
                   <Pencil className="h-[16px] w-[16px]" />
                   Изменить список
@@ -539,7 +538,7 @@ export const CreatePromocodeSheet = ({
                   setPromocodeName(code);
                   if (!technicalName) setTechnicalName(code);
                 }}
-                className="shrink-0 text-[13px] font-semibold text-[#2F80ED] hover:underline"
+                className="shrink-0 cursor-pointer text-[13px] font-semibold text-[#2F80ED] hover:underline"
               >
                 Сгенерировать
               </button>
@@ -572,7 +571,7 @@ export const CreatePromocodeSheet = ({
                     setTypeOpen(!typeOpen);
                     setUsageOpen(false);
                   }}
-                  className="flex items-center gap-2 text-[13px] font-medium text-[#0E0F27]"
+                  className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-[#0E0F27]"
                 >
                   {type === "fixed"
                     ? "Фиксированный"
@@ -603,7 +602,7 @@ export const CreatePromocodeSheet = ({
                             setType(value);
                             setTypeOpen(false);
                           }}
-                          className="flex h-[40px] w-full items-center justify-between gap-2 px-3 text-left text-[13px] text-[#0E0F27] transition-colors hover:bg-[#FAFAFC]"
+                          className="flex h-[40px] w-full cursor-pointer items-center justify-between gap-2 px-3 text-left text-[13px] text-[#0E0F27] transition-colors hover:bg-[#FAFAFC]"
                         >
                           {label}
                           <span
@@ -653,7 +652,7 @@ export const CreatePromocodeSheet = ({
                     setUsageOpen(!usageOpen);
                     setTypeOpen(false);
                   }}
-                  className="flex items-center gap-2 text-[13px] font-medium text-[#0E0F27]"
+                  className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-[#0E0F27]"
                 >
                   {usageMode === "quantity"
                     ? "Количество"
@@ -684,7 +683,7 @@ export const CreatePromocodeSheet = ({
                             setUsageMode(value);
                             setUsageOpen(false);
                           }}
-                          className="flex h-[40px] w-full items-center justify-between gap-2 px-3 text-left text-[13px] text-[#0E0F27] transition-colors hover:bg-[#FAFAFC]"
+                          className="flex h-[40px] w-full cursor-pointer items-center justify-between gap-2 px-3 text-left text-[13px] text-[#0E0F27] transition-colors hover:bg-[#FAFAFC]"
                         >
                           {label}
                           <span
