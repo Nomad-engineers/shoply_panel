@@ -61,8 +61,8 @@ export function CategoryListItem({ category, isSelected, onToggle, onClick }: Ca
             </p>
           )}
           <ChevronRightIcon
-            className="h-[18px] w-[18px]"
             className={cn(
+              "h-[18px] w-[18px]",
               "transition-colors",
               isSelected ? "text-[#55CB00]" : "text-gray-500"
             )}

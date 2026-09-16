@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
-import { AppShell, Main, Content, Sidebar } from '@/components/layout'
-import { SidebarNav } from '@/components/layout/sidebar-nav'
+import { Main, Content } from '@/components/layout'
 import { DashboardCard } from './dashboard-card'
 import { useAuth } from '@/components/hooks/useLogin'
 import {
@@ -1015,7 +1014,6 @@ function formatReviewDate(iso: string) {
 }
 
 export const AdminDashboard = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [createPromocodeOpen, setCreatePromocodeOpen] = React.useState(false)
   const { adminData } = useAuth()
   const isAdmin = adminData?.isAdmin ?? false
@@ -1023,54 +1021,49 @@ export const AdminDashboard = () => {
   const lists = useDashboardLists({ skip: !isAdmin })
 
   return (
-    <AppShell>
-      <Sidebar isCollapsed={sidebarCollapsed}>
-        <SidebarNav isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)} />
-      </Sidebar>
-      <Main className='bg-[#EDEDF4]'>
-        <Content className='p-[24px]'>
-          <TopActionBar onCreatePromocode={() => setCreatePromocodeOpen(true)} />
+    <Main className='bg-[#EDEDF4]'>
+      <Content className='p-[24px]'>
+        <TopActionBar onCreatePromocode={() => setCreatePromocodeOpen(true)} />
 
-          <CreatePromocodeSheet
-            open={createPromocodeOpen}
-            onClose={() => setCreatePromocodeOpen(false)}
-          />
+        <CreatePromocodeSheet
+          open={createPromocodeOpen}
+          onClose={() => setCreatePromocodeOpen(false)}
+        />
 
-          <section className='mt-[24px]'>
-            <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Основные</h2>
+        <section className='mt-[24px]'>
+          <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Основные</h2>
 
-            <div className='mt-[12px] flex gap-[8px]'>
-              <div className='flex-1 flex flex-col gap-[8px]'>
-                <div className='grid grid-cols-3 gap-[8px]'>
-                  <OrdersTodayCard today={dashboard.today} />
-                  <UsersQuarterCard stat={dashboard.usersQuarter} />
-                  <ClientsMonthCard clients={dashboard.clientsMonth} />
-                </div>
-                <OrdersChartCard
-                  chart={dashboard.chart}
-                  chartTotals={dashboard.chartTotals}
-                  avgTimes={dashboard.avgTimes}
-                />
+          <div className='mt-[12px] flex gap-[8px]'>
+            <div className='flex-1 flex flex-col gap-[8px]'>
+              <div className='grid grid-cols-3 gap-[8px]'>
+                <OrdersTodayCard today={dashboard.today} />
+                <UsersQuarterCard stat={dashboard.usersQuarter} />
+                <ClientsMonthCard clients={dashboard.clientsMonth} />
               </div>
-
-              <div className='flex w-[320px] flex-col gap-[8px]'>
-                <OperationalRevenueCard revenue={dashboard.revenue} />
-                <PaymentMethodsCard payments={dashboard.payments} />
-              </div>
+              <OrdersChartCard
+                chart={dashboard.chart}
+                chartTotals={dashboard.chartTotals}
+                avgTimes={dashboard.avgTimes}
+              />
             </div>
-          </section>
 
-          <section className='mt-[24px]'>
-            <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Дополнительные</h2>
-
-            <div className='mt-[12px] grid grid-cols-3 gap-[8px]'>
-              <ReviewsCard state={lists.reviews} onFilter={lists.fetchReviews} />
-              <SellersCard state={lists.sellers} onSort={lists.fetchSellers} />
-              <CouriersCard state={lists.couriers} onSort={lists.fetchCouriers} />
+            <div className='flex w-[320px] flex-col gap-[8px]'>
+              <OperationalRevenueCard revenue={dashboard.revenue} />
+              <PaymentMethodsCard payments={dashboard.payments} />
             </div>
-          </section>
-        </Content>
-      </Main>
-    </AppShell>
+          </div>
+        </section>
+
+        <section className='mt-[24px]'>
+          <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Дополнительные</h2>
+
+          <div className='mt-[12px] grid grid-cols-3 gap-[8px]'>
+            <ReviewsCard state={lists.reviews} onFilter={lists.fetchReviews} />
+            <SellersCard state={lists.sellers} onSort={lists.fetchSellers} />
+            <CouriersCard state={lists.couriers} onSort={lists.fetchCouriers} />
+          </div>
+        </section>
+      </Content>
+    </Main>
   )
 }

@@ -3,8 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Volume2 } from "lucide-react";
-import { AppShell, Main, Sidebar } from "@/components/layout";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { Main } from "@/components/layout";
 import { cn } from "@/lib/theme";
 import { usePanelOrders } from "@/components/hooks/usePanelOrders";
 import { useAdminOrders } from "@/components/hooks/useAdminOrders";
@@ -125,8 +124,6 @@ export default function PanelOrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
   const [selectedOrderCard, setSelectedOrderCard] = useState<OrderCardProps | null>(null);
 
   const filters = useMemo(() => {
@@ -219,13 +216,7 @@ export default function PanelOrdersPage() {
   }, [router]);
 
   return (
-    <AppShell>
-      <Sidebar isCollapsed={sidebarCollapsed}>
-        <SidebarNav
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-        />
-      </Sidebar>
+    <>
       <Main className="bg-[#EDEDF4]">
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div
@@ -295,6 +286,6 @@ export default function PanelOrdersPage() {
           onSuccess={() => refetch()}
         />
       )}
-    </AppShell>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import LoginPage from "./login/page";
+import LoginPage from "../login/page";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { Spinner } from "@/components/ui";
 import { useAuth } from "@/components/hooks/useLogin";

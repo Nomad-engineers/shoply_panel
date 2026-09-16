@@ -13,7 +13,7 @@ const AppShell = React.forwardRef<HTMLDivElement, AppShellProps>(
       <div
         ref={ref}
         className={cn(
-          "flex h-screen w-full gap-4 overflow-hidden bg-background-main",
+          "flex h-screen w-full overflow-hidden bg-background-main",
           className,
         )}
       >
