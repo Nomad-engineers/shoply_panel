@@ -22,6 +22,7 @@ import {
   type SellersSort,
   type CouriersSort,
 } from '@/components/hooks/useDashboardLists'
+import { CreatePromocodeSheet } from '@/components/promotions/create-promocode-sheet'
 
 const NOW = new Date()
 
@@ -290,7 +291,7 @@ function FilterBadges({
   )
 }
 
-function TopActionBar() {
+function TopActionBar({ onCreatePromocode }: { onCreatePromocode: () => void }) {
   return (
     <div className='flex items-center justify-between'>
       <div className='flex items-center gap-3'>
@@ -322,6 +323,7 @@ function TopActionBar() {
 
         <button
           type='button'
+          onClick={onCreatePromocode}
           className='flex items-center gap-[8px] rounded-full border border-[#E2E2EA] bg-white px-[16px] py-[10px] text-[14px] font-medium text-[#0E0E27] transition-colors hover:bg-[#F5F6F6]'
         >
           <TagPurpleIcon className='h-[24px] w-[24px]' />
@@ -1014,6 +1016,7 @@ function formatReviewDate(iso: string) {
 
 export const AdminDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [createPromocodeOpen, setCreatePromocodeOpen] = React.useState(false)
   const { adminData } = useAuth()
   const isAdmin = adminData?.isAdmin ?? false
   const dashboard = useDashboardData({ skip: !isAdmin })
@@ -1026,7 +1029,12 @@ export const AdminDashboard = () => {
       </Sidebar>
       <Main className='bg-[#EDEDF4]'>
         <Content className='p-[24px]'>
-          <TopActionBar />
+          <TopActionBar onCreatePromocode={() => setCreatePromocodeOpen(true)} />
+
+          <CreatePromocodeSheet
+            open={createPromocodeOpen}
+            onClose={() => setCreatePromocodeOpen(false)}
+          />
 
           <section className='mt-[24px]'>
             <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Основные</h2>

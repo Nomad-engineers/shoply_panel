@@ -80,7 +80,7 @@ export const CreatePromocodeSheet = ({
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const [forShops, setForShops] = useState(isAdmin);
+  const [forShops, setForShops] = useState(false);
   const [selectedShops, setSelectedShops] = useState<SelectedShopOption[]>([]);
   const [shopsModalOpen, setShopsModalOpen] = useState(false);
 
