@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetcher } from "../providers/QueryProvider";
+import { useApiMutation } from "./useApiMutation";
 import type { Banner, BannersResponse } from "@/types/banner";
 
 export interface FetchBannersParams {
@@ -9,6 +10,11 @@ export interface FetchBannersParams {
   search?: string;
   status?: "all" | "active" | "archived";
   skip?: boolean;
+}
+
+export interface ReorderBannerItem {
+  id: number;
+  customOrderId: number;
 }
 
 export const useBanners = (initialParams?: FetchBannersParams) => {
@@ -36,11 +42,15 @@ export const useBanners = (initialParams?: FetchBannersParams) => {
   ]);
 
   const fetcher = useAuthFetcher();
+  const { mutate, isLoading: isReordering } = useApiMutation();
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["banners", url],
     queryFn: () => fetcher<BannersResponse>(url!),
     enabled: !!url,
   });
+
+  const reorderBanners = (items: ReorderBannerItem[]) =>
+    mutate("v2/admin/banner/reorder", { method: "PATCH", body: { items } });
 
   return {
     data: (data?.data ?? []) as Banner[],
@@ -48,5 +58,7 @@ export const useBanners = (initialParams?: FetchBannersParams) => {
     loading: isLoading,
     error: (error as Error | null)?.message || null,
     refetch: () => refetch(),
+    reorderBanners,
+    isReordering,
   };
 };

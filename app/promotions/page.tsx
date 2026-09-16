@@ -8,6 +8,7 @@ import {
   Search,
   RotateCcw,
   Bell,
+  AlignJustify,
 } from "lucide-react";
 import Cookies from "js-cookie";
 
@@ -176,6 +177,9 @@ export default function PromotionsPage() {
   const [bannerSheetOpen, setBannerSheetOpen] = useState(false);
   const [editBanner, setEditBanner] = useState<Banner | null>(null);
   const [bannersPage, setBannersPage] = useState(1);
+  const [armedBannerId, setArmedBannerId] = useState<number | null>(null);
+  const [dragBannerId, setDragBannerId] = useState<number | null>(null);
+  const [bannersOrder, setBannersOrder] = useState<Banner[]>([]);
 
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
@@ -261,12 +265,55 @@ export default function PromotionsPage() {
     loading: bannersLoading,
     error: bannersError,
     refetch: bannersRefetch,
+    reorderBanners,
   } = useBanners({
     page: bannersPage,
     pageSize: 30,
     search: bannerSearch,
     status: bannerFilter,
   });
+
+  // Keep the displayed order in sync with server data (unless a drag is in progress)
+  useEffect(() => {
+    setBannersOrder(bannersData);
+  }, [bannersData]);
+
+  const handleBannerDragEnter = (targetId: number) => {
+    if (dragBannerId === null || dragBannerId === targetId) return;
+    setBannersOrder((prev) => {
+      const from = prev.findIndex((b) => b.id === dragBannerId);
+      const to = prev.findIndex((b) => b.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
+  const commitBannerReorder = async () => {
+    const dragged = bannersOrder.find((b) => b.id === dragBannerId);
+    const unchanged =
+      !dragged ||
+      bannersData.every(
+        (b, idx) => bannersOrder[idx]?.id === b.id
+      );
+    setDragBannerId(null);
+    setArmedBannerId(null);
+    if (unchanged) return;
+
+    const items = bannersOrder.map((b, idx) => ({
+      id: b.id,
+      customOrderId: (bannersPage - 1) * 30 + idx,
+    }));
+    try {
+      await reorderBanners(items);
+      bannersRefetch();
+    } catch {
+      toast.error("Не удалось изменить порядок баннеров");
+      setBannersOrder(bannersData);
+    }
+  };
 
   const handleSectionChange = (key: MarketingSection) => {
     setSection(key);
@@ -485,11 +532,23 @@ export default function PromotionsPage() {
                 <>
                   <div
                     className={cn(
-                      "overflow-x-auto px-3 pb-2",
+                      "overflow-x-auto px-3",
                       promocodes.length === 0 ? "flex-none" : "flex-1"
                     )}
                   >
-                    <table className="min-w-full border-separate border-spacing-0">
+                    <table className="w-full table-fixed border-separate border-spacing-0">
+                      <colgroup>
+                        <col className="w-[4%]" />
+                        <col className="w-[9%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[17%]" />
+                        <col className="w-[10%]" />
+                        <col className="w-[9%]" />
+                        <col className="w-[9%]" />
+                        <col className="w-[8%]" />
+                        <col className="w-[4%]" />
+                      </colgroup>
                       <thead className="sticky top-0 z-10 bg-white">
                         <tr className="text-left text-[14px] text-text-secondary">
                           <th className="border-b border-border px-3 py-5 font-medium">
@@ -519,7 +578,7 @@ export default function PromotionsPage() {
                           <th className="border-b border-border px-3 py-5 font-medium">
                             Условия
                           </th>
-                          <th className="border-b border-border px-3 py-5 font-medium">
+                          <th className="border-b border-border px-3 py-5 font-medium truncate">
                             Содержание
                           </th>
                           <th className="border-b border-border px-3 py-5 font-medium">
@@ -557,7 +616,7 @@ export default function PromotionsPage() {
                                   >
                                     <PromocodeIcon className="w-5 h-5 flex-shrink-0 text-[#478EFF]" />
                                   </div>
-                                  <span className="whitespace-nowrap text-[16px] font-bold text-[#478EFF] hover:underline decoration-2 underline-offset-4">
+                                  <span className="min-w-0 truncate text-[16px] font-bold text-[#478EFF] hover:underline decoration-2 underline-offset-4">
                                     {p.name}
                                   </span>
                                 </div>
@@ -590,7 +649,7 @@ export default function PromotionsPage() {
                                             : name.charAt(0).toUpperCase()}
                                         </div>
                                       )}
-                                      <span className="text-[16px] text-text-primary font-medium whitespace-nowrap">
+                                      <span className="min-w-0 truncate text-[16px] text-text-primary font-medium">
                                         {name}
                                       </span>
                                     </div>
@@ -616,30 +675,30 @@ export default function PromotionsPage() {
                           );
                         })}
 
-                        {/* Summary row */}
-                        {promocodes.length > 0 && (
-                          <tr>
-                            <td
-                              colSpan={4}
-                              className="px-3 py-5 text-[14px] text-text-secondary font-medium"
-                            >
-                              {promocodes.length} промокодов
-                            </td>
-                            <td className="px-3 py-5" />
-                            <td className="whitespace-nowrap px-3 py-5 text-[16px] font-semibold text-text-primary">
-                              {formatCurrency(totalTurnover)}
-                            </td>
-                            <td className="px-3 py-5" />
-                            <td className="px-3 py-5" />
-                            <td className="px-3 py-5 text-[16px] text-text-primary font-semibold">
-                              {totalActivations}
-                            </td>
-                            <td className="px-3 py-5" />
-                          </tr>
-                        )}
                       </tbody>
                     </table>
                   </div>
+
+                  {promocodes.length > 0 && (
+                    <div className="grid shrink-0 grid-cols-[4%_9%_15%_15%_17%_10%_9%_9%_8%_4%] border-t border-border px-3 py-5 text-[14px] font-normal leading-[18px] text-[var(--sf-gray-100,#AAAAB8)]">
+                      <div />
+                      <div />
+                      <div className="px-3">
+                        {promocodes.length} промокодов
+                      </div>
+                      <div />
+                      <div />
+                      <div className="whitespace-nowrap px-3">
+                        {formatCurrency(totalTurnover)}
+                      </div>
+                      <div />
+                      <div />
+                      <div className="whitespace-nowrap px-3">
+                        {totalActivations}
+                      </div>
+                      <div />
+                    </div>
+                  )}
 
                   {promocodes.length === 0 && (
                     <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 px-6 py-16">
@@ -704,7 +763,8 @@ export default function PromotionsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 overflow-x-auto px-3 pb-2">
+                <>
+                  <div className="flex-1 overflow-x-auto px-3">
                   <table className="min-w-full border-separate border-spacing-0">
                     <thead className="sticky top-0 z-10 bg-white">
                       <tr className="text-left text-[14px] text-text-secondary">
@@ -770,19 +830,13 @@ export default function PromotionsPage() {
                           </td>
                         </tr>
                       ))}
-
-                      {/* Summary row */}
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-3 py-5 text-[14px] font-medium text-text-secondary"
-                        >
-                          {pushes.length} уведомлений
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
+                <div className="shrink-0 border-t border-border px-6 py-5 text-[14px] font-normal leading-[18px] text-[var(--sf-gray-100,#AAAAB8)]">
+                  {pushes.length} уведомлений
+                </div>
+                </>
               )}
             </>
           )}
@@ -874,7 +928,8 @@ export default function PromotionsPage() {
                   Ошибка: {bannersError}
                 </div>
               ) : (
-                <div className="flex-1 overflow-x-auto px-3 pb-2">
+                <>
+                  <div className="flex-1 overflow-x-auto px-3">
                   <table className="min-w-full border-separate border-spacing-0">
                     <thead className="sticky top-0 z-10 bg-white">
                       <tr className="text-left text-[14px] text-text-secondary">
@@ -900,13 +955,26 @@ export default function PromotionsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bannersData.map((b) => {
+                      {bannersOrder.map((b) => {
                         const previewUrl = getImageUrl(b.cover ?? b.image ?? null);
+                        const isDragging = dragBannerId === b.id;
 
                         return (
                           <tr
                             key={b.id}
-                            className="group cursor-pointer transition-colors hover:bg-gray-50/50"
+                            draggable={armedBannerId === b.id}
+                            onDragStart={() => setDragBannerId(b.id)}
+                            onDragEnter={() => handleBannerDragEnter(b.id)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              commitBannerReorder();
+                            }}
+                            onDragEnd={commitBannerReorder}
+                            className={cn(
+                              "group cursor-pointer transition-colors hover:bg-gray-50/50",
+                              isDragging && "opacity-40"
+                            )}
                             onClick={() => setEditBanner(b)}
                           >
                             <td className="border-b border-border px-3 py-5 align-top text-[16px] text-text-secondary">
@@ -961,25 +1029,34 @@ export default function PromotionsPage() {
                             <td className="whitespace-nowrap border-b border-border px-3 py-5 align-top text-[16px] text-text-primary">
                               {b.author || "-"}
                             </td>
-                            <td className="border-b border-border px-3 py-5 text-right align-top">
-                              <ChevronRightIcon className="ml-auto h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
+                            <td className="border-b border-border px-3 py-5 align-top">
+                              <div
+                                className="flex items-center justify-end gap-3"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ChevronRightIcon className="h-3.5 w-3.5 text-[#b9bbc6] transition-transform group-hover:translate-x-0.5" />
+                                <button
+                                  type="button"
+                                  title="Перетащите, чтобы изменить порядок"
+                                  className="cursor-grab text-[#b9bbc6] transition-colors hover:text-[#09091D] active:cursor-grabbing"
+                                  onMouseDown={() => setArmedBannerId(b.id)}
+                                  onMouseUp={() => setArmedBannerId(null)}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <AlignJustify className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
                       })}
-
-                      {/* Summary row */}
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-3 py-5 text-[14px] font-medium text-text-secondary"
-                        >
-                          {bannersData.length} баннеров
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
+                <div className="shrink-0 border-t border-border px-6 py-5 text-[14px] font-normal leading-[18px] text-[var(--sf-gray-100,#AAAAB8)]">
+                  {bannersOrder.length} баннеров
+                </div>
+                </>
               )}
             </>
           )}
