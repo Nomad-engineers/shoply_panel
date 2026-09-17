@@ -36,7 +36,9 @@ export const createPush = async (payload: CreatePushPayload): Promise<PushNotifi
     throw new Error(`Error ${response.status}: ${response.statusText}`);
   }
 
-  return response.json();
+  // SuccessInterceptor оборачивает ответ: { data: PushNotification }
+  const json = await response.json();
+  return (json?.data ?? json) as PushNotification;
 };
 
 export const usePushNotifications = (initialParams?: FetchPushesParams) => {
