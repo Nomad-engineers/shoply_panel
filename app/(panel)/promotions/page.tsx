@@ -38,7 +38,9 @@ import { CreatePromocodeSheet } from "@/components/promotions/create-promocode-s
 import { CreatePushSheet } from "@/components/promotions/create-push-sheet";
 import { CreateBannerSheet } from "@/components/promotions/create-banner-sheet";
 import { useBanners } from "@/components/hooks/useBanners";
+import { usePushNotifications } from "@/components/hooks/usePushNotifications";
 import type { Banner } from "@/types/banner";
+import type { PushNotification } from "@/types/push-notification";
 import { toast } from "sonner";
 
 type MarketingSection = "promocodes" | "push" | "banners";
@@ -60,62 +62,7 @@ const BANNER_FILTERS: { key: BannerFilter; label: string }[] = [
   { key: "archived", label: "Архивные" },
 ];
 
-type PushNotification = {
-  id: number;
-  createdAt: string;
-  title: string;
-  description: string;
-  technicalName: string;
-  sent: string;
-  author: string;
-};
-
-const MOCK_PUSHES: PushNotification[] = [
-  {
-    id: 89,
-    createdAt: "2026-01-12T10:00:00.000Z",
-    title: "Заголовок",
-    description:
-      "Описание тут будет ровно таким же как и в реальном пуше чтобы",
-    technicalName:
-      "Описание промокода для того чтобы понимать зачем было выпущенно",
-    sent: "1-10k",
-    author: "М. Серкжан",
-  },
-  {
-    id: 88,
-    createdAt: "2026-01-12T10:00:00.000Z",
-    title: "Заголовок",
-    description:
-      "Описание тут будет ровно таким же как и в реальном пуше чтобы",
-    technicalName:
-      "Описание промокода для того чтобы понимать зачем было выпущенно",
-    sent: "1-10k",
-    author: "М. Серкжан",
-  },
-  {
-    id: 87,
-    createdAt: "2026-01-12T10:00:00.000Z",
-    title: "Заголовок",
-    description:
-      "Описание тут будет ровно таким же как и в реальном пуше чтобы",
-    technicalName:
-      "Описание промокода для того чтобы понимать зачем было выпущенно",
-    sent: "1-10k",
-    author: "М. Серкжан",
-  },
-  {
-    id: 86,
-    createdAt: "2026-01-12T10:00:00.000Z",
-    title: "Заголовок",
-    description:
-      "Описание тут будет ровно таким же как и в реальном пуше чтобы",
-    technicalName:
-      "Описание промокода для того чтобы понимать зачем было выпущенно",
-    sent: "1-10k",
-    author: "М. Серкжан",
-  },
-];
+type PushNotificationRow = PushNotification;
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) + " ₽";
@@ -138,6 +85,30 @@ const getConditionsLabel = (p: Promocode) => {
 const getContentLabel = (p: Promocode) => {
   if (p.type === "percent") return `-${p.valueForType}%`;
   return `${p.valueForType} ₽`;
+};
+
+const formatCount = (value: number) => value.toLocaleString("ru-RU");
+
+const formatPushSent = (p: PushNotificationRow) => {
+  switch (p.status) {
+    case "scheduled":
+      return `Запланирован · ${formatCount(p.totalRecipients)}`;
+    case "sending":
+      return `Отправка... ${formatCount(p.successCount)}/${formatCount(p.totalRecipients)}`;
+    case "sent":
+      return `${formatCount(p.successCount)} чел.`;
+    case "failed":
+      return "Ошибка отправки";
+    default:
+      return "—";
+  }
+};
+
+const formatPushDate = (p: PushNotificationRow) => {
+  if (p.status === "scheduled" && p.scheduledAt) {
+    return formatDate(p.scheduledAt);
+  }
+  return formatDate(p.createdAt);
 };
 
 export default function PromotionsPage() {
@@ -250,15 +221,16 @@ export default function PromotionsPage() {
     return promocodes.reduce((sum, p) => sum + (p.turnover ?? 0), 0);
   }, [promocodes]);
 
-  const pushes = useMemo(() => {
-    const q = pushSearch.trim().toLowerCase();
-    if (!q) return MOCK_PUSHES;
-    return MOCK_PUSHES.filter((p) =>
-      [p.title, p.description, p.technicalName, p.author].some((v) =>
-        v.toLowerCase().includes(q)
-      )
-    );
-  }, [pushSearch]);
+  const {
+    data: pushData,
+    refetch: pushRefetch,
+  } = usePushNotifications({
+    page: 1,
+    pageSize: 30,
+    search: pushSearch,
+  });
+
+  const pushes = pushData;
 
   const {
     data: bannersData,
@@ -754,6 +726,7 @@ export default function PromotionsPage() {
               <CreatePushSheet
                 open={pushSheetOpen}
                 onClose={() => setPushSheetOpen(false)}
+                onSuccess={() => pushRefetch()}
               />
               {pushes.length === 0 ? (
                 <div className="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 px-6 py-16">
@@ -799,7 +772,7 @@ export default function PromotionsPage() {
                             {p.id}
                           </td>
                           <td className="whitespace-nowrap border-b border-border px-3 py-5 align-top text-[16px] font-medium text-text-primary">
-                            {formatDate(p.createdAt)}
+                            {formatPushDate(p)}
                           </td>
                           <td className="border-b border-border px-3 py-5 align-top">
                             <div className="flex w-[280px] items-center gap-3 rounded-[14px] bg-[#F6F6FA] p-[10px]">
@@ -820,7 +793,7 @@ export default function PromotionsPage() {
                             </p>
                           </td>
                           <td className="whitespace-nowrap border-b border-border px-3 py-5 align-top text-[16px] font-medium text-text-primary">
-                            {p.sent}
+                            {formatPushSent(p)}
                           </td>
                           <td className="whitespace-nowrap border-b border-border px-3 py-5 align-top text-[16px] text-text-primary">
                             {p.author}

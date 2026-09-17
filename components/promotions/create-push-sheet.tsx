@@ -4,9 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 import { cn } from "@/lib/theme";
 import { Divider, InputV2 } from "@/components/ui";
+import {
+  createPush,
+  usePushRecipients,
+} from "@/components/hooks/usePushNotifications";
+import { SelectRegionsModal } from "@/components/promotions/select-regions-modal";
+import type { SelectedRegionOption } from "@/components/promotions/select-regions-modal";
+import type { PushNotification } from "@/types/push-notification";
 import {
   MarketingCheckIcon,
   MarketingCloseIcon,
@@ -17,9 +25,21 @@ type ScheduleMode = "now" | "scheduled";
 interface CreatePushSheetProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: (push: PushNotification) => void;
 }
 
-export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
+export const CreatePushSheet = ({
+  open,
+  onClose,
+  onSuccess,
+}: CreatePushSheetProps) => {
+  const [region, setRegion] = useState<SelectedRegionOption | null>(null);
+  const [regionModalOpen, setRegionModalOpen] = useState(false);
+
+  const { total: recipientsCount } = usePushRecipients({
+    regionId: region?.id,
+  });
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [technicalDescription, setTechnicalDescription] = useState("");
@@ -34,6 +54,8 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
 
   useEffect(() => {
     if (open) {
+      setRegion(null);
+      setRegionModalOpen(false);
       setTitle("");
       setDescription("");
       setTechnicalDescription("");
@@ -66,14 +88,45 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
     setSaving(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      toast.success("Push создан");
+      const created = await createPush({
+        title: title.trim(),
+        description: description.trim(),
+        technicalName: technicalDescription.trim() || undefined,
+        scheduledAt:
+          scheduleMode === "scheduled" && sendAt
+            ? sendAt.toISOString()
+            : undefined,
+        regionId: region?.id,
+      });
+
+      if (created.status === "scheduled") {
+        toast.success(
+          `Push запланирован на ${formatDateTime(created.scheduledAt)} для ${created.totalRecipients.toLocaleString("ru-RU")} получателей`
+        );
+      } else {
+        toast.success(
+          `Push создан. Отправляется ${created.totalRecipients.toLocaleString("ru-RU")} получателям`
+        );
+      }
+
+      onSuccess?.(created);
       onClose();
     } catch (e: any) {
       setSubmitError(e.message ?? "Ошибка");
     } finally {
       setSaving(false);
     }
+  };
+
+  const formatDateTime = (iso: string | null) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (!sheetMounted) return null;
@@ -93,6 +146,10 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
           "fixed right-0 top-0 z-50 flex h-full w-[640px] max-w-full flex-col bg-white shadow-[-20px_0_60px_rgba(15,23,42,0.15)]",
           sheetClosing ? "animate-sheet-out" : "animate-sheet-in"
         )}
+        style={{
+          transform: regionModalOpen ? "translateX(340px)" : "translateX(0)",
+          transition: "transform 320ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ECECF3] px-5 py-4">
@@ -129,6 +186,23 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
 
         {/* Body */}
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+          {/* Регион */}
+          <div className="space-y-2">
+            <div className="text-[12px] font-medium leading-[13.5px] text-[var(--text-txt-main-50,#0E0F2780)]">
+              Выберите регион для отправки
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegionModalOpen(true)}
+              className="flex h-[52px] w-full cursor-pointer items-center justify-between rounded-[12px] border border-[var(--stroke-100,#DCDCE6)] bg-[#F6F6FA] px-[14px] text-left transition-colors hover:bg-[#EFEFF5]"
+            >
+              <span className="text-[16px] font-medium text-[#0E0F27]">
+                 {region?.name ?? "Все регионы"}
+              </span>
+              <Pencil className="h-[18px] w-[18px] text-[#0E0F27]" />
+            </button>
+          </div>
+
           {/* Заголовок */}
           <div className="space-y-2">
             <div className="text-[12px] font-medium leading-[13.5px] text-[var(--text-txt-main-50,#0E0F2780)]">
@@ -169,6 +243,20 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
               rows={4}
               className="w-full resize-none rounded-[12px] border border-[var(--stroke-100,#DCDCE6)] bg-[#EEEEF480] p-[14px] text-[16px] font-medium leading-[18px] text-[#0E0F27] outline-none ring-1 ring-transparent transition-shadow placeholder:text-[#0E0F2780] focus:ring-[#55CB00]"
             />
+          </div>
+
+          <Divider />
+
+          {/* Аудитория */}
+          <div className="flex items-center justify-between rounded-[12px] bg-[#F6F6FA] px-[14px] py-[12px]">
+            <div className="text-[14px] font-medium text-[#0E0F27]">
+              Аудитория рассылки
+            </div>
+            <div className="text-[14px] font-semibold text-[#0E0F27]">
+              {recipientsCount === null
+                ? "—"
+                : `${recipientsCount.toLocaleString("ru-RU")} чел.`}
+            </div>
           </div>
 
           <Divider />
@@ -262,6 +350,16 @@ export const CreatePushSheet = ({ open, onClose }: CreatePushSheetProps) => {
           )}
         </div>
       </aside>
+
+      <SelectRegionsModal
+        open={regionModalOpen}
+        selected={region ? [region] : []}
+        onConfirm={(regions) => {
+          setRegion(regions[0] ?? null);
+          setRegionModalOpen(false);
+        }}
+        onClose={() => setRegionModalOpen(false)}
+      />
     </>
   );
 };
