@@ -16,6 +16,8 @@ interface SelectRegionsModalProps {
   selected: SelectedRegionOption[];
   onConfirm: (regions: SelectedRegionOption[]) => void;
   onClose: () => void;
+  allowAllRegions?: boolean;
+  singleSelect?: boolean;
 }
 
 const ALL_REGIONS_ID = 0;
@@ -25,6 +27,8 @@ export const SelectRegionsModal = ({
   selected,
   onConfirm,
   onClose,
+  allowAllRegions = true,
+  singleSelect = false,
 }: SelectRegionsModalProps) => {
   const { data: regions, isLoading } = usePanelRegions();
 
@@ -36,14 +40,21 @@ export const SelectRegionsModal = ({
   useEffect(() => {
     if (open) {
       const initial: SelectedRegionOption[] =
-        selected.length > 0 ? selected : [{ id: ALL_REGIONS_ID, name: "Все регионы" }];
+        selected.length > 0
+          ? selected
+          : allowAllRegions
+            ? [{ id: ALL_REGIONS_ID, name: "Все регионы" }]
+            : [];
       setSelectedRegions(new Map(initial.map((region) => [region.id, region])));
     }
   }, [open]);
 
   const allItems = useMemo<PanelRegion[]>(
-    () => [{ id: ALL_REGIONS_ID, name: "Все регионы" }, ...(regions ?? [])],
-    [regions]
+    () =>
+      allowAllRegions
+        ? [{ id: ALL_REGIONS_ID, name: "Все регионы" }, ...(regions ?? [])]
+        : regions ?? [],
+    [allowAllRegions, regions]
   );
 
   const filteredRegions = useMemo(() => {
@@ -54,6 +65,9 @@ export const SelectRegionsModal = ({
 
   const toggleRegion = (region: PanelRegion) => {
     setSelectedRegions((prev) => {
+      if (singleSelect) {
+        return new Map([[region.id, { id: region.id, name: region.name }]]);
+      }
       if (region.id === ALL_REGIONS_ID) {
         return prev.has(ALL_REGIONS_ID)
           ? new Map()

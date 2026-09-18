@@ -81,7 +81,7 @@ const Header = React.forwardRef<HTMLDivElement, HeaderProps>(
       <div
         ref={ref}
         className={cn(
-          "z-20 flex h-[72px] items-center justify-between bg-background-surface px-8",
+          "z-20 flex h-[72px] items-center justify-between bg-background-surface max-lg:px-4 lg:px-8",
           className,
         )}
       >

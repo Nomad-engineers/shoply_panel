@@ -67,7 +67,7 @@ export const ShopsFilterDropdown = ({
   return (
     <div
       ref={rootRef}
-      className="absolute top-full left-0 z-30 mt-2 flex w-[340px] flex-col rounded-[20px] border border-border bg-white p-[8px] shadow-[0_20px_60px_rgba(15,23,42,0.12)] animate-in fade-in zoom-in-95 duration-150 origin-top"
+      className="absolute top-full left-0 z-30 mt-2 flex w-[340px] flex-col rounded-[20px] border border-border bg-white p-[8px] shadow-[0_20px_60px_rgba(15,23,42,0.12)] animate-in fade-in zoom-in-95 duration-150 origin-top max-lg:max-w-[calc(100vw-72px)]"
     >
       <label className="relative block pt-[4px] pb-[8px]">
         <input

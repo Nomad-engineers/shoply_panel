@@ -62,10 +62,10 @@ export const SideModal = ({
         onClick={onClose}
       />
 
-      <div className="fixed right-[324px] top-1/2 z-[55] -translate-y-1/2">
+      <div className="fixed top-1/2 z-[55] flex max-h-screen w-full -translate-y-1/2 justify-center px-3 max-lg:inset-x-0 lg:right-[324px] lg:w-auto lg:px-0">
         <div
           className={cn(
-            "flex h-[902px] max-h-[calc(100vh-48px)] w-[606px] flex-col overflow-hidden rounded-[32px] border-l border-[#ECECF3] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.2)]",
+            "flex h-[902px] max-h-[calc(100dvh-48px)] w-[606px] max-w-full flex-col overflow-hidden rounded-[32px] border-l border-[#ECECF3] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.2)] max-lg:max-h-[calc(100dvh-24px)]",
             closing ? "animate-modal-out" : "animate-modal-in"
           )}
         >

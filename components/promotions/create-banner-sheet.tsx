@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 import { cn } from "@/lib/theme";
 import { getImageUrl } from "@/lib/utils";
 import type { Banner } from "@/types/banner";
 import { Divider, InputV2 } from "@/components/ui";
 import { useAuth } from "@/components/hooks/useLogin";
+import { SelectRegionsModal } from "@/components/promotions/select-regions-modal";
+import type { SelectedRegionOption } from "@/components/promotions/select-regions-modal";
 import {
   MarketingCheckIcon,
   MarketingCloseIcon,
@@ -172,6 +175,8 @@ export const CreateBannerSheet = ({
   const isEdit = banner != null;
   const { refreshSession } = useAuth();
 
+  const [region, setRegion] = useState<SelectedRegionOption | null>(null);
+  const [regionModalOpen, setRegionModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [technicalDescription, setTechnicalDescription] = useState("");
@@ -187,6 +192,8 @@ export const CreateBannerSheet = ({
 
   useEffect(() => {
     if (open) {
+      setRegion(banner?.region ?? null);
+      setRegionModalOpen(false);
       setTitle(banner?.title ?? "");
       setDescription(banner?.description ?? "");
       setTechnicalDescription(banner?.technicalName ?? "");
@@ -228,10 +235,11 @@ export const CreateBannerSheet = ({
     () =>
       !title.trim() ||
       !description.trim() ||
+      !region ||
       !cover ||
       !inlineImage ||
       saving,
-    [title, description, cover, inlineImage, saving]
+    [title, description, region, cover, inlineImage, saving]
   );
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -282,6 +290,8 @@ export const CreateBannerSheet = ({
   };
 
   const submit = async () => {
+    if (!region) return;
+
     setSubmitError(null);
     setSaving(true);
 
@@ -291,6 +301,7 @@ export const CreateBannerSheet = ({
         description: description.trim(),
         technicalName: technicalDescription.trim() || undefined,
         inArchive,
+        regionId: region.id,
       };
 
       if (cover?.file) payload.coverId = await uploadImage(cover.file);
@@ -361,6 +372,10 @@ export const CreateBannerSheet = ({
           "fixed right-0 top-0 z-50 flex h-full w-[640px] max-w-full flex-col bg-white shadow-[-20px_0_60px_rgba(15,23,42,0.15)]",
           sheetClosing ? "animate-sheet-out" : "animate-sheet-in"
         )}
+        style={{
+          transform: regionModalOpen ? "translateX(340px)" : "translateX(0)",
+          transition: "transform 320ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ECECF3] px-5 py-4">
@@ -397,8 +412,30 @@ export const CreateBannerSheet = ({
 
         {/* Body */}
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+          {/* Регион */}
+          <div className="space-y-2">
+            <div className="text-[12px] font-medium leading-[13.5px] text-[var(--text-txt-main-50,#0E0F2780)]">
+              Выберите регион
+            </div>
+            <button
+              type="button"
+              onClick={() => setRegionModalOpen(true)}
+              className="flex h-[52px] w-full cursor-pointer items-center justify-between rounded-[12px] border border-[var(--stroke-100,#DCDCE6)] bg-[#F6F6FA] px-[14px] text-left transition-colors hover:bg-[#EFEFF5]"
+            >
+              <span
+                className={cn(
+                  "text-[16px] font-medium",
+                  region ? "text-[#0E0F27]" : "text-[#0E0F2780]"
+                )}
+              >
+                {region?.name ?? "Выберите регион"}
+              </span>
+              <Pencil className="h-[18px] w-[18px] text-[#0E0F27]" />
+            </button>
+          </div>
+
           {/* Изображения */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:gap-6">
             <BannerImageField
               label="Обложка"
               recommended="Рекомендуемое разрешение 640х960"
@@ -508,6 +545,18 @@ export const CreateBannerSheet = ({
           )}
         </div>
       </aside>
+
+      <SelectRegionsModal
+        open={regionModalOpen}
+        selected={region ? [region] : []}
+        allowAllRegions={false}
+        singleSelect
+        onConfirm={(regions) => {
+          setRegion(regions[0] ?? region);
+          setRegionModalOpen(false);
+        }}
+        onClose={() => setRegionModalOpen(false)}
+      />
     </>
   );
 };

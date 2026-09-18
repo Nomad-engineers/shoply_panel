@@ -17,6 +17,7 @@ export interface Banner {
   coverId?: string | null;
   imageId?: string | null;
   regionId?: number | null;
+  region?: { id: number; name: string } | null;
   technicalName?: string | null;
   author?: string | null;
   inArchive: boolean;

@@ -143,8 +143,8 @@ export default function PromocodesPage() {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-3 py-3 lg:gap-4 lg:px-6 lg:py-4">
+        <div className="flex flex-1 flex-wrap items-center gap-4 lg:gap-6">
           {/* Navigation Tabs */}
           <div className="flex items-center gap-6 pr-2">
             <button
@@ -172,10 +172,10 @@ export default function PromocodesPage() {
           </div>
 
           {/* Separator */}
-          <div className="h-8 w-px bg-[#DCDCE6]/60" />
+          <div className="hidden h-8 w-px bg-[#DCDCE6]/60 lg:block" />
 
           {/* Search */}
-          <label className="relative block w-[225px]">
+          <label className="relative block w-full min-w-[140px] flex-1 sm:max-w-[225px]">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -284,7 +284,7 @@ export default function PromocodesPage() {
             <>
               <div
                 className={cn(
-                  "overflow-x-auto px-3",
+                  "hidden overflow-x-auto px-3 lg:block",
                   promocodes.length === 0 ? "flex-none" : "flex-1"
                 )}
               >
@@ -431,8 +431,97 @@ export default function PromocodesPage() {
                 </table>
               </div>
 
+              {/* Mobile cards */}
+              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2 lg:hidden">
+                {promocodes.map((p) => {
+                  const shop = p.shop;
+                  const shopName = shop?.name || "SHOPLY";
+                  const photoUrl = shop?.photoId
+                    ? getImageUrl({ id: shop.photoId })
+                    : null;
+
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setEditPromocode(p)}
+                      className="w-full rounded-[16px] border border-[#ECECF3] bg-white p-4 text-left transition-colors hover:bg-[#FAFAFC]"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[12px] text-text-secondary">
+                          {formatDate(p.createdAt)} · ID {p.id}
+                        </span>
+                        <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-[#b9bbc6]" />
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <PromocodeIcon className="h-5 w-5 shrink-0 text-[#478EFF]" />
+                        <span className="min-w-0 truncate text-[16px] font-bold text-[#478EFF]">
+                          {p.name}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        {photoUrl ? (
+                          <Image
+                            src={photoUrl}
+                            alt={shopName}
+                            width={20}
+                            height={20}
+                            className="rounded-full object-cover border border-[#ececf1]"
+                          />
+                        ) : (
+                          <div className="grid h-5 w-5 place-items-center rounded-full bg-[#55CB00]/10 text-[10px] font-bold text-[#55CB00]">
+                            {shopName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="min-w-0 truncate text-[13px] text-text-primary">
+                          {shopName}
+                        </span>
+                        <span className="ml-auto shrink-0 rounded-[8px] bg-[#F6F6FA] px-2 py-0.5 text-[13px] font-semibold text-text-primary">
+                          {getContentLabel(p)}
+                        </span>
+                      </div>
+
+                      {p.technicalName && (
+                        <div className="mt-1 break-words pl-7 text-[12px] leading-[16px] text-text-secondary">
+                          {p.technicalName}
+                        </div>
+                      )}
+
+                      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#ECECF3] pt-3 text-center">
+                        <div>
+                          <div className="text-[10px] text-text-secondary">
+                            Оборот
+                          </div>
+                          <div className="text-[13px] font-medium text-text-primary">
+                            {formatCurrency(p.turnover ?? 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-text-secondary">
+                            Активация
+                          </div>
+                          <div className="text-[13px] font-medium text-text-primary">
+                            {p.activationCount ?? 0}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-text-secondary">
+                            Условия
+                          </div>
+                          <div className="text-[13px] font-medium text-text-primary">
+                            {getConditionsLabel(p)}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
               {promocodes.length > 0 && (
-                <div className="grid shrink-0 grid-cols-[4%_9%_15%_15%_17%_10%_9%_9%_8%_4%] border-t border-border px-3 py-5 text-[14px] font-normal leading-[18px] text-[var(--sf-gray-100,#AAAAB8)]">
+                <div className="hidden shrink-0 grid-cols-[4%_9%_15%_15%_17%_10%_9%_9%_8%_4%] border-t border-border px-3 py-5 text-[14px] font-normal leading-[18px] text-[var(--sf-gray-100,#AAAAB8)] lg:grid">
                   <div />
                   <div />
                   <div className="px-3">

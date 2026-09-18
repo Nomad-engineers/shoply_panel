@@ -67,17 +67,17 @@ export default function PushPage() {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-3 py-3 lg:gap-4 lg:px-6 lg:py-4">
+        <div className="flex flex-1 flex-wrap items-center gap-4 lg:gap-6">
           <div className="py-1.5 text-[18px] font-semibold leading-[18px] text-text-primary">
             Push уведомления
           </div>
 
           {/* Separator */}
-          <div className="h-8 w-px bg-[#DCDCE6]/60" />
+          <div className="hidden h-8 w-px bg-[#DCDCE6]/60 lg:block" />
 
           {/* Search */}
-          <label className="relative block w-[225px]">
+          <label className="relative block w-full min-w-[140px] flex-1 sm:max-w-[225px]">
             <input
               value={pushSearch}
               onChange={(e) => setPushSearch(e.target.value)}
@@ -114,7 +114,51 @@ export default function PushPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-x-auto px-3">
+          {/* Mobile cards */}
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2 lg:hidden">
+            {pushes.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-[16px] border border-[#ECECF3] bg-white p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] text-text-secondary">
+                    {formatPushDate(p)} · ID {p.id}
+                  </span>
+                  <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-[#b9bbc6]" />
+                </div>
+
+                <div className="mt-2 flex items-start gap-3 rounded-[14px] bg-[#F6F6FA] p-[10px]">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-bold text-[#0E0F27]">
+                      {p.title}
+                    </div>
+                    <p className="mt-[2px] line-clamp-2 text-[12px] leading-[15px] text-[#0E0F27]/70">
+                      {p.description}
+                    </p>
+                  </div>
+                  <MarketingPushIcon className="h-[40px] w-[40px] shrink-0" />
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2 text-[13px]">
+                  <span className="font-medium text-text-primary">
+                    {formatPushSent(p)}
+                  </span>
+                  <span className="min-w-0 truncate text-text-secondary">
+                    {p.author}
+                  </span>
+                </div>
+
+                {p.technicalName && (
+                  <div className="mt-2 truncate text-[12px] text-text-secondary">
+                    {p.technicalName}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden flex-1 overflow-x-auto px-3 lg:block">
             <table className="min-w-full border-separate border-spacing-0">
               <thead className="sticky top-0 z-10 bg-white">
                 <tr className="text-left text-[14px] text-text-secondary">

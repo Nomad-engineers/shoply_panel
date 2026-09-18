@@ -413,12 +413,12 @@ export const CreatePromocodeSheet = ({
         }}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ECECF3] px-5 py-4">
-          <div className="font-[Inter_Tight] text-center text-[20px] font-semibold leading-[22px] text-[var(--text-txt-main-100,#0E0F27)]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ECECF3] px-4 py-4 sm:px-5">
+          <div className="min-w-0 font-[Inter_Tight] text-[18px] font-semibold leading-[22px] text-[var(--text-txt-main-100,#0E0F27)] sm:text-center sm:text-[20px]">
             {isEdit ? "Редактирование промокода" : "Создание промокода"}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onClose}
@@ -433,15 +433,17 @@ export const CreatePromocodeSheet = ({
               disabled={isSaveDisabled || saving}
               title={isEdit ? "Сохранить" : "Создать промокод"}
               className={cn(
-                "inline-flex h-[36px] items-center gap-[8px] whitespace-nowrap rounded-[18px] py-[6px] pl-[12px] pr-[18px] font-[Inter_Tight] text-[16px] font-medium leading-[18px] text-white transition-colors",
-                isEdit ? "w-auto" : "w-[201px]",
+                "inline-flex h-[36px] items-center gap-[8px] whitespace-nowrap rounded-[18px] px-[12px] py-[6px] font-[Inter_Tight] text-[16px] font-medium leading-[18px] text-white transition-colors max-sm:text-[14px]",
+                isEdit ? "w-auto" : "w-[201px] max-lg:w-auto",
                 isSaveDisabled || saving
                   ? "cursor-default bg-[#D9D9DF]"
                   : "cursor-pointer bg-[#55CB00] hover:bg-[#4db800]"
               )}
             >
-              <MarketingCheckIcon className="h-[24px] w-[24px] shrink-0" />
-              {isEdit ? "Сохранить" : "Создать промокод"}
+              <MarketingCheckIcon className="h-[24px] w-[24px] shrink-0 max-sm:h-[18px] max-sm:w-[18px]" />
+              <span className="max-sm:hidden">
+                {isEdit ? "Сохранить" : "Создать промокод"}
+              </span>
             </button>
           </div>
         </div>
@@ -517,7 +519,7 @@ export const CreatePromocodeSheet = ({
               value={technicalName}
               onChange={(e) => setTechnicalName(e.target.value)}
               placeholder="Поле ввода"
-              className="w-[354px]"
+              className="w-full max-w-[354px]"
             />
           </div>
 
@@ -529,7 +531,7 @@ export const CreatePromocodeSheet = ({
                 value={promocodeName}
                 onChange={(e) => setPromocodeName(e.target.value)}
                 placeholder="Поле ввода"
-                className="w-[354px]"
+                className="w-full max-w-[354px]"
               />
               <button
                 type="button"
@@ -561,7 +563,7 @@ export const CreatePromocodeSheet = ({
                 }}
                 disabled={type === "freeDelivery"}
                 suffix={type === "percent" ? "%" : type === "fixed" ? "руб" : ""}
-                className="w-[354px]"
+                className="w-full max-w-[354px]"
               />
 
               <div className="relative">
@@ -642,7 +644,7 @@ export const CreatePromocodeSheet = ({
                 }}
                 disabled={usageMode !== "quantity"}
                 suffix="шт."
-                className="w-[354px]"
+                className="w-full max-w-[354px]"
               />
 
               <div className="relative">
@@ -723,7 +725,7 @@ export const CreatePromocodeSheet = ({
                 setMinSum(Number.isNaN(v) ? 0 : Math.max(0, v));
               }}
               suffix="руб"
-              className="w-[354px]"
+              className="w-full max-w-[354px]"
             />
           </div>
 
@@ -782,9 +784,9 @@ export const CreatePromocodeSheet = ({
               return (
                 <div
                   key={user.id}
-                  className="grid min-h-[48px] grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_48px] items-center gap-3 py-2"
+                  className="grid min-h-[48px] items-center gap-x-3 gap-y-1 py-2 max-lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_48px] lg:gap-3"
                 >
-                  <span className="min-w-0 truncate text-[14px] font-medium text-[#0E0F27]">
+                  <span className="min-w-0 truncate text-[14px] font-medium text-[#0E0F27] max-lg:col-start-1 max-lg:row-start-1">
                     {fullName}
                   </span>
                   <div
@@ -793,12 +795,12 @@ export const CreatePromocodeSheet = ({
                       navigator.clipboard.writeText(formatPhone(user.phone));
                       toast.success("Номер скопирован");
                     }}
-                    className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-[14px] font-medium text-[#478EFF] transition-opacity hover:opacity-70"
+                    className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-[14px] font-medium text-[#478EFF] transition-opacity hover:opacity-70 max-lg:col-start-1 max-lg:row-start-2 max-lg:justify-self-start"
                   >
                     <MarketingCopyIcon className="h-[18px] w-[18px] shrink-0" />
                     {formatPhone(user.phone)}
                   </div>
-                  <span className="whitespace-nowrap text-[13px] text-[#8E8E93]">
+                  <span className="whitespace-nowrap text-[13px] text-[#8E8E93] max-lg:col-start-1 max-lg:row-start-3 max-lg:whitespace-normal max-lg:break-words">
                     Добавил: {addedByName}
                   </span>
                   <button
@@ -809,7 +811,7 @@ export const CreatePromocodeSheet = ({
                       )
                     }
                     title="Удалить пользователя"
-                    className="inline-flex h-[36px] w-[48px] cursor-pointer items-center justify-center gap-[8px] rounded-[18px] bg-[#F5462C] px-[12px] py-[6px] text-white transition-colors hover:bg-[#e03d24]"
+                    className="inline-flex h-[36px] w-[48px] cursor-pointer items-center justify-center gap-[8px] rounded-[18px] bg-[#F5462C] px-[12px] py-[6px] text-white transition-colors hover:bg-[#e03d24] max-lg:col-start-2 max-lg:row-start-1 max-lg:row-span-3"
                   >
                     <MarketingTrashIcon className="h-[24px] w-[24px]" />
                   </button>

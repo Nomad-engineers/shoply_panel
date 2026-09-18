@@ -124,17 +124,17 @@ export default function BannersPage() {
       />
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-3 py-3 lg:gap-4 lg:px-6 lg:py-4">
+        <div className="flex flex-1 flex-wrap items-center gap-4 lg:gap-6">
           <div className="py-1.5 text-[18px] font-semibold leading-[18px] text-text-primary">
             Список баннеров
           </div>
 
           {/* Separator */}
-          <div className="h-8 w-px bg-[#DCDCE6]/60" />
+          <div className="hidden h-8 w-px bg-[#DCDCE6]/60 lg:block" />
 
           {/* Search */}
-          <label className="relative block w-[225px]">
+          <label className="relative block w-full min-w-[140px] flex-1 sm:max-w-[225px]">
             <input
               value={bannerSearch}
               onChange={(e) => setBannerSearch(e.target.value)}
@@ -145,7 +145,7 @@ export default function BannersPage() {
           </label>
 
           {/* Status filter */}
-          <div className="flex items-center gap-[8px]">
+          <div className="flex flex-wrap items-center gap-[8px]">
             {BANNER_FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -193,7 +193,72 @@ export default function BannersPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-x-auto px-3">
+          {/* Mobile cards (drag & drop reorder is desktop-only) */}
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2 lg:hidden">
+            {bannersOrder.map((b) => {
+              const previewUrl = getImageUrl(b.cover ?? b.image ?? null);
+
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setEditBanner(b)}
+                  className="w-full rounded-[16px] border border-[#ECECF3] bg-white p-4 text-left transition-colors hover:bg-[#FAFAFC]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[12px] text-text-secondary">
+                      {formatDate(b.createdAt)} · ID {b.id}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 text-[13px] font-medium",
+                        b.inArchive === true
+                          ? "text-[#8e90a0]"
+                          : "text-[#3DA210]"
+                      )}
+                    >
+                      {b.inArchive === true ? "Архив" : "Активный"}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex items-start gap-3">
+                    {previewUrl ? (
+                      <div className="relative h-[56px] w-[40px] shrink-0 overflow-hidden rounded-[8px] border border-[#ececf1]">
+                        <Image
+                          src={previewUrl}
+                          alt={b.title}
+                          fill
+                          sizes="40px"
+                          unoptimized
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid h-[56px] w-[40px] shrink-0 place-items-center rounded-[8px] bg-[#DBE9FF]">
+                        <MarketingImageIcon className="h-[20px] w-[20px] text-[#7AA7E8]" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-bold text-[#0E0F27]">
+                        {b.title}
+                      </div>
+                      <p className="mt-[2px] line-clamp-3 text-[12px] leading-[15px] text-[#0E0F27]/70">
+                        {b.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {b.technicalName && (
+                    <div className="mt-2 truncate text-[12px] text-text-secondary">
+                      {b.technicalName}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden flex-1 overflow-x-auto px-3 lg:block">
             <table className="min-w-full border-separate border-spacing-0">
               <thead className="sticky top-0 z-10 bg-white">
                 <tr className="text-left text-[14px] text-text-secondary">
