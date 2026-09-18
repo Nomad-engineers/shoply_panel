@@ -52,8 +52,10 @@ export const useBanners = (initialParams?: FetchBannersParams) => {
   const reorderBanners = (items: ReorderBannerItem[]) =>
     mutate("v2/admin/banner/reorder", { method: "PATCH", body: { items } });
 
+  const banners = useMemo(() => (data?.data ?? []) as Banner[], [data]);
+
   return {
-    data: (data?.data ?? []) as Banner[],
+    data: banners,
     total: data?.meta?.total ?? 0,
     loading: isLoading,
     error: (error as Error | null)?.message || null,

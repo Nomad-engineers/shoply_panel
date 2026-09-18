@@ -19,11 +19,6 @@ export {
 } from "./logo";
 
 export {
-  PageHeader,
-  Breadcrumb,
-} from "./page-header";
-
-export {
   DashboardLayout,
 } from "./dashboard-layout";
 

@@ -2,7 +2,6 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import Cookies from "js-cookie";
 import { parseJsonFile } from "next/dist/build/load-jsconfig";
-import { parseJwt } from "./jwt";
 
 interface TokenOptions {
   expires?: number;
