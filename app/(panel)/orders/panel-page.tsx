@@ -66,10 +66,10 @@ function OrdersToolbar({
   refreshing: boolean;
 }) {
   return (
-    <div className="flex items-center gap-6">
+    <div className="flex items-center gap-2 sm:gap-6">
       <ToolbarPill active={false}>
         <Volume2 size={18} color="#0E0F27" />
-        Звуковое уведомление
+        <span className="max-sm:hidden">Звуковое уведомление</span>
       </ToolbarPill>
       <button
         type="button"
@@ -81,7 +81,7 @@ function OrdersToolbar({
           <IconRefresh />
         </span>
       </button>
-      <span className="ml-auto whitespace-nowrap text-[20px] font-semibold text-[#0E0F27]">
+      <span className="ml-auto whitespace-nowrap text-[14px] font-semibold text-[#0E0F27] sm:text-[20px]">
         {formatToolbarDate()}
       </span>
     </div>
@@ -100,9 +100,9 @@ function BoardColumn({
   onOpen: (card: OrderCardProps) => void;
 }) {
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col gap-2.5 rounded-[18px] bg-[#09091D40] p-1">
+    <section className="flex h-full w-[280px] shrink-0 flex-col gap-2.5 rounded-[18px] bg-[#09091D40] p-1 lg:w-auto lg:min-w-0 lg:flex-1">
       <header className="flex items-center gap-2.5 px-3 py-2">
-        <h2 className="whitespace-nowrap text-[16px] font-medium text-white">{title}</h2>
+        <h2 className="whitespace-nowrap text-[14px] font-medium text-white sm:text-[16px]">{title}</h2>
         <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[14px] font-semibold leading-none text-[#0E0F27]">
           {cards.length}
         </span>
@@ -223,7 +223,7 @@ export default function PanelOrdersPage() {
             className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: "url('/wallpaper.png')" }}
           >
-            <div className="mx-auto m-4 flex w-full max-w-[1400px] min-h-0 flex-1 flex-col gap-6 rounded-[20px] bg-transparent p-6">
+            <div className="mx-auto m-2 flex w-full max-w-[1400px] min-h-0 flex-1 flex-col gap-4 rounded-[20px] bg-transparent p-3 sm:m-4 sm:gap-6 sm:p-6">
 
               {/* Toolbar with sound, refresh, date */}
               <OrdersToolbar

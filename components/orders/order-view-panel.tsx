@@ -599,11 +599,11 @@ export function OrderViewPanel({
   const isEditMode = editMode || statusConfig.canEdit;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#09091D]/50 p-4">
-      <div className="relative flex h-full w-full max-w-5xl flex-col rounded-2xl bg-[#F5F5F7] overflow-hidden shadow-2xl">
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="w-[70%] min-w-0 border-r border-[#E5E5EA] bg-[#F5F5F7]">
-            <div className="flex h-full flex-col p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#09091D]/50 p-0 sm:p-4">
+      <div className="relative flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-none bg-[#F5F5F7] shadow-2xl sm:rounded-2xl">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+          <div className="w-full min-w-0 border-b border-[#E5E5EA] bg-[#F5F5F7] lg:w-[70%] lg:border-b-0 lg:border-r">
+            <div className="flex flex-col p-4 lg:h-full lg:p-6">
               {showProductsList ? (
                 <div className="flex h-full min-h-0 flex-col">
                   <div className="mb-4 flex items-center justify-between">
@@ -784,7 +784,7 @@ export function OrderViewPanel({
                           {productsLoadingMore ? "Загрузка..." : "Показать ещё"}
                         </button>
                       ) : null}
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() =>
@@ -836,7 +836,7 @@ export function OrderViewPanel({
                   </h3>
 
                   <div className="flex flex-col rounded-2xl bg-white shadow-sm overflow-hidden">
-                <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+                <div className="overflow-y-auto max-h-[calc(100vh-300px)] max-lg:max-h-none max-lg:overflow-visible">
                   {displayItems.map((item, index) => (
                     <div key={item.id}>
                       <div className="flex items-center gap-4 p-4">
@@ -1023,9 +1023,9 @@ export function OrderViewPanel({
             </div>
           </div>
 
-          <div className="w-[30%] min-w-0 bg-white">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-[#E5E5EA] px-6 py-4">
+          <div className="w-full min-w-0 bg-white lg:w-[30%]">
+            <div className="flex flex-col lg:h-full">
+              <div className="flex items-center justify-between border-b border-[#E5E5EA] px-4 py-4 lg:px-6">
                 <h2 className="text-md text-gray-400">
                   Детали заказа, ID {order.id}
                 </h2>
@@ -1068,9 +1068,9 @@ export function OrderViewPanel({
                 </button>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="flex min-h-0 flex-col lg:flex-1 lg:overflow-y-auto">
                 {activeTab === "info" ? (
-                  <div className="p-6 space-y-6">
+                  <div className="space-y-6 p-4 lg:p-6">
                     <div className="flex flex-col text-center">
                       <div className="flex shrink-0 rounded-full mb-3">
                         {statusConfig.icon}
@@ -1181,7 +1181,7 @@ export function OrderViewPanel({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 space-y-4">
+                  <div className="space-y-4 p-4 lg:p-6">
                     {order.logs.map((log) => (
                       <div
                         key={log.id}
@@ -1213,7 +1213,7 @@ export function OrderViewPanel({
               </div>
 
               {statusConfig.showActions && (
-                <div className="flex flex-col gap-3 border-t border-[#E5E5EA] px-6 py-4 bg-white">
+                <div className="flex flex-col gap-3 border-t border-[#E5E5EA] bg-white px-4 py-4 lg:px-6">
                   {statusConfig.primaryAction === "accept" && (
                     <button
                       onClick={handleAccept}

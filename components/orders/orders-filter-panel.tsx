@@ -67,7 +67,7 @@ export function OrdersFilterPanel({
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
       {/* Status Filter */}
       <div className="relative">
         {statusOpen && (
@@ -76,7 +76,7 @@ export function OrdersFilterPanel({
               className="fixed inset-0 z-10"
               onClick={() => setStatusOpen(false)}
             />
-            <div className="absolute z-20 mt-2 flex w-[200px] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
+            <div className="absolute z-20 mt-2 flex w-[200px] max-w-[calc(100vw-40px)] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
               <button
                 type="button"
                 onClick={() => {
@@ -137,7 +137,7 @@ export function OrdersFilterPanel({
                 className="fixed inset-0 z-10"
                 onClick={() => setRegionOpen(false)}
               />
-              <div className="absolute z-20 mt-2 flex w-[200px] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
+              <div className="absolute z-20 mt-2 flex w-[200px] max-w-[calc(100vw-40px)] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
                 <button
                   type="button"
                   onClick={() => {
@@ -198,7 +198,7 @@ export function OrdersFilterPanel({
                 className="fixed inset-0 z-10"
                 onClick={() => setShopOpen(false)}
               />
-              <div className="absolute z-20 mt-2 flex w-[200px] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg max-h-[300px] overflow-y-auto">
+              <div className="absolute z-20 mt-2 flex max-h-[300px] w-[200px] max-w-[calc(100vw-40px)] flex-col overflow-y-auto rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
                 <button
                   type="button"
                   onClick={() => {

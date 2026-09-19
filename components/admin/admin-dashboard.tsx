@@ -270,7 +270,7 @@ function FilterBadges({
   const currentActive = active ?? internalActive
 
   return (
-    <div className='flex gap-[10px] pt-[2px]'>
+    <div className='flex flex-wrap gap-[10px] pt-[2px]'>
       {filters.map((f, i) => (
         <button
           key={f}
@@ -292,8 +292,8 @@ function FilterBadges({
 
 function TopActionBar({ onCreatePromocode }: { onCreatePromocode: () => void }) {
   return (
-    <div className='flex items-center justify-between'>
-      <div className='flex items-center gap-3'>
+    <div className='flex flex-col gap-[12px] lg:flex-row lg:items-center lg:justify-between'>
+      <div className='flex flex-col items-stretch gap-[8px] lg:flex-row lg:items-center lg:gap-3'>
         <button
           type='button'
           className='flex items-center gap-2 rounded-full border border-[#E2E2EA] bg-white px-4 py-2.5 text-[14px] font-medium text-[#0E0E27] transition-colors hover:bg-[#F5F6F6]'
@@ -330,7 +330,7 @@ function TopActionBar({ onCreatePromocode }: { onCreatePromocode: () => void }) 
         </button>
       </div>
 
-      <span className='text-[28px] font-bold tracking-[-0.02em] text-[#0E0E27]'>{CURRENT_DATE_LABEL}</span>
+      <span className='text-[20px] font-bold tracking-[-0.02em] text-[#0E0E27] lg:text-[28px]'>{CURRENT_DATE_LABEL}</span>
     </div>
   )
 }
@@ -338,7 +338,7 @@ function TopActionBar({ onCreatePromocode }: { onCreatePromocode: () => void }) 
 function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
   return (
     <DashboardCard title='Заказы сегодня'>
-      <div className='flex items-start gap-[48px]'>
+      <div className='flex flex-wrap items-start gap-x-[32px] gap-y-[12px] lg:gap-[48px]'>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>В работе</span>
           <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>{fmtNum(today?.inWork)}</span>
@@ -352,8 +352,8 @@ function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
           <span className='mt-0.5 text-[20px] font-bold leading-7 text-[#0E0E27]'>{fmtNum(today?.cancelled)}</span>
         </div>
       </div>
-      <div className='mt-[20px] flex gap-[4px] pb-[4px]'>
-        <div className='flex w-[72px] flex-col justify-between rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
+      <div className='mt-[20px] grid grid-cols-2 gap-[4px] pb-[4px] min-[420px]:grid-cols-4'>
+        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
           <div className='flex items-center gap-[4px]'>
             <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
               <circle cx='9' cy='9' r='3.75' fill='#55CB00' />
@@ -363,7 +363,7 @@ function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Ожидание</span>
         </div>
 
-        <div className='flex w-[72px] flex-col justify-between rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
+        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
           <div className='flex items-center gap-[4px]'>
             <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
               <path
@@ -376,7 +376,7 @@ function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Сборка</span>
         </div>
 
-        <div className='flex w-[72px] flex-col justify-between rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
+        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
           <div className='flex items-center gap-[4px]'>
             <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
               <path
@@ -420,7 +420,7 @@ function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
           <span className='text-[11px] leading-none text-[#7F7F8A]'>Готов</span>
         </div>
 
-        <div className='flex w-[72px] flex-col justify-between rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
+        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
           <div className='flex items-center gap-[4px]'>
             <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
               <path
@@ -482,7 +482,7 @@ function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
 function UsersQuarterCard({ stat }: { stat: DashboardUsersQuarter | null }) {
   return (
     <DashboardCard title='Пользователей (квартал)' footer={<MoreLink />}>
-      <div className='flex items-start gap-[32px]'>
+      <div className='flex flex-wrap items-start gap-x-[32px] gap-y-[12px]'>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
           <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>
@@ -511,7 +511,7 @@ function UsersQuarterCard({ stat }: { stat: DashboardUsersQuarter | null }) {
 function ClientsMonthCard({ clients }: { clients: DashboardClientsMonth | null }) {
   return (
     <DashboardCard title='Клиенты (месяц)' footer={<MoreLink />}>
-      <div className='flex items-start gap-[32px]'>
+      <div className='flex flex-wrap items-start gap-x-[32px] gap-y-[12px]'>
         <div className='flex flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
           <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>
@@ -568,11 +568,13 @@ function OrdersChartCard({
 
   const activeDay = hoveredDay
 
-  const handleSectionMove = (day: number, value: number, e: React.MouseEvent) => {
+  const handleSectionMove = (day: number, value: number, e: React.MouseEvent | React.TouchEvent) => {
     const rect = barsRef.current?.getBoundingClientRect()
     if (!rect) return
-    const x = Math.min(Math.max(e.clientX - rect.left, 32), rect.width - 32)
-    const y = Math.max(e.clientY - rect.top, 44)
+    const point = 'touches' in e ? e.touches[0] : e
+    if (!point) return
+    const x = Math.min(Math.max(point.clientX - rect.left, 32), rect.width - 32)
+    const y = Math.max(point.clientY - rect.top, 44)
     setHoveredDay(day)
     setTooltip({ x, y, value })
   }
@@ -584,7 +586,7 @@ function OrdersChartCard({
 
   return (
     <DashboardCard title='График заказов за 30 дней' footer={<OrdersChartLegend />}>
-      <div className='flex items-start'>
+      <div className='grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:grid-cols-4 lg:flex lg:items-start'>
         <div className='flex flex-1 min-w-0 flex-col'>
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
           <span className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>
@@ -656,8 +658,8 @@ function OrdersChartCard({
         </div>
       </div>
 
-      <div ref={barsRef} className='relative mt-[24px]' onMouseLeave={handleChartLeave}>
-        <div className='flex items-end gap-[6px]'>
+      <div ref={barsRef} className='relative mt-[24px]' onMouseLeave={handleChartLeave} onTouchEnd={handleChartLeave}>
+        <div className='flex items-end gap-[3px] lg:gap-[6px]'>
           {chartData.map((d) => {
             const total = d.completed + d.cancelled
             const totalPct = (total / chartMaxTotal) * 100
@@ -667,8 +669,7 @@ function OrdersChartCard({
             return (
               <div
                 key={`${d.date}-${d.day}`}
-                className='flex flex-1 cursor-pointer flex-col justify-end'
-                style={{ height: '200px' }}
+                className='flex h-[140px] flex-1 cursor-pointer flex-col justify-end lg:h-[200px]'
               >
                 <div className='flex w-full flex-col gap-[2px]' style={{ height: `${totalPct}%` }}>
                   {d.cancelled > 0 && (
@@ -679,6 +680,7 @@ function OrdersChartCard({
                         backgroundColor: isActive ? '#F5462C' : '#AAAAB8',
                       }}
                       onMouseMove={(e) => handleSectionMove(d.day, d.cancelled, e)}
+                      onTouchMove={(e) => handleSectionMove(d.day, d.cancelled, e)}
                     />
                   )}
                   <div
@@ -688,6 +690,7 @@ function OrdersChartCard({
                       backgroundColor: isActive ? '#55CB00' : '#EEEEF4',
                     }}
                     onMouseMove={(e) => handleSectionMove(d.day, d.completed, e)}
+                    onTouchMove={(e) => handleSectionMove(d.day, d.completed, e)}
                   />
                 </div>
               </div>
@@ -705,11 +708,11 @@ function OrdersChartCard({
         )}
       </div>
 
-      <div className='mt-[8px] flex gap-[6px]'>
-        {chartData.map((d) => (
+      <div className='mt-[8px] flex gap-[3px] lg:gap-[6px]'>
+        {chartData.map((d, i) => (
           <div key={d.day} className='flex flex-1 flex-col items-center'>
-            <span className='text-[11px] leading-[16px] text-[#0E0E27]'>{d.day}</span>
-            <span className='text-[10px] leading-[14px] text-[#A9A9B7]'>{d.weekday}</span>
+            <span className={`text-[11px] leading-[16px] text-[#0E0E27] ${i % 2 === 1 ? 'max-lg:hidden' : ''}`}>{d.day}</span>
+            <span className='hidden text-[10px] leading-[14px] text-[#A9A9B7] lg:block'>{d.weekday}</span>
             {d.day === todayDay && <div className='mt-[4px] h-px w-full rounded-[1px] bg-[#55CB00]' />}
           </div>
         ))}
@@ -779,7 +782,7 @@ function OperationalRevenueCard({ revenue }: { revenue: DashboardRevenue | null 
           </div>
         </div>
 
-        <div className='flex h-full w-[90px] flex-shrink-0 flex-col gap-[2px]'>
+        <div className='flex h-full w-[64px] flex-shrink-0 flex-col gap-[2px] lg:w-[90px]'>
           {items.map((item, i) => (
             <div
               key={item.label}
@@ -808,7 +811,7 @@ function PaymentMethodsCard({ payments }: { payments: DashboardPaymentMethods | 
 
   return (
     <DashboardCard title='Метод оплаты'>
-      <div className='flex items-start gap-[32px]'>
+      <div className='flex flex-wrap items-start gap-x-[24px] gap-y-[12px] lg:gap-x-[32px]'>
         {methods.map((m) => (
           <div key={m.label} className='flex flex-col'>
             <span className='text-[14px] leading-[18px] text-[#0E0F27]/50'>{m.label}</span>
@@ -856,17 +859,17 @@ function ReviewsCard({ state, onFilter }: { state: ReturnType<typeof useDashboar
       }
     >
       <div className='flex flex-col'>
-        <div className='flex items-center gap-[8px] pb-[10px]'>
+        <div className='flex items-center gap-[8px] pb-[10px] max-lg:grid max-lg:grid-cols-[74px_70px_1fr]'>
           <span className='w-[74px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>Дата</span>
           <span className='w-[70px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>Оценка</span>
-          <span className='w-[92px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>Магазин</span>
+          <span className='w-[92px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:hidden'>Магазин</span>
           <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Отзыв</span>
         </div>
 
         {state.data.map((r) => (
           <React.Fragment key={r.id}>
             <div className='h-px bg-[#F0F0F5]' />
-            <div className='flex items-start gap-[8px] py-[10px]'>
+            <div className='flex items-start gap-[8px] py-[10px] max-lg:grid max-lg:grid-cols-[74px_70px_1fr] max-lg:gap-y-[4px]'>
               <span className='w-[74px] shrink-0 whitespace-nowrap text-[14px] leading-[18px] text-[#0E0F27]'>
                 {formatReviewDate(r.createdAt)}
               </span>
@@ -874,7 +877,7 @@ function ReviewsCard({ state, onFilter }: { state: ReturnType<typeof useDashboar
                 <StarIcon />
                 <span className='text-[14px] leading-[18px] text-[#0E0F27]'>{r.rate}</span>
               </span>
-              <span className='line-clamp-4 w-[92px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]'>
+              <span className='line-clamp-4 w-[92px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27] max-lg:col-span-3 max-lg:w-auto'>
                 {r.shopName}
               </span>
               <span className='line-clamp-4 flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{r.text}</span>
@@ -911,16 +914,16 @@ function SellersCard({ state, onSort }: { state: ReturnType<typeof useDashboardL
       }
     >
       <div className='flex flex-col'>
-        <div className='flex items-center gap-[8px] pb-[10px]'>
-          <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>№</span>
-          <span className='flex-[2] truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Название</span>
+        <div className='flex items-center gap-[8px] pb-[10px] max-lg:grid max-lg:grid-cols-[18px_1fr_1fr]'>
+          <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-1 max-lg:row-start-1'>№</span>
+          <span className='flex-[2] truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-2 max-lg:row-start-1'>Название</span>
           {active === 0 && (
-            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Рейтинг</span>
+            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-1 max-lg:row-start-2'>Рейтинг</span>
           )}
           {active === 1 && (
-            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Выручка</span>
+            <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-1 max-lg:row-start-2'>Выручка</span>
           )}
-          <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0F27]/50'>
+          <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-2 max-lg:row-start-2'>
             {metricLabel}
           </span>
         </div>
@@ -928,19 +931,19 @@ function SellersCard({ state, onSort }: { state: ReturnType<typeof useDashboardL
         {state.data.slice(0, 6).map((s) => (
           <React.Fragment key={s.id}>
             <div className='h-px bg-[#F0F0F5]' />
-            <div className='flex items-start gap-[8px] py-[10px]'>
-              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27]'>{s.id}</span>
-              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27]'>{s.name}</span>
+            <div className='flex items-start gap-[8px] py-[10px] max-lg:grid max-lg:grid-cols-[18px_1fr_1fr] max-lg:gap-y-[4px]'>
+              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27] max-lg:col-start-1 max-lg:row-start-1'>{s.id}</span>
+              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27] max-lg:col-start-2 max-lg:row-start-1'>{s.name}</span>
               {active === 0 && (
-                <span className='flex flex-1 items-center gap-[4px]'>
+                <span className='flex flex-1 items-center gap-[4px] max-lg:col-start-1 max-lg:row-start-2'>
                   <StarIcon />
                   <span className='text-[14px] leading-[18px] text-[#0E0E27]'>{s.rating || '—'}</span>
                 </span>
               )}
               {active === 1 && (
-                <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtMoney(s.revenue)}</span>
+                <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27] max-lg:col-start-1 max-lg:row-start-2'>{fmtMoney(s.revenue)}</span>
               )}
-              <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0E27]'>
+              <span className='line-clamp-2 flex-1 whitespace-pre-line text-left text-[14px] leading-[18px] text-[#0E0E27] max-lg:col-start-2 max-lg:row-start-2'>
                 {active === 2 ? fmtNum(s.productCount) : fmtNum(s.orderCount)}
               </span>
             </div>
@@ -980,24 +983,24 @@ function CouriersCard({ state, onSort }: { state: ReturnType<typeof useDashboard
       }
     >
       <div className='flex flex-col'>
-        <div className='flex items-center gap-[8px] pb-[10px]'>
-          <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50'>№</span>
-          <span className='flex-[2] truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Имя Ф.</span>
-          <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Заказов</span>
-          <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50'>Доход</span>
-          <span className='w-[8px] shrink-0' />
+        <div className='flex items-center gap-[8px] pb-[10px] max-lg:grid max-lg:grid-cols-[18px_1fr_1fr]'>
+          <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-1 max-lg:row-start-1'>№</span>
+          <span className='flex-[2] truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-2 max-lg:row-start-1'>Имя Ф.</span>
+          <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-1 max-lg:row-start-2'>Заказов</span>
+          <span className='flex-1 truncate text-[14px] leading-[18px] text-[#0E0F27]/50 max-lg:col-start-2 max-lg:row-start-2'>Доход</span>
+          <span className='w-[8px] shrink-0 max-lg:hidden' />
         </div>
 
         {state.data.slice(0, 11).map((c) => (
           <React.Fragment key={c.id}>
             <div className='h-px bg-[#F0F0F5]' />
-            <div className='flex items-start gap-[8px] py-[10px]'>
-              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27]'>{c.id}</span>
-              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27]'>{c.name}</span>
-              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtNum(c.orderCount)}</span>
-              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27]'>{fmtMoney(c.income)}</span>
+            <div className='flex items-start gap-[8px] py-[10px] max-lg:grid max-lg:grid-cols-[18px_1fr_1fr] max-lg:gap-y-[4px]'>
+              <span className='w-[18px] shrink-0 text-[14px] leading-[18px] text-[#0E0E27] max-lg:col-start-1 max-lg:row-start-1'>{c.id}</span>
+              <span className='line-clamp-4 flex-[2] text-[14px] leading-[18px] text-[#0E0E27] max-lg:col-start-2 max-lg:row-start-1'>{c.name}</span>
+              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27] max-lg:col-start-1 max-lg:row-start-2'>{fmtNum(c.orderCount)}</span>
+              <span className='flex-1 text-[14px] leading-[18px] text-[#0E0F27] max-lg:col-start-2 max-lg:row-start-2'>{fmtMoney(c.income)}</span>
               <span
-                className='mt-[5px] block h-[8px] w-[8px] shrink-0 rounded-full'
+                className='mt-[5px] block h-[8px] w-[8px] shrink-0 rounded-full max-lg:col-start-3 max-lg:row-start-1 max-lg:justify-self-end'
                 style={{ backgroundColor: c.onShift ? '#55CB00' : '#DDDDE2' }}
               />
             </div>
@@ -1022,7 +1025,7 @@ export const AdminDashboard = () => {
 
   return (
     <Main className='bg-[#EDEDF4]'>
-      <Content className='p-[24px]'>
+      <Content className='p-[16px] lg:p-[24px]'>
         <TopActionBar onCreatePromocode={() => setCreatePromocodeOpen(true)} />
 
         <CreatePromocodeSheet
@@ -1033,9 +1036,9 @@ export const AdminDashboard = () => {
         <section className='mt-[24px]'>
           <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Основные</h2>
 
-          <div className='mt-[12px] flex gap-[8px]'>
-            <div className='flex-1 flex flex-col gap-[8px]'>
-              <div className='grid grid-cols-3 gap-[8px]'>
+          <div className='mt-[12px] flex flex-col gap-[8px] lg:flex-row'>
+            <div className='flex min-w-0 flex-1 flex-col gap-[8px]'>
+              <div className='grid grid-cols-1 gap-[8px] sm:grid-cols-3'>
                 <OrdersTodayCard today={dashboard.today} />
                 <UsersQuarterCard stat={dashboard.usersQuarter} />
                 <ClientsMonthCard clients={dashboard.clientsMonth} />
@@ -1047,7 +1050,7 @@ export const AdminDashboard = () => {
               />
             </div>
 
-            <div className='flex w-[320px] flex-col gap-[8px]'>
+            <div className='flex flex-col gap-[8px] lg:w-[320px]'>
               <OperationalRevenueCard revenue={dashboard.revenue} />
               <PaymentMethodsCard payments={dashboard.payments} />
             </div>
@@ -1057,7 +1060,7 @@ export const AdminDashboard = () => {
         <section className='mt-[24px]'>
           <h2 className='text-[14px] font-medium leading-none text-[#0E0E27]'>Дополнительные</h2>
 
-          <div className='mt-[12px] grid grid-cols-3 gap-[8px]'>
+          <div className='mt-[12px] grid grid-cols-1 gap-[8px] lg:grid-cols-3'>
             <ReviewsCard state={lists.reviews} onFilter={lists.fetchReviews} />
             <SellersCard state={lists.sellers} onSort={lists.fetchSellers} />
             <CouriersCard state={lists.couriers} onSort={lists.fetchCouriers} />
