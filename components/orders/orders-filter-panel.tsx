@@ -1,15 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Filter, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/theme";
-import { FilterButton } from "@/components/ui/filter-button";
-import { OrderStatus } from "@/types/panel-orders.dto";
 
 interface OrdersFilterPanelProps {
   /** Current filter values */
   filters: {
-    status?: OrderStatus;
+    status?: string;
     regionId?: number;
     shopId?: number;
     from?: string;
@@ -43,18 +41,8 @@ export function OrdersFilterPanel({
   showRegionFilter = true,
   showShopFilter = true,
 }: OrdersFilterPanelProps) {
-  const [statusOpen, setStatusOpen] = React.useState(false);
   const [regionOpen, setRegionOpen] = React.useState(false);
   const [shopOpen, setShopOpen] = React.useState(false);
-
-  const statusOptions = [
-    { value: OrderStatus.PENDING, label: "Новые" },
-    { value: OrderStatus.ASSEMBLING, label: "На сборке" },
-    { value: OrderStatus.READY, label: "Готовы к выдаче" },
-    { value: OrderStatus.DELIVERY, label: "На доставке" },
-    { value: OrderStatus.COMPLETED, label: "Завершенные" },
-    { value: OrderStatus.CANCELLED, label: "Отмененные" },
-  ];
 
   const getRegionLabel = () => {
     if (!filters.regionId) return "Все регионы";
@@ -67,60 +55,15 @@ export function OrdersFilterPanel({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-      {/* Status Filter */}
-      <div className="relative">
-        {statusOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setStatusOpen(false)}
-            />
-            <div className="absolute z-20 mt-2 flex w-[200px] max-w-[calc(100vw-40px)] flex-col rounded-lg border border-[#DCDCE6] bg-white p-1 shadow-lg">
-              <button
-                type="button"
-                onClick={() => {
-                  onFilterChange(setFilterParam("status", undefined));
-                  setStatusOpen(false);
-                }}
-                className={cn(
-                  "rounded px-3 py-2 text-left text-sm transition-colors",
-                  !filters.status ? "bg-[#D099FF] text-white" : "text-[#0E0F27] hover:bg-gray-100"
-                )}
-              >
-                Все статусы
-              </button>
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onFilterChange(setFilterParam("status", option.value));
-                    setStatusOpen(false);
-                  }}
-                  className={cn(
-                    "rounded px-3 py-2 text-left text-sm transition-colors",
-                    filters.status === option.value
-                      ? "bg-[#D099FF] text-white"
-                      : "text-[#0E0F27] hover:bg-gray-100"
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
+    <>
       {/* Region Filter - only for admin role */}
       {showRegionFilter && (
-        <div className="relative">
+        <div className="relative max-sm:w-full">
           <button
             type="button"
             onClick={() => setRegionOpen(!regionOpen)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
+              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 max-sm:w-full max-sm:justify-center",
               filters.regionId
                 ? "border-[#D099FF] bg-[rgba(239,233,244,0.87)] text-[#811fd7]"
                 : "border-[#FFFFFF80] bg-[#FFFFFF80] text-[#0E0F27] hover:bg-white/90"
@@ -176,12 +119,12 @@ export function OrdersFilterPanel({
       )}
 
       {showShopFilter  && (
-        <div className="relative">
+        <div className="relative max-sm:w-full">
           <button
             type="button"
             onClick={() => setShopOpen(!shopOpen)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
+              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 max-sm:w-full max-sm:justify-center",
               filters.shopId
                 ? "border-[#D099FF] bg-[rgba(239,233,244,0.87)] text-[#811fd7]"
                 : "border-[#FFFFFF80] bg-[#FFFFFF80] text-[#0E0F27] hover:bg-white/90"
@@ -235,7 +178,7 @@ export function OrdersFilterPanel({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

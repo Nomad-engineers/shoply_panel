@@ -39,10 +39,12 @@ function ToolbarPill({
   children,
   onClick,
   active = true,
+  className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   active?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -51,6 +53,7 @@ function ToolbarPill({
       className={cn(
         "flex h-[34px] items-center gap-2 rounded-[17px] border border-[#FFFFFF80] bg-[#FFFFFF80] py-2 pl-[18px] pr-2 text-[14px] leading-[18px] text-[#0E0F27] transition hover:bg-white/90",
         !active && "opacity-50",
+        className,
       )}
     >
       {children}
@@ -66,8 +69,8 @@ function OrdersToolbar({
   refreshing: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 sm:gap-6">
-      <ToolbarPill active={false}>
+    <div className="flex items-center gap-2 max-sm:w-full sm:gap-3">
+      <ToolbarPill active={false} className="max-sm:flex-1 max-sm:justify-center">
         <Volume2 size={18} color="#0E0F27" />
         <span className="max-sm:hidden">Звуковое уведомление</span>
       </ToolbarPill>
@@ -75,15 +78,12 @@ function OrdersToolbar({
         type="button"
         aria-label="Обновить"
         onClick={onRefresh}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-[#FFFFFF80] bg-[#FFFFFF80] transition hover:bg-white/90"
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-[#FFFFFF80] bg-[#FFFFFF80] transition hover:bg-white/90"
       >
         <span className={cn("flex h-[18px] w-[18px] items-center justify-center", refreshing && "animate-spin")}>
           <IconRefresh />
         </span>
       </button>
-      <span className="ml-auto whitespace-nowrap text-[14px] font-semibold text-[#0E0F27] sm:text-[20px]">
-        {formatToolbarDate()}
-      </span>
     </div>
   );
 }
@@ -223,25 +223,32 @@ export default function PanelOrdersPage() {
             className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: "url('/wallpaper.png')" }}
           >
-            <div className="mx-auto m-2 flex w-full max-w-[1400px] min-h-0 flex-1 flex-col gap-4 rounded-[20px] bg-transparent p-3 sm:m-4 sm:gap-6 sm:p-6">
+            <div className="mx-auto flex w-full max-w-[1400px] min-h-0 flex-1 flex-col gap-4 rounded-[20px] bg-transparent p-[16px] sm:gap-6 lg:p-[24px]">
 
-              {/* Toolbar with sound, refresh, date */}
-              <OrdersToolbar
-                onRefresh={() => refetch()}
-                refreshing={isLoading}
-              />
+              {/* Top bar: filters + sound on one line, date on the right — like Главная */}
+              <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col items-stretch gap-[8px] sm:flex-row sm:flex-wrap sm:items-center lg:gap-3">
+                  <OrdersFilterPanel
+                    filters={filters}
+                    regions={regions}
+                    shops={shops}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={handleClearFilters}
+                    hasActiveFilters={hasActiveFilters}
+                    userRole={userRole}
+                    showRegionFilter={showRegionFilter}
+                    showShopFilter={showShopFilter}
+                  />
+                  <OrdersToolbar
+                    onRefresh={() => refetch()}
+                    refreshing={isLoading}
+                  />
+                </div>
 
-              <OrdersFilterPanel
-                filters={filters}
-                regions={regions}
-                shops={shops}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                hasActiveFilters={hasActiveFilters}
-                userRole={userRole}
-                showRegionFilter={showRegionFilter}
-                showShopFilter={showShopFilter}
-              />
+                <span className="whitespace-nowrap text-[20px] font-bold tracking-[-0.02em] text-[#0E0E27] lg:text-[28px]">
+                  {formatToolbarDate()}
+                </span>
+              </div>
 
               {/* Error State */}
               {error && (
