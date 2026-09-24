@@ -42,6 +42,7 @@ interface AuthContextType {
   pendingShopSelection: boolean;
   login: (form: LoginFormValues, redirectTo?: string) => Promise<void>;
   logout: () => void;
+  startShopSwitch: () => void;
   refreshProfile: () => Promise<AuthProfile | null>;
   refreshSession: () => Promise<string>;
   fetchWithSession: fetchSessionFn;
@@ -51,6 +52,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_PROFILE_STORAGE_KEY = "auth_profile_cache_v1";
+const SWITCHING_SHOP_COOKIE = "switching_shop";
 
 function readCachedProfile(): AuthProfile | null {
   if (typeof window === "undefined") {
@@ -96,6 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (businesses: AuthProfileBusiness[], isAdmin: boolean): number | null => {
       if (isAdmin || businesses.length === 0) {
         return null;
+      }
+
+      if (businesses.length === 1) {
+        return businesses[0].id;
       }
 
       // Only return shop ID from cookie, don't auto-select first shop
@@ -193,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     Cookies.remove("user_role");
     Cookies.remove("current_shop_id");
+    Cookies.remove(SWITCHING_SHOP_COOKIE);
     setCurrentShopIdState(null);
     setAdminData(null);
     router.push("/login");
@@ -341,13 +348,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const profile = await refreshProfile();
 
         if (profile) {
-          if (!profile.isAdmin && profile.businesses.length > 0) {
+          if (!profile.isAdmin && profile.businesses.length > 1) {
             setPendingShopSelection(true);
             setLoading(false);
             return;
           }
 
-          // Admin or user with no shops - redirect immediately
+          if (!profile.isAdmin && profile.businesses.length === 1) {
+            setCurrentShopId(profile.businesses[0].id);
+          }
+
           router.push(profile?.isAdmin ? "/orders" : "/categories");
         }
       }
@@ -358,7 +368,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const startShopSwitch = useCallback(() => {
+    Cookies.set(SWITCHING_SHOP_COOKIE, "1", { path: "/" });
+    setPendingShopSelection(true);
+    router.push("/login");
+  }, [router]);
+
   const completeShopSelection = useCallback(() => {
+    Cookies.remove(SWITCHING_SHOP_COOKIE);
     setPendingShopSelection(false);
     router.push("/categories");
   }, [router]);
@@ -392,6 +409,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pendingShopSelection,
       login,
       logout,
+      startShopSwitch,
       refreshProfile,
       refreshSession,
       fetchWithSession,
@@ -406,6 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pendingShopSelection,
       login,
       logout,
+      startShopSwitch,
       refreshProfile,
       refreshSession,
       fetchWithSession,

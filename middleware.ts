@@ -57,6 +57,11 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    const isSwitchingShop = request.cookies.get("switching_shop")?.value;
+    if (isSwitchingShop) {
+      return NextResponse.next();
+    }
+
     return NextResponse.redirect(
       new URL(
         userRole === ROLES.ADMIN ? "/" : "/categories",

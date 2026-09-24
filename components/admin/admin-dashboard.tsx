@@ -22,15 +22,12 @@ import {
   type CouriersSort,
 } from '@/components/hooks/useDashboardLists'
 import { CreatePromocodeSheet } from '@/components/promotions/create-promocode-sheet'
+import { OrdersChartCard } from '@/components/charts/orders-chart-card'
+import { OrdersTodayCard } from '@/components/dashboard/orders-today-card'
+import { OperationalRevenueCard } from '@/components/dashboard/operational-revenue-card'
+import { PaymentMethodsCard } from '@/components/dashboard/payment-methods-card'
 
 const NOW = new Date()
-
-const daysAgoLocal = (daysAgo: number) => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() - daysAgo)
-  return d
-}
 
 const fmtNum = (n: number | null | undefined) => (n == null ? '—' : n.toLocaleString('ru-RU'))
 
@@ -42,10 +39,6 @@ const fmtCompact = (n: number | null | undefined) => {
   if (n >= 1000) return `${(n / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} к`
   return n.toLocaleString('ru-RU')
 }
-
-const fmtPct = (n: number | null | undefined) => (n == null ? '—' : `${n.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`)
-
-const fmtMinutes = (n: number | null | undefined) => (n == null ? '—' : `${Math.round(n)} мин`)
 
 function Trend({ value, invert = false }: { value: number | null | undefined; invert?: boolean }) {
   if (value == null || !Number.isFinite(value)) return null
@@ -335,150 +328,6 @@ function TopActionBar({ onCreatePromocode }: { onCreatePromocode: () => void }) 
   )
 }
 
-function OrdersTodayCard({ today }: { today: DashboardStatusCounts | null }) {
-  return (
-    <DashboardCard title='Заказы сегодня'>
-      <div className='flex flex-wrap items-start gap-x-[32px] gap-y-[12px] lg:gap-[48px]'>
-        <div className='flex flex-col'>
-          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>В работе</span>
-          <span className='mt-[2px] text-[32px] font-bold leading-[36px] tracking-[-0.02em] text-[#0E0E27]'>{fmtNum(today?.inWork)}</span>
-        </div>
-        <div className='flex flex-col'>
-          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>Доставлено</span>
-          <span className='mt-0.5 text-[20px] font-bold leading-7 text-[#0E0E27]'>{fmtNum(today?.delivered)}</span>
-        </div>
-        <div className='flex flex-col'>
-          <span className='text-[12px] leading-3.5 text-[#7F7F8A]'>Отмен</span>
-          <span className='mt-0.5 text-[20px] font-bold leading-7 text-[#0E0E27]'>{fmtNum(today?.cancelled)}</span>
-        </div>
-      </div>
-      <div className='mt-[20px] grid grid-cols-2 gap-[4px] pb-[4px] min-[420px]:grid-cols-4'>
-        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
-          <div className='flex items-center gap-[4px]'>
-            <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-              <circle cx='9' cy='9' r='3.75' fill='#55CB00' />
-            </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.pending)}</span>
-          </div>
-          <span className='text-[11px] leading-none text-[#7F7F8A]'>Ожидание</span>
-        </div>
-
-        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
-          <div className='flex items-center gap-[4px]'>
-            <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-              <path
-                d='M8.87975 1.5C10.619 1.50021 12.0292 2.91106 12.0292 4.65039V5.25H13.4354C14.2192 5.25018 14.8705 5.85321 14.9305 6.63477L15.0506 8.19238C15.0824 8.60527 14.7731 8.96609 14.3602 8.99805C13.9474 9.02957 13.5874 8.72042 13.5555 8.30762L13.4354 6.75H4.32408V6.75098L3.75182 14.1924C3.71843 14.6279 4.0632 15 4.49986 15H8.24986C8.66394 15.0002 8.99986 15.3359 8.99986 15.75C8.99986 16.1641 8.66394 16.4998 8.24986 16.5H4.49986C3.18908 16.5 2.1567 15.384 2.2567 14.0781L2.82896 6.63574C2.8889 5.85373 3.53973 5.25013 4.32408 5.25H5.72936V4.65039C5.72936 2.91099 7.14037 1.50011 8.87975 1.5ZM15.7215 11.8828C15.9664 11.9306 16.1722 12.0974 16.2694 12.3271C16.7315 13.4203 16.5203 14.7333 15.6258 15.627L15.6268 15.6279C14.9067 16.3479 13.917 16.6148 12.996 16.457C12.5882 16.3869 12.3142 15.9997 12.3837 15.5918C12.4536 15.1835 12.8416 14.9086 13.2499 14.9785C13.7205 15.0591 14.211 14.9215 14.5663 14.5664L14.6454 14.4805C14.8346 14.2599 14.9485 13.9968 14.9891 13.7246C14.8694 13.691 14.7552 13.6303 14.661 13.5361C14.3684 13.2433 14.3684 12.7684 14.661 12.4756L15.0477 12.0889C15.224 11.9126 15.4768 11.8353 15.7215 11.8828ZM11.5194 11.2354C12.2706 10.578 13.2653 10.3691 14.1717 10.5771C14.5752 10.6699 14.8278 11.073 14.7352 11.4766C14.6483 11.8548 14.2889 12.0996 13.912 12.0527L13.6483 12.0088C13.209 11.9628 12.7626 12.1045 12.4335 12.4336C12.1968 12.6699 12.0548 12.9663 12.0087 13.2744C12.1288 13.3079 12.2432 13.3694 12.3378 13.4639C12.6305 13.7567 12.6305 14.2316 12.3378 14.5244L11.951 14.9121C11.7747 15.0883 11.5219 15.1648 11.2772 15.1172C11.0325 15.0694 10.8276 14.9033 10.7303 14.6738C10.2679 13.5805 10.4783 12.2669 11.3729 11.373L11.5194 11.2354ZM8.87975 3C7.9688 3.00011 7.22936 3.73942 7.22936 4.65039V5.25H10.5292V4.65039C10.5292 3.73948 9.7906 3.00021 8.87975 3Z'
-                fill='#FFC400'
-              />
-            </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.assembling)}</span>
-          </div>
-          <span className='text-[11px] leading-none text-[#7F7F8A]'>Сборка</span>
-        </div>
-
-        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
-          <div className='flex items-center gap-[4px]'>
-            <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-              <path
-                d='M13.5 16.5C11.8425 16.5 10.5 15.1568 10.5 13.5C10.5 11.8432 11.8425 10.5 13.5 10.5C15.1568 10.5 16.5 11.8432 16.5 13.5C16.5 15.1568 15.1568 16.5 13.5 16.5'
-                stroke='#55CB00'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M8.25 15.75H3.75C2.92125 15.75 2.25 15.0788 2.25 14.25V6.375C2.25 5.754 2.754 5.25 3.375 5.25H13.125C13.746 5.25 14.25 5.754 14.25 6.375V8.25'
-                stroke='#55CB00'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M5.25 5.0625V5.0625C5.25 3.50925 6.50925 2.25 8.0625 2.25H8.4375C9.99075 2.25 11.25 3.50925 11.25 5.0625V5.0625'
-                stroke='#55CB00'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M11.25 5.0625V5.25'
-                stroke='#55CB00'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M14.6699 12.9141L13.2112 14.3728L12.3359 13.4976'
-                stroke='#55CB00'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.ready)}</span>
-          </div>
-          <span className='text-[11px] leading-none text-[#7F7F8A]'>Готов</span>
-        </div>
-
-        <div className='flex flex-col justify-between gap-[6px] rounded-[8px] border border-[#DCDCE6]/50 p-[8px]'>
-          <div className='flex items-center gap-[4px]'>
-            <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-              <path
-                d='M6.7525 11.2513C6.7525 12.9088 5.40879 14.2525 3.75125 14.2525C2.09371 14.2525 0.75 12.9088 0.75 11.2513C0.75 9.59372 2.09371 8.25001 3.75125 8.25001C4.27289 8.24901 4.78548 8.38622 5.23687 8.64768'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <circle
-                cx='14.2591'
-                cy='11.2512'
-                r='3.00125'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M14.4463 6.36797C14.6951 6.36797 14.9336 6.26916 15.1095 6.09327C15.2854 5.91738 15.3842 5.67882 15.3842 5.43008V5.43008C15.3842 5.18133 15.2854 4.94278 15.1095 4.76689C14.9336 4.591 14.6951 4.49219 14.4463 4.49219H12.0078L14.2588 11.245'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                fillRule='evenodd'
-                clipRule='evenodd'
-                d='M3.75 11.2444H8.25187L12.0034 5.99219H6.75125L3.75 11.2444Z'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M5.25 4.11734H7.50094'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-              <path
-                d='M8.25094 11.2452L6 4.11719'
-                stroke='#478EFF'
-                strokeWidth='1.5'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
-            <span className='text-[14px] font-bold leading-none text-[#0E0E27]'>{fmtNum(today?.delivery)}</span>
-          </div>
-          <span className='text-[11px] leading-none text-[#7F7F8A]'>Доставка</span>
-        </div>
-      </div>
-    </DashboardCard>
-  )
-}
-
 function UsersQuarterCard({ stat }: { stat: DashboardUsersQuarter | null }) {
   return (
     <DashboardCard title='Пользователей (квартал)' footer={<MoreLink />}>
@@ -526,300 +375,6 @@ function ClientsMonthCard({ clients }: { clients: DashboardClientsMonth | null }
           <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Потерянные</span>
           <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtNum(clients?.lost)}</span>
         </div>
-      </div>
-    </DashboardCard>
-  )
-}
-
-const OrdersChartLegend = () => (
-  <div className='flex items-center gap-[16px]'>
-    <span className='flex items-center gap-[6px] text-[12px] text-[#7F7F8A]'>
-      <span className='block h-[14px] w-[14px] rounded-[8px] bg-[#55CB00]' />
-      Выполнено
-    </span>
-    <span className='flex items-center gap-[6px] text-[12px] text-[#7F7F8A]'>
-      <span className='block h-[14px] w-[14px] rounded-[8px] bg-[#F5462C]' />
-      Отменено
-    </span>
-  </div>
-)
-
-function OrdersChartCard({
-  chart,
-  chartTotals,
-  avgTimes,
-}: {
-  chart: DashboardDayStat[]
-  chartTotals: ReturnType<typeof useDashboardData>['chartTotals']
-  avgTimes: DashboardAvgTimes | null
-}) {
-  const todayDay = NOW.getDate()
-  const chartData = chart.length
-    ? chart
-    : Array.from({ length: 30 }, (_, i) => {
-        const d = daysAgoLocal(29 - i)
-        return { date: '', day: d.getDate(), weekday: '', completed: 0, cancelled: 0, active: 0 }
-      })
-  const [hoveredDay, setHoveredDay] = React.useState<number | null>(null)
-  const [tooltip, setTooltip] = React.useState<{ x: number; y: number; value: number } | null>(null)
-  const barsRef = React.useRef<HTMLDivElement>(null)
-
-  const chartMaxTotal = Math.max(1, ...chartData.map((d) => d.completed + d.cancelled))
-
-  const activeDay = hoveredDay
-
-  const handleSectionMove = (day: number, value: number, e: React.MouseEvent | React.TouchEvent) => {
-    const rect = barsRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const point = 'touches' in e ? e.touches[0] : e
-    if (!point) return
-    const x = Math.min(Math.max(point.clientX - rect.left, 32), rect.width - 32)
-    const y = Math.max(point.clientY - rect.top, 44)
-    setHoveredDay(day)
-    setTooltip({ x, y, value })
-  }
-
-  const handleChartLeave = () => {
-    setHoveredDay(null)
-    setTooltip(null)
-  }
-
-  return (
-    <DashboardCard title='График заказов за 30 дней' footer={<OrdersChartLegend />}>
-      <div className='grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:grid-cols-4 lg:flex lg:items-start'>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
-          <span className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>
-            {fmtNum(chartTotals?.total)}
-          </span>
-
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-7 text-[12px] leading-3.5 text-[#7F7F8A]'>
-            Доставлено
-            <br />
-            заказов
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtNum(chartTotals?.completed)}</span>
-
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Отмененные
-            <br />
-            заказы
-          </span>
-          <span className='mt-[2px] whitespace-nowrap text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
-            {chartTotals ? `${fmtNum(chartTotals.cancelled)} (${fmtPct(chartTotals.cancelledPercent)})` : '—'}
-          </span>
-
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Частотность
-            <br />
-            заказов
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>
-            {chartTotals ? chartTotals.ordersPerDay.toLocaleString('ru-RU') : '—'}
-          </span>
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Среднее время
-            <br />
-            закрытия заказа
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.closeMinutes)}</span>
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Среднее время
-            <br />
-            доставки
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.deliveryMinutes)}</span>
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Среднее время
-            <br />
-            Сборки
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.assemblyMinutes)}</span>
-        </div>
-        <div className='flex flex-1 min-w-0 flex-col'>
-          <span className='min-h-[28px] text-[12px] leading-[14px] text-[#7F7F8A]'>
-            Среднее время
-            <br />
-            подтверждения
-          </span>
-          <span className='mt-[2px] text-[20px] font-bold leading-[28px] text-[#0E0E27]'>{fmtMinutes(avgTimes?.confirmMinutes)}</span>
-        </div>
-      </div>
-
-      <div ref={barsRef} className='relative mt-[24px]' onMouseLeave={handleChartLeave} onTouchEnd={handleChartLeave}>
-        <div className='flex items-end gap-[3px] lg:gap-[6px]'>
-          {chartData.map((d) => {
-            const total = d.completed + d.cancelled
-            const totalPct = (total / chartMaxTotal) * 100
-            const cancelledPct = total > 0 ? (d.cancelled / total) * 100 : 0
-            const completedPct = total > 0 ? (d.completed / total) * 100 : 0
-            const isActive = d.day === activeDay
-            return (
-              <div
-                key={`${d.date}-${d.day}`}
-                className='flex h-[140px] flex-1 cursor-pointer flex-col justify-end lg:h-[200px]'
-              >
-                <div className='flex w-full flex-col gap-[2px]' style={{ height: `${totalPct}%` }}>
-                  {d.cancelled > 0 && (
-                    <div
-                      className='w-full rounded-[8px]'
-                      style={{
-                        height: `${cancelledPct}%`,
-                        backgroundColor: isActive ? '#F5462C' : '#AAAAB8',
-                      }}
-                      onMouseMove={(e) => handleSectionMove(d.day, d.cancelled, e)}
-                      onTouchMove={(e) => handleSectionMove(d.day, d.cancelled, e)}
-                    />
-                  )}
-                  <div
-                    className='w-full rounded-[8px]'
-                    style={{
-                      height: `${completedPct}%`,
-                      backgroundColor: isActive ? '#55CB00' : '#EEEEF4',
-                    }}
-                    onMouseMove={(e) => handleSectionMove(d.day, d.completed, e)}
-                    onTouchMove={(e) => handleSectionMove(d.day, d.completed, e)}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {tooltip && (
-          <div
-            className='pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[10px] bg-[#0E0E27] px-[12px] py-[6px] text-[13px] font-semibold text-white shadow-md'
-            style={{ left: tooltip.x, top: tooltip.y - 12 }}
-          >
-            {tooltip.value}
-          </div>
-        )}
-      </div>
-
-      <div className='mt-[8px] flex gap-[3px] lg:gap-[6px]'>
-        {chartData.map((d, i) => (
-          <div key={d.day} className='flex flex-1 flex-col items-center'>
-            <span className={`text-[11px] leading-[16px] text-[#0E0E27] ${i % 2 === 1 ? 'max-lg:hidden' : ''}`}>{d.day}</span>
-            <span className='hidden text-[10px] leading-[14px] text-[#A9A9B7] lg:block'>{d.weekday}</span>
-            {d.day === todayDay && <div className='mt-[4px] h-px w-full rounded-[1px] bg-[#55CB00]' />}
-          </div>
-        ))}
-      </div>
-    </DashboardCard>
-  )
-}
-
-function OperationalRevenueCard({ revenue }: { revenue: DashboardRevenue | null }) {
-  const items = [
-    {
-      label: 'Выплаты курьерам',
-      value: revenue?.courierPayouts,
-      color: '#6BA4F8',
-    },
-    {
-      label: 'Доход компаний',
-      value: revenue?.companyIncome,
-      color: '#9747FF',
-    },
-    {
-      label: 'Доход партнеров',
-      value: revenue?.partnerIncome,
-      color: '#E5A832',
-    },
-    {
-      label: 'Оборот продавцов',
-      value: revenue?.sellerTurnover,
-      color: '#67C63C',
-    },
-  ]
-
-  const percents =
-    revenue && revenue.total > 0
-      ? items.map((item) => Math.round(((item.value ?? 0) / revenue.total) * 100))
-      : [25, 25, 25, 25]
-
-  return (
-    <DashboardCard title='Операционная выручка (месяц)' footer={<MoreLink />} className='flex-1'>
-      <div className='flex h-full gap-[12px]'>
-        <div className='flex-1 min-w-0 flex flex-col'>
-          <span className='text-[12px] leading-[14px] text-[#7F7F8A]'>Всего</span>
-          <div className='mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.02em] text-[#0E0E27]'>
-            {fmtMoney(revenue?.total)}
-          </div>
-
-          <div className='mt-[12px] flex flex-1 flex-col justify-center'>
-            {items.map((item, i) => (
-              <React.Fragment key={item.label}>
-                {i > 0 && <div className='my-[12px] h-px bg-[#F0F0F5]' />}
-                <div className='flex flex-row gap-1.5'>
-                  <span
-                    className='inline-block h-[14px] w-[14px] rounded-[8px]'
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <div className='flex flex-col gap-1'>
-                    <div className='flex items-center gap-[6px]'>
-                      <span className='text-[12px] text-[#7F7F8A]'>{item.label}</span>
-                    </div>
-                    <span className='mt-[1px] block font-[Inter_Tight] text-[14px] font-semibold leading-[16px] tracking-normal text-[#0E0F27]'>
-                      {fmtMoney(item.value ?? null)}
-                    </span>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        <div className='flex h-full w-[64px] flex-shrink-0 flex-col gap-[2px] lg:w-[90px]'>
-          {items.map((item, i) => (
-            <div
-              key={item.label}
-              className='flex min-h-[44px] items-center justify-center rounded-[8px]'
-              style={{ backgroundColor: item.color, flex: Math.max(percents[i], 1) }}
-            >
-              <span className='text-center text-[12px] font-semibold leading-tight text-white'>
-                {fmtCompact(item.value ?? null)}
-                <br />
-                {percents[i]}%
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </DashboardCard>
-  )
-}
-
-function PaymentMethodsCard({ payments }: { payments: DashboardPaymentMethods | null }) {
-  const methods = [
-    { label: 'Наличными', value: payments?.cash },
-    { label: 'СБП', value: payments?.sbp },
-    { label: 'Kaspi', value: payments?.kaspi },
-  ]
-
-  return (
-    <DashboardCard title='Метод оплаты'>
-      <div className='flex flex-wrap items-start gap-x-[24px] gap-y-[12px] lg:gap-x-[32px]'>
-        {methods.map((m) => (
-          <div key={m.label} className='flex flex-col'>
-            <span className='text-[14px] leading-[18px] text-[#0E0F27]/50'>{m.label}</span>
-            <span className='mt-[2px] font-[Inter_Tight] text-[14px] font-semibold leading-[16px] text-[#0E0F27]'>
-              {fmtNum(m.value ?? null)}
-            </span>
-          </div>
-        ))}
       </div>
     </DashboardCard>
   )
@@ -1044,6 +599,7 @@ export const AdminDashboard = () => {
                 <ClientsMonthCard clients={dashboard.clientsMonth} />
               </div>
               <OrdersChartCard
+                title='График заказов за 30 дней'
                 chart={dashboard.chart}
                 chartTotals={dashboard.chartTotals}
                 avgTimes={dashboard.avgTimes}
@@ -1051,7 +607,7 @@ export const AdminDashboard = () => {
             </div>
 
             <div className='flex flex-col gap-[8px] lg:w-[320px]'>
-              <OperationalRevenueCard revenue={dashboard.revenue} />
+              <OperationalRevenueCard revenue={dashboard.revenue} className='flex-1' />
               <PaymentMethodsCard payments={dashboard.payments} />
             </div>
           </div>

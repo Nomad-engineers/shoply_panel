@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/theme";
 import { useAuth } from "../hooks/useLogin";
 import { MenuIcon } from "@/components/icons/menu-icons";
-import { ShopSwitcher } from "../ui/shops.dropdown";
+import { getImageUrl } from "@/lib/utils";
 import type { AuthProfileBusiness } from "@/types/auth";
 import Image from "next/image";
 
@@ -20,10 +20,11 @@ export interface NavItem {
   label: string
   href?: string
   icon: string
+  badge?: string
   roles?: string[] // If undefined, visible to all. If defined, only visible to these roles.
 }
 
-const NAV_ITEMS: NavItem[] = [
+const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Главная', href: '/', icon: 'home' },
   { label: 'Заказы', href: '/orders', icon: 'cart' },
   { label: 'Курьеры', href: '/reports/couriers', icon: 'bike', roles: ['admin', 'operator'] },
@@ -38,6 +39,16 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Товары', href: '/categories', icon: 'store', roles: ['shop_owner', 'shop_employee'] },
 ];
 
+const SHOP_NAV_ITEMS: NavItem[] = [
+  { label: 'Главная', href: '/home', icon: 'home' },
+  { label: 'Заказы', href: '/orders', icon: 'orders' },
+  { label: 'История заказов', icon: 'history' },
+  { label: 'Отчет', href: '/reports', icon: 'filetext' },
+  { label: 'Отзывы', icon: 'message' },
+  { label: 'Управление', icon: 'basket' },
+  { label: 'Витрина', icon: 'storefront', badge: 'New' },
+];
+
 interface SidebarNavProps {
   className?: string;
   isCollapsed?: boolean;
@@ -48,7 +59,7 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
   ({ className, isCollapsed = false, onToggleCollapse }, ref) => {
     const pathname = usePathname();
     const router = useRouter();
-    const { adminData, currentShopId, logout, setCurrentShopId } = useAuth();
+    const { adminData, currentShopId, logout, setCurrentShopId, startShopSwitch } = useAuth();
 
     const allShops = React.useMemo(
       () =>
@@ -84,6 +95,10 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
 
     const isLoggedIn = !!adminData;
     const userRole = adminData?.role;
+    const isAdminUser = !!adminData?.isAdmin;
+
+    // Shop users get the dedicated store navigation set
+    const navItems = isAdminUser ? ADMIN_NAV_ITEMS : SHOP_NAV_ITEMS;
 
     const fullName = [adminData?.firstName, adminData?.lastName].filter(Boolean).join(' ') || 'Пользователь';
     const roleLabel = adminData ? (ROLE_LABELS[adminData.role] ?? adminData.role) : '';
@@ -93,15 +108,13 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
       !!href && (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/'));
 
     // Filter nav items based on user role
-    const visibleNavItems = NAV_ITEMS.filter(item => {
+    const visibleNavItems = navItems.filter(item => {
       if (!item.roles) return true;
       if (!userRole) return false;
       return item.roles.includes(userRole);
     });
 
-    const handleShopChange = (shopId: number) => {
-      setCurrentShopId(shopId);
-    };
+    const canSwitchShops = (adminData?.businesses?.length ?? 0) > 1;
 
     return (
       <div
@@ -222,21 +235,48 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
           </button>
         </header>
 
-        {/* Shop Switcher for non-admin users */}
-        {isLoggedIn && !adminData?.isAdmin && (
+        {/* Current shop banner for non-admin users */}
+        {isLoggedIn && !isAdminUser && currentShop && (
           <div
             className={cn(
-              "px-[8px] py-[8px]",
-              isCollapsed && "flex justify-center"
+              'flex items-center gap-[10px] px-[16px] py-[12px]',
+              isCollapsed && 'justify-center px-[8px]'
             )}
           >
-            <ShopSwitcher
-              currentShop={currentShop}
-              allShops={allShops}
-              activeShopId={activeShopId}
-              onShopSelect={handleShopChange}
-              isCollapsed={isCollapsed}
-            />
+            <span
+              className='grid h-[44px] w-[44px] shrink-0 place-items-center overflow-hidden rounded-[12px] border border-[#ECECF3] bg-white'
+              title={isCollapsed ? currentShop.name : undefined}
+            >
+              {currentShop.photo ? (
+                <img
+                  src={getImageUrl(currentShop.photo, { width: 44, height: 44, fit: 'cover' })}
+                  alt={currentShop.name}
+                  className='h-full w-full object-cover'
+                />
+              ) : (
+                <MenuIcon name='store' className='h-5 w-5 text-[#9696A0]' />
+              )}
+            </span>
+            {!isCollapsed && (
+              <>
+                <span
+                  className='animate-sidebar-content-in min-w-0 flex-1 truncate text-[16px] font-medium leading-[18px] tracking-normal text-[#1C2533]'
+                  style={{ fontFamily: 'var(--font-inter-tight)' }}
+                >
+                  {currentShop.name}
+                </span>
+                {canSwitchShops && (
+                  <button
+                    type='button'
+                    onClick={startShopSwitch}
+                    title='Сменить магазин'
+                    className='grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-[8px] bg-transparent text-[#AAAAB8] transition-colors hover:bg-[#F5F6F6]'
+                  >
+                    <MenuIcon name='switch' className='h-6 w-6' />
+                  </button>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -252,27 +292,32 @@ export const SidebarNav = React.forwardRef<HTMLDivElement, SidebarNavProps>(
             const content = (
               <>
                 <span
-                  className={`grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[6px] transition-colors ${
+                  className={`grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors ${
                     active ? 'bg-[#09091D]' : 'bg-transparent'
                   }`}
                 >
                   <MenuIcon
                     name={item.icon}
-                    className={`h-[18px] w-[18px] ${active ? 'text-white' : 'text-[#09091D]'}`}
+                    className={`h-5 w-5 ${active ? 'text-white' : 'text-[#09091D]'}`}
                   />
                 </span>
                 {!isCollapsed && (
                   <span
-                    className={`animate-sidebar-content-in flex-1 truncate text-[13px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
+                    className={`animate-sidebar-content-in flex flex-1 items-center gap-[4px] truncate text-[14px] font-medium ${active ? 'text-[#0E0E27]' : 'text-[#0E0E27]'}`}
                   >
                     {item.label}
+                    {item.badge && (
+                      <span className='text-[11px] font-bold leading-none text-[#5BAF1F]'>
+                        {item.badge}
+                      </span>
+                    )}
                   </span>
                 )}
               </>
             )
 
             const className = cn(
-              "flex h-[40px] shrink-0 items-center gap-[8px] rounded-[12px] px-[8px] transition-colors",
+              "flex h-[44px] shrink-0 items-center gap-[10px] rounded-[12px] px-[8px] transition-colors",
               active ? 'bg-[#F8F8FA]' : item.href ? 'hover:bg-[#F5F6F6]' : 'opacity-50',
               isCollapsed && "justify-center px-0"
             )

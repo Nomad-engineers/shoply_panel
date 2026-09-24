@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useLogin";
 import { Button } from "../ui/button";
 import { Radio } from "../ui/radio";
+import { cn } from "@/lib/theme";
 import Image from "next/image";
 import type { AuthProfileBusiness } from "@/types/auth";
 
@@ -54,16 +55,19 @@ export const ShopSelectionForm = ({ shops, userName }: ShopSelectionFormProps) =
 
       {/* Header */}
       <div>
+        <p className="m-0 text-lg font-medium tracking-tight text-[#0E0F27]">
+          Добро пожаловать
+        </p>
         <h1
           id="shop-selection-title"
-          className="m-0 text-xl font-bold tracking-tight text-[#0E0F27]"
+          className="m-0 mt-1 text-[28px] font-extrabold tracking-tight text-[#0E0F27]"
         >
-          Добро пожаловать, {userName}!
+          {userName}
         </h1>
         <button
           type="button"
           onClick={logout}
-          className="m-0 mt-2 bg-transparent border-none cursor-pointer text-sm text-[#DC2626] hover:text-[#B91C1C] transition-colors"
+          className="m-0 mt-2 bg-transparent border-none cursor-pointer p-0 text-sm font-semibold text-[#DC2626] hover:text-[#B91C1C] transition-colors"
         >
           Выйти
         </button>
@@ -71,27 +75,43 @@ export const ShopSelectionForm = ({ shops, userName }: ShopSelectionFormProps) =
 
       {/* Shop Selection */}
       <div className="grid gap-3">
-        <p className="text-sm font-semibold text-[#0E0F2780]">
+        <p className="text-sm font-medium text-[#0E0F2780]">
           Выберите магазин
         </p>
         <div className="grid gap-3">
-          {shops.map((shop) => (
-            <div
-              key={shop.id}
-              className="flex items-center justify-between w-full h-12 rounded-xl border border-[#DCDCE6] bg-[#F8F8FA] px-4 hover:border-[#9747FF]/30 transition-colors"
-            >
-              <span className="text-sm font-semibold tracking-tight text-[#111322]">
-                {shop.name}
-              </span>
-              <Radio
-                name="shop"
-                value={shop.id}
-                checked={selectedShopId === shop.id}
-                onChange={() => setSelectedShopId(shop.id)}
-                className="h-5 w-5 accent-[#9747FF]"
-              />
-            </div>
-          ))}
+          {shops.map((shop) => {
+            const isSelected = selectedShopId === shop.id;
+
+            return (
+              <label
+                key={shop.id}
+                htmlFor={`shop-option-${shop.id}`}
+                className={cn(
+                  "flex cursor-pointer items-center justify-between w-full h-12 rounded-xl border bg-white px-4 transition-colors",
+                  isSelected
+                    ? "border-[#22C55E]"
+                    : "border-[#DCDCE6] hover:border-[#9747FF]/30"
+                )}
+              >
+                <span className="text-sm font-medium tracking-tight text-[#111322]">
+                  {shop.name}
+                </span>
+                <Radio
+                  id={`shop-option-${shop.id}`}
+                  name="shop"
+                  value={shop.id}
+                  checked={isSelected}
+                  onChange={() => setSelectedShopId(shop.id)}
+                  className={cn(
+                    "h-5 w-5 appearance-none rounded-full border-2 bg-white transition-all",
+                    isSelected
+                      ? "border-[#22C55E] bg-[#22C55E] ring-2 ring-[#22C55E] ring-offset-2"
+                      : "border-[#C9C9D4] hover:border-[#22C55E]/50"
+                  )}
+                />
+              </label>
+            );
+          })}
         </div>
       </div>
 
